@@ -30,6 +30,7 @@ class MainScreen(Screen):
         ("r", "reply", "Reply"),
         ("e", "edit", "Edit"),
         ("d", "delete", "Delete"),
+        ("a", "toggle_archived", "Show/hide archived"),
         ("B,shift+b", "broadcast_status", "Bcast status"),
     ]
 
@@ -132,6 +133,12 @@ class MainScreen(Screen):
             ConfirmDelete(f"Delete message {msg.id} from {msg.from_peer}?"),
             _after,
         )
+
+    def action_toggle_archived(self) -> None:
+        inbox = self.query_one(InboxList)
+        inbox.toggle_archived()
+        state = "shown" if inbox.show_archived else "hidden"
+        self.notify(f"Archived messages {state}", timeout=2)
 
     def action_broadcast_status(self) -> None:
         msg = self.query_one(InboxList).selected_message()

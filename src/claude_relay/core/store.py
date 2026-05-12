@@ -202,15 +202,22 @@ def reply_to(msg_id: str, body: str, from_peer: str,
 
 def list_inbox(peer_name: str, include_archived: bool = False) -> list[Message]:
     out: list[Message] = []
+    seen: set[str] = set()
     inbox_dir = paths.INBOX_DIR / peer_name
     if inbox_dir.exists():
         for p in sorted(inbox_dir.glob("*.json")):
-            out.append(_read_message_at(p))
+            msg = _read_message_at(p)
+            if msg.id not in seen:
+                out.append(msg)
+                seen.add(msg.id)
     if include_archived:
         processed_dir = paths.PROCESSED_DIR / peer_name
         if processed_dir.exists():
             for p in sorted(processed_dir.glob("*.json")):
-                out.append(_read_message_at(p))
+                msg = _read_message_at(p)
+                if msg.id not in seen:
+                    out.append(msg)
+                    seen.add(msg.id)
     out.sort(key=lambda m: m.created_at, reverse=True)
     return out
 

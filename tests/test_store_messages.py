@@ -104,3 +104,21 @@ def test_list_inbox_for_peer(relay_dir):
     items = store.list_inbox("child")
     assert len(items) == 2
     assert {m.subject for m in items} == {"a", "b"}
+
+
+def test_list_inbox_dedups_when_id_appears_in_both_dirs(relay_dir):
+    """Defensive: legacy data sometimes has the same msg id in both inbox/
+    and processed/. list_inbox should return it once."""
+    import json
+    _peers("parent", "child")
+    msg = store.send_message(from_peer="parent", to_peer="child",
+                             subject="s", body="b")
+    # Manually plant a duplicate in processed/
+    dup_dir = relay_dir / "processed" / "child"
+    dup_dir.mkdir(parents=True, exist_ok=True)
+    dup_path = dup_dir / f"{msg.id}.json"
+    dup_path.write_text(json.dumps({**msg.to_dict(), "archived": True}))
+    # With include_archived=True, must still see only one entry for this id
+    items = store.list_inbox("child", include_archived=True)
+    ids = [m.id for m in items]
+    assert ids.count(msg.id) == 1

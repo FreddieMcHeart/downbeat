@@ -12,6 +12,8 @@ class InboxList(DataTable):
         super().__init__(**kwargs)
         self.cursor_type = "row"
         self._messages: list[Message] = []
+        self.show_archived: bool = False
+        self._current_peer: str | None = None
 
     def on_mount(self):
         self.add_columns("S", "time", "from", "subject")
@@ -22,10 +24,11 @@ class InboxList(DataTable):
 
     def refresh_for_peer(self, peer_name: str | None) -> None:
         self.clear()
+        self._current_peer = peer_name
         if not peer_name:
             self._messages = []
             return
-        self._messages = store.list_inbox(peer_name, include_archived=True)
+        self._messages = store.list_inbox(peer_name, include_archived=self.show_archived)
         for m in self._messages:
             flag = {"new": "•", "read": " ", "archived": "·"}[m.state.value]
             time_str = m.created_at[11:16] if len(m.created_at) >= 16 else ""
@@ -33,6 +36,10 @@ class InboxList(DataTable):
 
     def subjects(self) -> list[str]:
         return [m.subject for m in self._messages]
+
+    def toggle_archived(self) -> None:
+        self.show_archived = not self.show_archived
+        self.refresh_for_peer(self._current_peer)
 
     def selected_message(self) -> Message | None:
         row = self.cursor_row
