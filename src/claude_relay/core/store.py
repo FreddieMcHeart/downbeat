@@ -5,6 +5,7 @@ missing files and return empty containers."""
 from __future__ import annotations
 
 import json
+import logging
 import os
 import tempfile
 from pathlib import Path
@@ -12,6 +13,8 @@ from pathlib import Path
 from . import paths
 from .errors import MessageLocked, MessageNotFound, PeerNotFound, StoreCorrupt
 from .models import Broadcast, Message, MessageState, Peer, new_id, now_iso
+
+_log = logging.getLogger("claude_relay.core")
 
 
 def _atomic_write_text(target: Path, text: str) -> None:
@@ -47,6 +50,7 @@ def register_peer(name: str, session_id: str, cwd: str, role: str) -> Peer:
                 registered_at=registered_at, last_seen=now_iso())
     sessions[name] = peer.to_dict()
     _save_sessions(sessions)
+    _log.info("register peer=%s session=%s role=%s", name, session_id, role)
     return peer
 
 
@@ -122,6 +126,8 @@ def send_message(from_peer: str, to_peer: str, subject: str, body: str,
         broadcast_id=broadcast_id,
     )
     _write_message(msg)
+    _log.info("send from=%s to=%s msg=%s broadcast=%s bytes=%d",
+              from_peer, to_peer, msg.id, broadcast_id, len(body))
     return msg
 
 
@@ -133,6 +139,7 @@ def mark_read(msg_id: str) -> Message:
     d["read_at"] = now_iso()
     updated = Message.from_dict(d)
     _write_message(updated)
+    _log.info("read msg=%s", msg_id)
     return updated
 
 
@@ -151,11 +158,14 @@ def edit_message(msg_id: str, new_body: str | None = None,
     d["edited_at"] = now_iso()
     updated = Message.from_dict(d)
     _write_message(updated)
+    _log.info("edit msg=%s new_body_bytes=%d", msg_id,
+              len(new_body) if new_body else 0)
     return updated
 
 
 def delete_message(msg_id: str) -> None:
     _find_message_path(msg_id).unlink()
+    _log.info("delete msg=%s", msg_id)
 
 
 def reply_to(msg_id: str, body: str, from_peer: str,
@@ -181,6 +191,7 @@ def reply_to(msg_id: str, body: str, from_peer: str,
         broadcast_id=original.broadcast_id,
     )
     _write_message(reply)
+    _log.info("reply original=%s reply=%s", msg_id, reply.id)
     return reply
 
 
@@ -215,6 +226,8 @@ def broadcast(from_peer: str, to_peers: list[str],
                            subject=subject, body=body,
                            broadcast_id=bc_id)
         bc.message_ids.append(msg.id)
+    _log.info("broadcast id=%s from=%s targets=%d",
+              bc_id, from_peer, len(to_peers))
     return bc
 
 
