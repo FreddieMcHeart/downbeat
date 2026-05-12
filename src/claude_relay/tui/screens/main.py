@@ -6,6 +6,8 @@ from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Static
 
+from ..widgets.peer_list import PeerList
+
 
 class MainScreen(Screen):
     BINDINGS = [
@@ -19,7 +21,7 @@ class MainScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
         with Horizontal(id="three-pane"):
-            yield Static("Peers", id="peers-pane", classes="pane")
+            yield PeerList(id="peers-pane", classes="pane")
             yield Static("Inbox", id="inbox-pane", classes="pane")
             yield Static("Message", id="message-pane", classes="pane")
         yield Footer()
@@ -28,7 +30,7 @@ class MainScreen(Screen):
         self.app.bell()  # placeholder until Task 20
 
     def action_refresh(self) -> None:
-        self.app.bell()  # placeholder until Task 13
+        self.query_one(PeerList).refresh_from_store()
 
     def action_toggle_logs(self) -> None:
         self.app.bell()  # placeholder until Task 19
