@@ -169,14 +169,19 @@ def reply_to(msg_id: str, body: str, from_peer: str,
     old_path = _find_message_path(msg_id)
     old_path.unlink()
     _write_message(archived)
-    # Send the reply back to the original sender
-    return send_message(
+    # Send the reply back to the original sender (bypass peer check — the
+    # broadcaster may not be registered in the peer registry).
+    reply = Message(
+        id=new_id(),
         from_peer=from_peer,
         to_peer=original.from_peer,
         subject=f"{subject_prefix}{original.subject}",
         body=body,
+        created_at=now_iso(),
         broadcast_id=original.broadcast_id,
     )
+    _write_message(reply)
+    return reply
 
 
 def list_inbox(peer_name: str, include_archived: bool = False) -> list[Message]:
@@ -192,3 +197,71 @@ def list_inbox(peer_name: str, include_archived: bool = False) -> list[Message]:
                 out.append(_read_message_at(p))
     out.sort(key=lambda m: m.created_at, reverse=True)
     return out
+
+
+def broadcast(from_peer: str, to_peers: list[str],
+              subject: str, body: str) -> Broadcast:
+    bc_id = new_id()
+    bc = Broadcast(
+        id=bc_id,
+        subject=subject,
+        body=body,
+        from_peer=from_peer,
+        to_peers=list(to_peers),
+        created_at=now_iso(),
+    )
+    for target in to_peers:
+        msg = send_message(from_peer=from_peer, to_peer=target,
+                           subject=subject, body=body,
+                           broadcast_id=bc_id)
+        bc.message_ids.append(msg.id)
+    return bc
+
+
+def _scan_all_messages() -> list[Message]:
+    out: list[Message] = []
+    for base in (paths.INBOX_DIR, paths.PROCESSED_DIR):
+        if not base.exists():
+            continue
+        for peer_dir in base.iterdir():
+            for p in peer_dir.glob("*.json"):
+                try:
+                    out.append(_read_message_at(p))
+                except StoreCorrupt:
+                    continue
+    return out
+
+
+def broadcast_status(broadcast_id: str) -> list[dict]:
+    """Return one row per original target. State derived from sibling messages
+    and any reply messages that carry the same broadcast_id."""
+    all_msgs = _scan_all_messages()
+    siblings = [m for m in all_msgs if m.broadcast_id == broadcast_id]
+    if not siblings:
+        return []
+    # The original fan-out: each target appears as a recipient of one sibling
+    # with state != REPLY. A reply is a message FROM the target carrying the
+    # same broadcast_id.
+    originals = {m.to_peer: m for m in siblings
+                 if m.from_peer != m.to_peer and not _is_reply(m, siblings)}
+    rows: list[dict] = []
+    for target, original in originals.items():
+        replies = [m for m in siblings
+                   if m.from_peer == target and m.id != original.id]
+        if replies:
+            state = "replied"
+        elif original.state == MessageState.READ:
+            state = "read"
+        else:
+            state = "pending"
+        rows.append({"target": target, "state": state,
+                     "original_id": original.id,
+                     "reply_ids": [r.id for r in replies]})
+    return rows
+
+
+def _is_reply(msg: Message, siblings: list[Message]) -> bool:
+    # A reply has both from_peer and to_peer flipped vs the original. We
+    # treat any sibling where from_peer != "parent fan-out sender" as a reply.
+    # Simpler heuristic: replies have subject starting with "Re: ".
+    return msg.subject.startswith("Re: ")
