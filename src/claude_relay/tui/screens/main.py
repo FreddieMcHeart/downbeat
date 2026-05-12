@@ -12,6 +12,7 @@ from ..widgets.edit_modal import EditModal, perform_edit
 from ..widgets.inbox_list import InboxList
 from ..widgets.message_view import MessageView
 from ..widgets.peer_list import PeerList
+from .broadcast_status import BroadcastStatusScreen
 from ...core.errors import MessageLocked
 
 
@@ -27,6 +28,7 @@ class MainScreen(Screen):
         ("r", "reply", "Reply"),
         ("e", "edit", "Edit"),
         ("d", "delete", "Delete"),
+        ("shift+b", "broadcast_status", "Bcast status"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -109,3 +111,11 @@ class MainScreen(Screen):
             ConfirmDelete(f"Delete message {msg.id} from {msg.from_peer}?"),
             _after,
         )
+
+    def action_broadcast_status(self) -> None:
+        msg = self.query_one(InboxList).selected_message()
+        if not msg or not msg.broadcast_id:
+            self.notify("selected message is not part of a broadcast",
+                        severity="warning")
+            return
+        self.app.push_screen(BroadcastStatusScreen(msg.broadcast_id))
