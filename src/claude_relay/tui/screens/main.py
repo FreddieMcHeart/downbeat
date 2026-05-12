@@ -14,6 +14,7 @@ from ..widgets.log_viewer import LogViewer
 from ..widgets.message_view import MessageView
 from ..widgets.peer_list import PeerList
 from .broadcast_status import BroadcastStatusScreen
+from .help import HelpScreen
 from ...core.errors import MessageLocked
 
 
@@ -50,7 +51,7 @@ class MainScreen(Screen):
         self.query_one(InboxList).refresh_for_peer(event.peer)
 
     def action_help(self) -> None:
-        self.app.bell()  # placeholder until Task 20
+        self.app.push_screen(HelpScreen())
 
     def action_refresh(self) -> None:
         self.query_one(PeerList).refresh_from_store()
