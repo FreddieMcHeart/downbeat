@@ -73,3 +73,122 @@ def touch_peer(name: str) -> None:
         raise PeerNotFound(name)
     sessions[name]["last_seen"] = now_iso()
     _save_sessions(sessions)
+
+
+def _message_path(msg: Message) -> Path:
+    base = paths.PROCESSED_DIR if msg.archived else paths.INBOX_DIR
+    return base / msg.to_peer / f"{msg.id}.json"
+
+
+def _find_message_path(msg_id: str) -> Path:
+    for base in (paths.INBOX_DIR, paths.PROCESSED_DIR):
+        if not base.exists():
+            continue
+        for peer_dir in base.iterdir():
+            candidate = peer_dir / f"{msg_id}.json"
+            if candidate.exists():
+                return candidate
+    raise MessageNotFound(msg_id)
+
+
+def _write_message(msg: Message) -> None:
+    path = _message_path(msg)
+    _atomic_write_text(path, msg.to_json())
+
+
+def _read_message_at(path: Path) -> Message:
+    try:
+        return Message.from_json(path.read_text())
+    except (json.JSONDecodeError, KeyError) as e:
+        raise StoreCorrupt(f"{path} is not a valid message: {e}") from e
+
+
+def get_message(msg_id: str) -> Message:
+    return _read_message_at(_find_message_path(msg_id))
+
+
+def send_message(from_peer: str, to_peer: str, subject: str, body: str,
+                 broadcast_id: str | None = None) -> Message:
+    # Sender doesn't need to be registered (CLI may send before its own
+    # register completes); recipient must exist.
+    get_peer(to_peer)
+    msg = Message(
+        id=new_id(),
+        from_peer=from_peer,
+        to_peer=to_peer,
+        subject=subject,
+        body=body,
+        created_at=now_iso(),
+        broadcast_id=broadcast_id,
+    )
+    _write_message(msg)
+    return msg
+
+
+def mark_read(msg_id: str) -> Message:
+    msg = get_message(msg_id)
+    if msg.state != MessageState.NEW:
+        return msg
+    d = msg.to_dict()
+    d["read_at"] = now_iso()
+    updated = Message.from_dict(d)
+    _write_message(updated)
+    return updated
+
+
+def edit_message(msg_id: str, new_body: str | None = None,
+                 new_subject: str | None = None) -> Message:
+    msg = get_message(msg_id)
+    if msg.state != MessageState.NEW:
+        raise MessageLocked(
+            f"message {msg_id} is in state {msg.state.value}; edit blocked"
+        )
+    d = msg.to_dict()
+    if new_body is not None:
+        d["body"] = new_body
+    if new_subject is not None:
+        d["subject"] = new_subject
+    d["edited_at"] = now_iso()
+    updated = Message.from_dict(d)
+    _write_message(updated)
+    return updated
+
+
+def delete_message(msg_id: str) -> None:
+    _find_message_path(msg_id).unlink()
+
+
+def reply_to(msg_id: str, body: str, from_peer: str,
+             subject_prefix: str = "Re: ") -> Message:
+    original = get_message(msg_id)
+    # Archive original
+    d = original.to_dict()
+    d["archived"] = True
+    archived = Message.from_dict(d)
+    # Move from inbox/ to processed/
+    old_path = _find_message_path(msg_id)
+    old_path.unlink()
+    _write_message(archived)
+    # Send the reply back to the original sender
+    return send_message(
+        from_peer=from_peer,
+        to_peer=original.from_peer,
+        subject=f"{subject_prefix}{original.subject}",
+        body=body,
+        broadcast_id=original.broadcast_id,
+    )
+
+
+def list_inbox(peer_name: str, include_archived: bool = False) -> list[Message]:
+    out: list[Message] = []
+    inbox_dir = paths.INBOX_DIR / peer_name
+    if inbox_dir.exists():
+        for p in sorted(inbox_dir.glob("*.json")):
+            out.append(_read_message_at(p))
+    if include_archived:
+        processed_dir = paths.PROCESSED_DIR / peer_name
+        if processed_dir.exists():
+            for p in sorted(processed_dir.glob("*.json")):
+                out.append(_read_message_at(p))
+    out.sort(key=lambda m: m.created_at, reverse=True)
+    return out
