@@ -30,7 +30,7 @@ class MainScreen(Screen):
         ("r", "reply", "Reply"),
         ("e", "edit", "Edit"),
         ("d", "delete", "Delete"),
-        ("shift+b", "broadcast_status", "Bcast status"),
+        ("B,shift+b", "broadcast_status", "Bcast status"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -135,8 +135,15 @@ class MainScreen(Screen):
 
     def action_broadcast_status(self) -> None:
         msg = self.query_one(InboxList).selected_message()
-        if not msg or not msg.broadcast_id:
-            self.notify("selected message is not part of a broadcast",
-                        severity="warning")
+        if not msg:
+            self.notify("Select a message first", severity="warning", timeout=3)
+            return
+        if not msg.broadcast_id:
+            self.notify(
+                f"Message {msg.id} is not part of a broadcast — "
+                "broadcast status is only meaningful for fan-out messages.",
+                severity="warning",
+                timeout=5,
+            )
             return
         self.app.push_screen(BroadcastStatusScreen(msg.broadcast_id))
