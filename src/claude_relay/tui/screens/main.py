@@ -7,9 +7,12 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header
 
 from ..widgets.composer import Composer
+from ..widgets.confirm import ConfirmDelete, perform_delete
+from ..widgets.edit_modal import EditModal, perform_edit
 from ..widgets.inbox_list import InboxList
 from ..widgets.message_view import MessageView
 from ..widgets.peer_list import PeerList
+from ...core.errors import MessageLocked
 
 
 class MainScreen(Screen):
@@ -22,6 +25,8 @@ class MainScreen(Screen):
         ("enter", "open_message", "Open"),
         ("n", "new_message", "New"),
         ("r", "reply", "Reply"),
+        ("e", "edit", "Edit"),
+        ("d", "delete", "Delete"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -75,5 +80,32 @@ class MainScreen(Screen):
         def _after(_): self.query_one(InboxList).refresh_for_peer(sender)
         self.app.push_screen(
             Composer(sender=sender, reply_to=msg.id, prefill_to=msg.from_peer),
+            _after,
+        )
+
+    def action_edit(self) -> None:
+        msg = self.query_one(InboxList).selected_message()
+        if not msg:
+            return
+        if msg.state.value != "new":
+            self.notify(f"message is {msg.state.value} — edit blocked",
+                        severity="warning")
+            return
+        sender = self.query_one(PeerList).acting_as
+        def _after(_): self.query_one(InboxList).refresh_for_peer(sender)
+        self.app.push_screen(EditModal(msg.id), _after)
+
+    def action_delete(self) -> None:
+        msg = self.query_one(InboxList).selected_message()
+        if not msg:
+            return
+        sender = self.query_one(PeerList).acting_as
+        def _after(confirmed):
+            if confirmed:
+                perform_delete(msg.id)
+                self.query_one(InboxList).refresh_for_peer(sender)
+                self.query_one(PeerList).refresh_from_store()
+        self.app.push_screen(
+            ConfirmDelete(f"Delete message {msg.id} from {msg.from_peer}?"),
             _after,
         )
