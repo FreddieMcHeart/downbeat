@@ -16,6 +16,7 @@ from ..widgets.peer_list import PeerList
 from .broadcast_status import BroadcastStatusScreen
 from .help import HelpScreen
 from ...core.errors import MessageLocked
+from ..messages import StoreChanged
 
 
 class MainScreen(Screen):
@@ -49,6 +50,12 @@ class MainScreen(Screen):
 
     def on_peer_list_acting_as_changed(self, event) -> None:
         self.query_one(InboxList).refresh_for_peer(event.peer)
+
+    def on_store_changed(self, event: StoreChanged) -> None:
+        self.action_refresh()
+        sender = self.query_one(PeerList).acting_as
+        if sender:
+            self.query_one(InboxList).refresh_for_peer(sender)
 
     def action_help(self) -> None:
         self.app.push_screen(HelpScreen())
