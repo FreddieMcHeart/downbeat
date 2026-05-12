@@ -10,6 +10,7 @@ from ..widgets.composer import Composer
 from ..widgets.confirm import ConfirmDelete, perform_delete
 from ..widgets.edit_modal import EditModal, perform_edit
 from ..widgets.inbox_list import InboxList
+from ..widgets.log_viewer import LogViewer
 from ..widgets.message_view import MessageView
 from ..widgets.peer_list import PeerList
 from .broadcast_status import BroadcastStatusScreen
@@ -38,6 +39,7 @@ class MainScreen(Screen):
             yield InboxList(id="inbox-pane", classes="pane")
             yield MessageView(id="message-pane", classes="pane")
         yield Footer()
+        yield LogViewer(id="logs")
 
     def on_mount(self) -> None:
         peers = self.query_one(PeerList)
@@ -54,7 +56,7 @@ class MainScreen(Screen):
         self.query_one(PeerList).refresh_from_store()
 
     def action_toggle_logs(self) -> None:
-        self.app.bell()  # placeholder until Task 19
+        self.query_one(LogViewer).toggle()
 
     def action_toggle_dark(self) -> None:
         self.app.dark = not self.app.dark

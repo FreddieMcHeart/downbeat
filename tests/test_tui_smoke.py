@@ -18,3 +18,12 @@ async def test_app_quits_on_q(relay_dir):
     async with app.run_test(headless=True) as pilot:
         await pilot.press("q")
     # Reaching here means the app exited cleanly.
+
+
+@pytest.mark.asyncio
+async def test_toggle_logs_does_not_crash(relay_dir):
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.press("f6")
+        await pilot.pause()
+        await pilot.press("f6")
