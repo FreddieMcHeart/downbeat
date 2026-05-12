@@ -12,4 +12,8 @@ def relay_dir(tmp_path, monkeypatch):
     from claude_relay.core import store
     importlib.reload(store)
     paths.ensure_dirs()
-    return tmp_path
+    yield tmp_path
+    # Restore default paths so unrelated tests (e.g. test_paths) see the real env
+    monkeypatch.delenv("CLAUDE_RELAY_DIR", raising=False)
+    importlib.reload(paths)
+    importlib.reload(store)

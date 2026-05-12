@@ -8,7 +8,8 @@ def test_detect_returns_none_when_no_markers(monkeypatch, tmp_path):
     from claude_relay.core import paths
     importlib.reload(paths)
     importlib.reload(session)
-    # No /tmp markers, no relay markers, no transcripts → None
+    # Stop ancestor walking so no PID is checked against real markers
+    monkeypatch.setattr(session, "_walk_ancestors", lambda: iter([]))
     assert session.detect_session_id() is None
 
 
