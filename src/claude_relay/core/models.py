@@ -70,7 +70,7 @@ class Message:
             to_peer=d["to"],
             subject=d.get("subject", ""),
             body=d.get("body", ""),
-            created_at=d["created_at"],
+            created_at=d.get("created_at") or d.get("ts") or "",
             read_at=d.get("read_at"),
             edited_at=d.get("edited_at"),
             broadcast_id=d.get("broadcast_id"),

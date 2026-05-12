@@ -62,3 +62,14 @@ def test_legacy_message_without_new_fields_parses_with_defaults():
     assert m.edited_at is None
     assert m.broadcast_id is None
     assert m.archived is False
+
+
+def test_legacy_message_with_ts_instead_of_created_at():
+    legacy = json.dumps({
+        "id": "old",
+        "from": "p", "to": "c",
+        "subject": "s", "body": "b",
+        "ts": "2026-05-08T14:52:41+00:00",
+    })
+    m = Message.from_json(legacy)
+    assert m.created_at == "2026-05-08T14:52:41+00:00"
