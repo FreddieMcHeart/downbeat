@@ -6,6 +6,7 @@ from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Footer, Header
 
+from ..widgets.composer import Composer
 from ..widgets.inbox_list import InboxList
 from ..widgets.message_view import MessageView
 from ..widgets.peer_list import PeerList
@@ -19,6 +20,8 @@ class MainScreen(Screen):
         ("f6", "toggle_logs", "Logs"),
         ("ctrl+t", "toggle_dark", "Theme"),
         ("enter", "open_message", "Open"),
+        ("n", "new_message", "New"),
+        ("r", "reply", "Reply"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -54,3 +57,23 @@ class MainScreen(Screen):
         if msg:
             self.query_one(MessageView).show(msg.id)
             self.query_one(PeerList).refresh_from_store()  # update unread counts
+
+    def action_new_message(self) -> None:
+        sender = self.query_one(PeerList).acting_as
+        if not sender:
+            self.app.bell()
+            return
+        def _after(_): self.query_one(InboxList).refresh_for_peer(sender)
+        self.app.push_screen(Composer(sender=sender), _after)
+
+    def action_reply(self) -> None:
+        sender = self.query_one(PeerList).acting_as
+        msg = self.query_one(InboxList).selected_message()
+        if not (sender and msg):
+            self.app.bell()
+            return
+        def _after(_): self.query_one(InboxList).refresh_for_peer(sender)
+        self.app.push_screen(
+            Composer(sender=sender, reply_to=msg.id, prefill_to=msg.from_peer),
+            _after,
+        )
