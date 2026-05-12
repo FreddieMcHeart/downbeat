@@ -27,8 +27,13 @@ class _PeerListItem(ListItem):
 
     @staticmethod
     def _format_row(row: PeerRow) -> str:
-        unread_mark = f"[b]{row.unread}[/b]" if row.unread else "0"
-        return f"{row.peer_name:<18} [dim]{row.role}[/dim]  {unread_mark}"
+        role_glyph = "P" if row.role == "parent" else "C"
+        if row.unread:
+            unread = f"[b]{row.unread}[/b]"
+        else:
+            unread = "[dim]0[/dim]"
+        name = row.peer_name if len(row.peer_name) <= 18 else row.peer_name[:17] + "…"
+        return f"{name}  [dim]{role_glyph}[/dim]  {unread}"
 
 
 class PeerList(Vertical):
@@ -49,6 +54,7 @@ class PeerList(Vertical):
     def compose(self):
         self._select = Select[str]([], prompt="Acting as", id="acting-as-select")
         yield self._select
+        yield Static("[dim]P=parent  C=child[/dim]")
         self._listview = ListView(id="peer-listview")
         yield self._listview
 

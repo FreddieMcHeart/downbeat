@@ -44,9 +44,13 @@ Footer {
     border: tall $claude-coral;
 }
 
-#peers-pane  { width: 28; }
+#peers-pane  { width: 32; }
 #inbox-pane  { width: 1fr; }
 #message-pane{ width: 2fr; }
+
+InboxList {
+    height: 1fr;
+}
 
 ListView > .list-view--highlight {
     background: $claude-coral;

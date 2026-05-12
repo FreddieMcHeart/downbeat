@@ -14,7 +14,11 @@ class InboxList(DataTable):
         self._messages: list[Message] = []
 
     def on_mount(self):
-        self.add_columns("S", "id", "from", "subject", "created")
+        self.add_columns("S", "time", "from", "subject")
+        cols = list(self.columns.values())
+        cols[0].width = 1
+        cols[1].width = 5
+        cols[2].width = 18
 
     def refresh_for_peer(self, peer_name: str | None) -> None:
         self.clear()
@@ -24,7 +28,8 @@ class InboxList(DataTable):
         self._messages = store.list_inbox(peer_name, include_archived=True)
         for m in self._messages:
             flag = {"new": "•", "read": " ", "archived": "·"}[m.state.value]
-            self.add_row(flag, m.id, m.from_peer, m.subject, m.created_at[:19])
+            time_str = m.created_at[11:16] if len(m.created_at) >= 16 else ""
+            self.add_row(flag, time_str, m.from_peer, m.subject)
 
     def subjects(self) -> list[str]:
         return [m.subject for m in self._messages]
