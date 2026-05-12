@@ -6,20 +6,19 @@ from __future__ import annotations
 import json
 import uuid
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
-from typing import Optional
+from datetime import UTC, datetime
+from enum import StrEnum
 
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def new_id() -> str:
     return uuid.uuid4().hex[:12]
 
 
-class MessageState(str, Enum):
+class MessageState(StrEnum):
     NEW = "new"
     READ = "read"
     ARCHIVED = "archived"
@@ -33,9 +32,9 @@ class Message:
     subject: str
     body: str
     created_at: str
-    read_at: Optional[str] = None
-    edited_at: Optional[str] = None
-    broadcast_id: Optional[str] = None
+    read_at: str | None = None
+    edited_at: str | None = None
+    broadcast_id: str | None = None
     archived: bool = False
 
     @property
@@ -64,7 +63,7 @@ class Message:
         return json.dumps(self.to_dict(), indent=2)
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Message":
+    def from_dict(cls, d: dict) -> Message:
         return cls(
             id=d["id"],
             from_peer=d["from"],
@@ -79,7 +78,7 @@ class Message:
         )
 
     @classmethod
-    def from_json(cls, s: str) -> "Message":
+    def from_json(cls, s: str) -> Message:
         return cls.from_dict(json.loads(s))
 
 
@@ -96,7 +95,7 @@ class Peer:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Peer":
+    def from_dict(cls, d: dict) -> Peer:
         return cls(**d)
 
 

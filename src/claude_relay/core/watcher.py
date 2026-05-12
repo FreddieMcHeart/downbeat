@@ -8,9 +8,8 @@ from __future__ import annotations
 
 import logging
 import threading
-import time
-from pathlib import Path
-from typing import Callable, Protocol
+from collections.abc import Callable
+from typing import Protocol
 
 from . import paths
 

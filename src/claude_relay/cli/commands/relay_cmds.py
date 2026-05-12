@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from ...core import session, store
 from ...core.errors import MessageNotFound, PeerNotFound
@@ -85,7 +85,7 @@ def cmd_peers(args: argparse.Namespace) -> int:
 
 
 def cmd_gc_stale(args: argparse.Namespace) -> int:
-    threshold = datetime.now(timezone.utc)
+    threshold = datetime.now(UTC)
     if args.days is not None:
         threshold -= timedelta(days=args.days)
     elif args.hours is not None:

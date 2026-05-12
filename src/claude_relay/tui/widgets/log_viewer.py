@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
 
 from textual.containers import Vertical
 from textual.widgets import Input, RichLog

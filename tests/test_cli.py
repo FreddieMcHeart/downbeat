@@ -1,5 +1,5 @@
-import json
 import sys
+
 from claude_relay.cli.__main__ import main
 
 

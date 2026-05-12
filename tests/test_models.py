@@ -1,6 +1,6 @@
 import json
-from datetime import datetime, timezone
-from claude_relay.core.models import Message, Peer, MessageState
+
+from claude_relay.core.models import Message, MessageState, Peer
 
 
 def test_message_roundtrip_json():

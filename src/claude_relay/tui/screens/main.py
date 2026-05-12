@@ -6,17 +6,16 @@ from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Footer, Header
 
+from ..messages import StoreChanged
 from ..widgets.composer import Composer
 from ..widgets.confirm import ConfirmDelete, perform_delete
-from ..widgets.edit_modal import EditModal, perform_edit
+from ..widgets.edit_modal import EditModal
 from ..widgets.inbox_list import InboxList
 from ..widgets.log_viewer import LogViewer
 from ..widgets.message_view import MessageView
 from ..widgets.peer_list import PeerList
 from .broadcast_status import BroadcastStatusScreen
 from .help import HelpScreen
-from ...core.errors import MessageLocked
-from ..messages import StoreChanged
 
 
 class MainScreen(Screen):

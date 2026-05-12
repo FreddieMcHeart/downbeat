@@ -1,4 +1,5 @@
 import pytest
+
 from claude_relay.tui.app import RelayApp
 
 
@@ -30,8 +31,9 @@ async def test_edit_read_message_blocked(relay_dir):
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     msg = store.send_message(from_peer="p", to_peer="c", subject="s", body="b")
     store.mark_read(msg.id)
-    from claude_relay.tui.widgets.edit_modal import perform_edit
     import pytest
+
+    from claude_relay.tui.widgets.edit_modal import perform_edit
     with pytest.raises(MessageLocked):
         perform_edit(msg.id, new_body="b2")
 

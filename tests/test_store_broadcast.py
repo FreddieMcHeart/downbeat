@@ -1,5 +1,4 @@
 from claude_relay.core import store
-from claude_relay.core.models import MessageState
 
 
 def _peers(*names):

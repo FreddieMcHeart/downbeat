@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from textual.containers import Vertical
-from textual.widgets import Static, Markdown
+from textual.widgets import Markdown, Static
 
 from ...core import store
 

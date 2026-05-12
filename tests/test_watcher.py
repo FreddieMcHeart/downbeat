@@ -1,4 +1,5 @@
 import time
+
 from claude_relay.core import store, watcher
 
 
@@ -20,6 +21,7 @@ def test_poll_watcher_detects_new_message(relay_dir):
 
 
 def test_make_watcher_returns_filesystem_watcher_by_default(relay_dir):
-    cb = lambda: None
+    def cb():
+        pass
     w = watcher.make_watcher(on_change=cb, prefer="auto")
     assert w.__class__.__name__ in {"FsWatcher", "PollWatcher"}

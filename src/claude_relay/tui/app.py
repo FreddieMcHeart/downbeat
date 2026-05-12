@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+
 from textual.app import App
 
 from ..core import logging as relay_logging

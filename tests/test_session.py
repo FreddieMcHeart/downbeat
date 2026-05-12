@@ -1,10 +1,10 @@
-from pathlib import Path
 from claude_relay.core import session
 
 
 def test_detect_returns_none_when_no_markers(monkeypatch, tmp_path):
     monkeypatch.setenv("CLAUDE_RELAY_DIR", str(tmp_path))
     import importlib
+
     from claude_relay.core import paths
     importlib.reload(paths)
     importlib.reload(session)
