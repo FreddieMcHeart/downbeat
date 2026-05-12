@@ -1,0 +1,60 @@
+/* Claude color palette */
+$claude-coral:        #D97757;
+$claude-coral-dim:    #B8633F;
+$claude-cream:        #FAF9F5;
+$claude-ink:          #1F1E1D;
+$claude-bg:           #262624;
+$claude-bg-soft:      #2F2E2C;
+$claude-bg-hover:     #3A3937;
+$claude-fg:           #E8E6DE;
+$claude-fg-mute:      #9C9A92;
+$claude-rule:         #3F3D3A;
+$claude-ok:           #6BA77A;
+$claude-warn:         #E8B86D;
+$claude-err:          #C8624F;
+
+Screen {
+    background: $claude-bg;
+    color: $claude-fg;
+    layout: vertical;
+}
+
+Header {
+    background: $claude-bg-soft;
+    color: $claude-coral;
+    text-style: bold;
+}
+
+Footer {
+    background: $claude-bg-soft;
+}
+
+#three-pane {
+    layout: horizontal;
+    height: 1fr;
+}
+
+.pane {
+    border: tall $claude-rule;
+    background: $claude-bg-soft;
+    padding: 0 1;
+}
+
+.pane:focus-within {
+    border: tall $claude-coral;
+}
+
+#peers-pane  { width: 28; }
+#inbox-pane  { width: 1fr; }
+#message-pane{ width: 2fr; }
+
+ListView > .list-view--highlight {
+    background: $claude-coral;
+    color: $claude-ink;
+}
+
+.unread { color: $claude-coral; text-style: bold; }
+.mute   { color: $claude-fg-mute; }
+.ok     { color: $claude-ok; }
+.warn   { color: $claude-warn; }
+.err    { color: $claude-err; }
