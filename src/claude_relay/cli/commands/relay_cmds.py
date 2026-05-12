@@ -1,0 +1,121 @@
+"""Implementation of every `claude-relay <subcommand>`."""
+from __future__ import annotations
+
+import argparse
+import sys
+from datetime import datetime, timedelta, timezone
+
+from ...core import session, store
+from ...core.errors import MessageNotFound, PeerNotFound
+
+
+def _detect_peer_or_error(name: str | None) -> str:
+    if name:
+        return name
+    sid = session.detect_session_id()
+    if not sid:
+        print("error: could not detect session id; pass --from explicitly",
+              file=sys.stderr)
+        raise SystemExit(2)
+    for peer in store.list_peers():
+        if peer.session_id == sid:
+            return peer.name
+    print(f"error: session {sid} is not registered; run `claude-relay register`",
+          file=sys.stderr)
+    raise SystemExit(2)
+
+
+def cmd_register(args: argparse.Namespace) -> int:
+    import os
+    sid = session.detect_session_id()
+    if sid is None:
+        # Best-effort: synthesize from our pid
+        sid = f"unknown-{os.getpid()}"
+    cwd = os.getcwd()
+    peer = store.register_peer(name=args.name, session_id=sid, cwd=cwd, role=args.role)
+    session.write_marker_for_self(sid)
+    print(f"registered: {peer.name} (session={peer.session_id}, role={peer.role})")
+    return 0
+
+
+def cmd_send(args: argparse.Namespace) -> int:
+    sender = _detect_peer_or_error(args.from_peer)
+    try:
+        msg = store.send_message(from_peer=sender, to_peer=args.to,
+                                 subject=args.subject, body=args.body)
+    except PeerNotFound:
+        print(f"error: no peer named {args.to!r}", file=sys.stderr)
+        return 2
+    print(f"sent: {msg.id}")
+    return 0
+
+
+def cmd_reply(args: argparse.Namespace) -> int:
+    sender = _detect_peer_or_error(args.from_peer)
+    try:
+        reply = store.reply_to(args.msg_id, body=args.body, from_peer=sender)
+    except MessageNotFound:
+        print(f"error: no message with id {args.msg_id!r}", file=sys.stderr)
+        return 2
+    print(f"replied: {reply.id}")
+    return 0
+
+
+def cmd_inbox(args: argparse.Namespace) -> int:
+    peer = _detect_peer_or_error(args.peer)
+    msgs = store.list_inbox(peer, include_archived=args.all)
+    if not msgs:
+        print(f"inbox empty for {peer}")
+        return 0
+    for m in msgs:
+        flag = {"new": "*", "read": " ", "archived": "."}[m.state.value]
+        print(f"{flag} {m.id}  {m.created_at}  {m.from_peer:<16}  {m.subject}")
+    return 0
+
+
+def cmd_peers(args: argparse.Namespace) -> int:
+    peers = store.list_peers()
+    if not peers:
+        print("no peers registered")
+        return 0
+    for p in peers:
+        print(f"{p.name:<24}  role={p.role:<6}  session={p.session_id}  "
+              f"last_seen={p.last_seen}")
+    return 0
+
+
+def cmd_gc_stale(args: argparse.Namespace) -> int:
+    threshold = datetime.now(timezone.utc)
+    if args.days is not None:
+        threshold -= timedelta(days=args.days)
+    elif args.hours is not None:
+        threshold -= timedelta(hours=args.hours)
+    else:
+        threshold -= timedelta(days=14)
+    pruned = []
+    for p in store.list_peers():
+        try:
+            ls = datetime.fromisoformat(p.last_seen)
+        except ValueError:
+            continue
+        if ls < threshold:
+            store.remove_peer(p.name)
+            pruned.append(p.name)
+    print(f"pruned {len(pruned)} stale peers: {pruned}")
+    return 0
+
+
+def cmd_tui(args: argparse.Namespace) -> int:
+    from ...tui.app import RelayApp
+    RelayApp().run()
+    return 0
+
+
+def cmd_init(args: argparse.Namespace) -> int:
+    from .init_cmd import run_init
+    return run_init(force=args.force)
+
+
+def cmd_uninstall(args: argparse.Namespace) -> int:
+    from .init_cmd import run_uninstall
+    return run_uninstall()
