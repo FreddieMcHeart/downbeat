@@ -4,7 +4,7 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.containers import Horizontal
 from textual.screen import Screen
-from textual.widgets import Footer, Header
+from textual.widgets import DataTable, Footer, Header
 
 from ..messages import StoreChanged
 from ..widgets.composer import Composer
@@ -45,10 +45,22 @@ class MainScreen(Screen):
     def on_mount(self) -> None:
         peers = self.query_one(PeerList)
         if peers.acting_as:
-            self.query_one(InboxList).refresh_for_peer(peers.acting_as)
+            inbox = self.query_one(InboxList)
+            inbox.refresh_for_peer(peers.acting_as)
+            if inbox.row_count > 0:
+                inbox.focus()
 
     def on_peer_list_acting_as_changed(self, event) -> None:
-        self.query_one(InboxList).refresh_for_peer(event.peer)
+        inbox = self.query_one(InboxList)
+        inbox.refresh_for_peer(event.peer)
+        inbox.focus()
+
+    def on_data_table_row_selected(self, event: DataTable.RowSelected) -> None:
+        # Only react to InboxList selections; other DataTables live on
+        # different screens so their RowSelected won't reach MainScreen.
+        if isinstance(event.data_table, InboxList):
+            self.action_open_message()
+            event.stop()
 
     def on_store_changed(self, event: StoreChanged) -> None:
         self.action_refresh()
