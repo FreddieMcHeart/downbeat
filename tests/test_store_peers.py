@@ -36,3 +36,28 @@ def test_touch_peer_updates_last_seen(relay_dir):
     store.touch_peer("p")
     after = store.get_peer("p").last_seen
     assert after >= before
+
+
+def test_load_legacy_sessions_without_name_field(relay_dir):
+    """Legacy sessions.json (from the old standalone relay.py) used the peer
+    name as the dict KEY only — no `name` field in the value. Our loader
+    must backfill it so Peer.from_dict() succeeds."""
+    import json
+    legacy = {
+        "PLAT-3113-slave": {
+            "session_id": "abc",
+            "cwd": "/tmp",
+            "role": "child",
+            "registered_at": "2026-05-08T14:11:11+00:00",
+            "last_seen": "2026-05-08T14:11:11+00:00",
+        }
+    }
+    from claude_relay.core import paths
+    (paths.SESSIONS_FILE.parent).mkdir(parents=True, exist_ok=True)
+    paths.SESSIONS_FILE.write_text(json.dumps(legacy))
+    peers = store.list_peers()
+    assert len(peers) == 1
+    assert peers[0].name == "PLAT-3113-slave"
+    # get_peer must also work
+    fetched = store.get_peer("PLAT-3113-slave")
+    assert fetched.session_id == "abc"

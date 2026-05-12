@@ -33,9 +33,14 @@ def _load_sessions() -> dict[str, dict]:
     if not paths.SESSIONS_FILE.exists():
         return {}
     try:
-        return json.loads(paths.SESSIONS_FILE.read_text() or "{}")
+        raw = json.loads(paths.SESSIONS_FILE.read_text() or "{}")
     except json.JSONDecodeError as e:
         raise StoreCorrupt(f"{paths.SESSIONS_FILE} is not valid JSON: {e}") from e
+    # Backfill missing `name` from the dict key (legacy relay.py compat)
+    for key, value in raw.items():
+        if "name" not in value:
+            value["name"] = key
+    return raw
 
 
 def _save_sessions(data: dict[str, dict]) -> None:
