@@ -4,9 +4,10 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.containers import Horizontal
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Static
+from textual.widgets import Footer, Header
 
 from ..widgets.inbox_list import InboxList
+from ..widgets.message_view import MessageView
 from ..widgets.peer_list import PeerList
 
 
@@ -17,6 +18,7 @@ class MainScreen(Screen):
         ("f5", "refresh", "Refresh"),
         ("f6", "toggle_logs", "Logs"),
         ("ctrl+t", "toggle_dark", "Theme"),
+        ("enter", "open_message", "Open"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -24,7 +26,7 @@ class MainScreen(Screen):
         with Horizontal(id="three-pane"):
             yield PeerList(id="peers-pane", classes="pane")
             yield InboxList(id="inbox-pane", classes="pane")
-            yield Static("Message", id="message-pane", classes="pane")
+            yield MessageView(id="message-pane", classes="pane")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -46,3 +48,9 @@ class MainScreen(Screen):
 
     def action_toggle_dark(self) -> None:
         self.app.dark = not self.app.dark
+
+    def action_open_message(self) -> None:
+        msg = self.query_one(InboxList).selected_message()
+        if msg:
+            self.query_one(MessageView).show(msg.id)
+            self.query_one(PeerList).refresh_from_store()  # update unread counts
