@@ -6,6 +6,7 @@ from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Static
 
+from ..widgets.inbox_list import InboxList
 from ..widgets.peer_list import PeerList
 
 
@@ -22,9 +23,17 @@ class MainScreen(Screen):
         yield Header(show_clock=False)
         with Horizontal(id="three-pane"):
             yield PeerList(id="peers-pane", classes="pane")
-            yield Static("Inbox", id="inbox-pane", classes="pane")
+            yield InboxList(id="inbox-pane", classes="pane")
             yield Static("Message", id="message-pane", classes="pane")
         yield Footer()
+
+    def on_mount(self) -> None:
+        peers = self.query_one(PeerList)
+        if peers.acting_as:
+            self.query_one(InboxList).refresh_for_peer(peers.acting_as)
+
+    def on_peer_list_acting_as_changed(self, event) -> None:
+        self.query_one(InboxList).refresh_for_peer(event.peer)
 
     def action_help(self) -> None:
         self.app.bell()  # placeholder until Task 20
