@@ -31,9 +31,7 @@ claude-relay tui                 # full management UI
 | d              | Delete focused message (confirm)    |
 | v              | View full body of focused message   |
 | Shift+B        | Broadcast status for selected       |
-| P              | Add peer                            |
-| X              | Remove active peer                  |
-| G              | GC stale peers                      |
+| Ctrl+P         | Peers screen (add / remove / gc)    |
 | f              | Find message by id                  |
 | F1             | Help                                |
 | F5             | Refresh                             |

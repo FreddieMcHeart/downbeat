@@ -26,7 +26,7 @@ HELP_TEXT = """\
   Shift+B         broadcast status (when applicable)
 
 [b]Peer management[/b]
-  P  add peer    X  remove active peer    G  GC stale
+  Ctrl+P          open Peers screen (add / remove / gc)
 
 [b]System[/b]
   f               find message by id across all inboxes

@@ -26,9 +26,7 @@ class ChatScreen(Screen):
         ("d", "delete", "Delete"),
         ("f", "find_message", "Find"),
         ("v", "view_full", "View full"),
-        ("P,shift+p", "add_peer", "Add peer"),
-        ("X,shift+x", "remove_peer", "Remove peer"),
-        ("G,shift+g", "gc_stale", "GC stale"),
+        ("ctrl+p", "open_peers", "Peers"),
         ("B,shift+b", "broadcast_status", "Bcast"),
         ("tab", "next_tab", "Next peer"),
         ("shift+tab", "prev_tab", "Prev peer"),
@@ -232,31 +230,11 @@ class ChatScreen(Screen):
             return
         self.notify(f"Full body of {msg.id}:\n{msg.body}", timeout=10)
 
-    def action_add_peer(self) -> None:
-        from ..widgets.add_peer_modal import AddPeerModal
-        async def after(name):
-            await self.action_refresh()
-            if name:
-                self.notify(f"Registered peer {name}", timeout=2)
-        self.app.push_screen(AddPeerModal(), after)
-
-    def action_remove_peer(self) -> None:
-        from ..widgets.peer_admin import RemovePeerConfirm
-        # Remove the currently active tab peer
-        if not self.active_peer:
-            self.notify("No peer to remove", severity="warning")
-            return
-        async def after(removed):
-            await self.action_refresh()
-            if removed:
-                self.notify(f"Removed peer {removed}", timeout=2)
-        self.app.push_screen(RemovePeerConfirm(self.active_peer), after)
-
-    def action_gc_stale(self) -> None:
-        from ..widgets.peer_admin import GcStaleModal
-        async def after(pruned):
-            await self.action_refresh()
-        self.app.push_screen(GcStaleModal(), after)
+    def action_open_peers(self) -> None:
+        from .peers import PeersScreen
+        def after(_):
+            self.action_refresh()
+        self.app.push_screen(PeersScreen(), after)
 
     def action_broadcast_status(self) -> None:
         from .broadcast_status import BroadcastStatusScreen
