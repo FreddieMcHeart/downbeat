@@ -8,7 +8,7 @@ from textual.app import App
 from ..core import logging as relay_logging
 from ..core import watcher
 from .messages import StoreChanged
-from .screens.main import MainScreen
+from .screens.chat import ChatScreen
 
 
 class RelayApp(App):
@@ -24,7 +24,7 @@ class RelayApp(App):
     def on_mount(self) -> None:
         relay_logging.setup(level="INFO")
         logging.getLogger("claude_relay.tui").info("app mounted")
-        self.push_screen(MainScreen())
+        self.push_screen(ChatScreen())
         self._watcher = watcher.make_watcher(
             on_change=lambda: self.call_from_thread(self._on_change)
         )

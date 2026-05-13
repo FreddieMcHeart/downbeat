@@ -1,3 +1,5 @@
+from datetime import UTC
+
 import pytest
 
 from claude_relay.tui.app import RelayApp
@@ -41,7 +43,8 @@ async def test_remove_peer_helper(relay_dir):
 @pytest.mark.asyncio
 async def test_gc_stale_prunes_only_old_peers(relay_dir):
     import json
-    from datetime import datetime, timedelta, timezone
+    from datetime import datetime, timedelta
+
     from claude_relay.core import store
 
     # Create two peers
@@ -53,7 +56,7 @@ async def test_gc_stale_prunes_only_old_peers(relay_dir):
     sessions_file = paths.SESSIONS_FILE
     data = json.loads(sessions_file.read_text())
     data["old"]["last_seen"] = (
-        datetime.now(timezone.utc) - timedelta(days=30)
+        datetime.now(UTC) - timedelta(days=30)
     ).isoformat(timespec="seconds")
     sessions_file.write_text(json.dumps(data))
 

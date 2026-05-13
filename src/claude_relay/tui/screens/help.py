@@ -6,27 +6,31 @@ from textual.screen import ModalScreen
 from textual.widgets import Label
 
 HELP_TEXT = """\
-[b]claude-relay TUI[/b]
+[b]claude-relay TUI — Chat view[/b]
 
 [b]Navigation[/b]
-  ↑/↓ or j/k        navigate within focused pane
-  ←/→ or h/l        switch pane
-  Enter             open / read message (marks read)
+  ↑/↓             move cursor through message bubbles
+  Tab / Shift+Tab cycle peer tabs
+  Click a tab     switch peer
 
-[b]Actions[/b]
-  n                 new message
-  r                 reply to selected
-  e                 edit selected (only NEW)
-  d                 delete (with confirm)
-  b                 toggle broadcast in composer
-  Shift+B           broadcast status for selected
+[b]Compose[/b]
+  Type in the bottom input, [b]Enter[/b] to send to active peer.
+
+[b]Actions on focused bubble[/b]
+  e               edit (only on your unread sent messages)
+  d               delete (with confirm)
+  v               toast full body of focused message
+  Shift+B         broadcast status (when applicable)
+
+[b]Peer management[/b]
+  P  add peer    X  remove active peer    G  GC stale
 
 [b]System[/b]
-  /                 search
-  F1                this help
-  F5                refresh
-  F6                toggle log viewer
-  q                 quit
+  f               find message by id across all inboxes
+  F1              this help
+  F5              refresh
+  F6              toggle log viewer
+  q               quit
 """
 
 

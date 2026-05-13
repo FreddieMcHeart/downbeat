@@ -22,19 +22,23 @@ claude-relay tui                 # full management UI
 
 ### TUI keybindings
 
-| Key     | Action                        |
-|---------|-------------------------------|
-| Enter   | Open / mark read              |
-| n       | New message                   |
-| r       | Reply                         |
-| e       | Edit (only NEW)               |
-| d       | Delete (confirm)              |
-| b       | Toggle broadcast in composer  |
-| Shift+B | Broadcast status for selected |
-| F1      | Help                          |
-| F5      | Refresh                       |
-| F6      | Toggle log viewer             |
-| q       | Quit                          |
+| Key            | Action                              |
+|----------------|-------------------------------------|
+| Up/Down        | Move cursor through message bubbles |
+| Tab/Shift+Tab  | Cycle peer tabs                     |
+| Enter          | Send (in composer)                  |
+| e              | Edit focused message (only NEW)     |
+| d              | Delete focused message (confirm)    |
+| v              | View full body of focused message   |
+| Shift+B        | Broadcast status for selected       |
+| P              | Add peer                            |
+| X              | Remove active peer                  |
+| G              | GC stale peers                      |
+| f              | Find message by id                  |
+| F1             | Help                                |
+| F5             | Refresh                             |
+| F6             | Toggle log viewer                   |
+| q              | Quit                                |
 
 ## Uninstall
 

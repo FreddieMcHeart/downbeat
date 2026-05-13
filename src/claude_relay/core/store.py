@@ -292,6 +292,21 @@ def _is_reply(msg: Message, siblings: list[Message]) -> bool:
     return msg.subject.startswith("Re: ")
 
 
+def list_thread(peer_a: str, peer_b: str,
+                include_archived: bool = True) -> list[Message]:
+    """Return all messages between peer_a and peer_b (either direction),
+    sorted oldest to newest. Used by the chat view."""
+    out: list[Message] = []
+    seen: set[str] = set()
+    for owner, sender in ((peer_a, peer_b), (peer_b, peer_a)):
+        for m in list_inbox(owner, include_archived=include_archived):
+            if m.from_peer == sender and m.id not in seen:
+                out.append(m)
+                seen.add(m.id)
+    out.sort(key=lambda m: m.created_at)
+    return out
+
+
 def find_message_by_id_prefix(id_prefix: str) -> list[tuple[Message, str]]:
     """Search every peer's inbox/ and processed/ for messages whose id starts
     with id_prefix. Returns (message, location) tuples where location is

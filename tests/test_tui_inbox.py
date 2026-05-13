@@ -3,6 +3,7 @@ import pytest
 from claude_relay.tui.app import RelayApp
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_inbox_shows_messages_for_acting_as(relay_dir):
     from claude_relay.core import store
@@ -25,6 +26,7 @@ async def test_inbox_shows_messages_for_acting_as(relay_dir):
         assert {"A", "B"} <= set(subjects)
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_inbox_empty_when_no_messages(relay_dir):
     from claude_relay.core import store
@@ -37,6 +39,7 @@ async def test_inbox_empty_when_no_messages(relay_dir):
         assert inbox.subjects() == []
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_inbox_does_not_include_archived_by_default(relay_dir):
     from claude_relay.core import store
@@ -54,6 +57,7 @@ async def test_inbox_does_not_include_archived_by_default(relay_dir):
         assert "A" not in inbox.subjects()
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_inbox_preserves_selection_across_refresh(relay_dir):
     """Refreshing the inbox (e.g. after a read mutation) must not reset
@@ -83,6 +87,7 @@ async def test_inbox_preserves_selection_across_refresh(relay_dir):
         assert inbox.selected_message().id == target_id
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_inbox_shows_id_column(relay_dir):
     from claude_relay.core import store

@@ -3,6 +3,7 @@ import pytest
 from claude_relay.tui.app import RelayApp
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_app_starts_and_shows_three_panes(relay_dir):
     app = RelayApp()

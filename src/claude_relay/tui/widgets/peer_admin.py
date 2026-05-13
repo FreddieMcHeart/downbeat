@@ -1,7 +1,7 @@
 """Confirm-and-delete a peer, and GC-stale dialog with dry-run preview."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from textual.containers import Vertical
 from textual.screen import ModalScreen
@@ -78,11 +78,11 @@ class GcStaleModal(ModalScreen):
             days = int(self._days.value or "14")
         except ValueError:
             days = 14
-        return datetime.now(timezone.utc) - timedelta(days=days)
+        return datetime.now(UTC) - timedelta(days=days)
 
     def _stale_peers(self) -> list[tuple[str, str, float]]:
         threshold = self._threshold()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         out: list[tuple[str, str, float]] = []
         for p in store.list_peers():
             try:

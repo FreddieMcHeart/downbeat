@@ -3,6 +3,7 @@ import pytest
 from claude_relay.tui.app import RelayApp
 
 
+@pytest.mark.skip(reason="three-pane Composer modal replaced by chat-view inline composer")
 @pytest.mark.asyncio
 async def test_compose_new_message(relay_dir):
     from claude_relay.core import store
@@ -25,6 +26,7 @@ async def test_compose_new_message(relay_dir):
         assert any(m.subject == "s" for m in msgs)
 
 
+@pytest.mark.skip(reason="three-pane Composer modal replaced by chat-view inline composer")
 @pytest.mark.asyncio
 async def test_compose_broadcast(relay_dir):
     from claude_relay.core import store

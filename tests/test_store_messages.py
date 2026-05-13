@@ -152,3 +152,23 @@ def test_find_message_no_match_returns_empty(relay_dir):
     _peers("p", "c")
     store.send_message(from_peer="p", to_peer="c", subject="s", body="b")
     assert store.find_message_by_id_prefix("zzzzzzzz") == []
+
+
+def test_list_thread_returns_both_directions_sorted(relay_dir):
+    _peers("parent", "child")
+    a = store.send_message(from_peer="parent", to_peer="child",
+                           subject="q1", body="ask")
+    # Simulate child replying
+    store.mark_read(a.id)
+    b = store.reply_to(a.id, body="answer", from_peer="child")
+    # parent replies again
+    c = store.send_message(from_peer="parent", to_peer="child",
+                           subject="q2", body="follow up")
+    thread = store.list_thread("parent", "child")
+    ids = {m.id for m in thread}
+    # All three messages should appear (both directions, including archived)
+    assert ids == {a.id, b.id, c.id}
+    # Verify sorted oldest-to-newest (created_at is ISO; same-second ties are stable
+    # by sort stability but not guaranteed order — we only assert set membership here)
+    assert all(thread[i].created_at <= thread[i + 1].created_at
+               for i in range(len(thread) - 1))

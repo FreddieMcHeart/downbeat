@@ -3,6 +3,7 @@ import pytest
 from claude_relay.tui.app import RelayApp
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_pressing_enter_on_inbox_opens_message(relay_dir):
     from claude_relay.core import store
@@ -27,6 +28,7 @@ async def test_pressing_enter_on_inbox_opens_message(relay_dir):
         assert store.get_message(msg.id).state == MessageState.READ
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_opening_message_marks_it_read(relay_dir):
     from claude_relay.core import store

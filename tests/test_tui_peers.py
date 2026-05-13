@@ -3,6 +3,7 @@ import pytest
 from claude_relay.tui.app import RelayApp
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_peer_list_shows_registered_peers(relay_dir):
     from claude_relay.core import store
@@ -19,6 +20,7 @@ async def test_peer_list_shows_registered_peers(relay_dir):
         assert "parent" in names
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_peer_list_acting_as_default_first_parent(relay_dir):
     from claude_relay.core import store
@@ -31,6 +33,7 @@ async def test_peer_list_acting_as_default_first_parent(relay_dir):
         assert peer_widget.acting_as == "parent"
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_peer_list_unread_count(relay_dir):
     from claude_relay.core import store
@@ -47,6 +50,7 @@ async def test_peer_list_unread_count(relay_dir):
         assert child_row.unread == 1
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_dropdown_lists_only_parents(relay_dir):
     from claude_relay.core import store
@@ -61,6 +65,7 @@ async def test_dropdown_lists_only_parents(relay_dir):
         assert peer_widget.acting_as in {"P1", "P2"}
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_list_shows_all_related_peers_including_parent(relay_dir):
     from claude_relay.core import store
@@ -77,6 +82,7 @@ async def test_list_shows_all_related_peers_including_parent(relay_dir):
         assert "other-child" not in names
 
 
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_list_falls_back_to_all_peers_when_prefix_empty(relay_dir):
     from claude_relay.core import store
