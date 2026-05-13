@@ -64,9 +64,10 @@ async def test_composer_shift_enter_inserts_newline_enter_sends(relay_dir):
     The newline-insertion itself is TextArea's built-in behaviour and is tested
     via direct Key injection since headless pilot.press may not deliver shift+enter.
     """
+    from textual.events import Key
+
     from claude_relay.core import store
     from claude_relay.tui.widgets.chat_composer import ChatComposer
-    from textual.events import Key
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
     app = RelayApp()
@@ -157,3 +158,23 @@ async def test_auto_mark_read_on_cursor_move(relay_dir):
         stream.move_cursor(-1)
         await pilot.pause()
         assert store.get_message(a.id).state == MessageState.READ
+
+
+@pytest.mark.asyncio
+async def test_acting_as_peer_not_in_own_tabs(relay_dir):
+    """The parent we're acting as should NOT appear as a tab — you can't
+    talk to yourself."""
+    from claude_relay.core import store
+    store.register_peer(name="PLAT-3113-master", session_id="s1",
+                        cwd="/tmp", role="parent")
+    store.register_peer(name="PLAT-3113-child", session_id="s2",
+                        cwd="/tmp", role="child")
+    store.register_peer(name="PLAT-3113-slave", session_id="s3",
+                        cwd="/tmp", role="child")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        members = screen._group_members()
+        assert "PLAT-3113-master" not in members
+        assert set(members) == {"PLAT-3113-child", "PLAT-3113-slave"}

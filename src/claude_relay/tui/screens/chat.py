@@ -67,8 +67,11 @@ class ChatScreen(Screen):
         prefix = self._related_prefix(self.acting_as)
         all_peers = store.list_peers()
         if prefix:
-            return [p.name for p in all_peers if p.name.startswith(prefix)]
-        return [p.name for p in all_peers]
+            members = [p.name for p in all_peers if p.name.startswith(prefix)]
+        else:
+            members = [p.name for p in all_peers]
+        # The parent shouldn't have a tab to talk to itself
+        return [name for name in members if name != self.acting_as]
 
     def _populate_acting_as(self) -> None:
         sel = self.query_one("#acting-as-select", Select)
