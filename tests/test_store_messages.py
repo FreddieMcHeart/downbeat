@@ -122,3 +122,33 @@ def test_list_inbox_dedups_when_id_appears_in_both_dirs(relay_dir):
     items = store.list_inbox("child", include_archived=True)
     ids = [m.id for m in items]
     assert ids.count(msg.id) == 1
+
+
+def test_find_message_by_id_prefix(relay_dir):
+    _peers("parent", "child")
+    a = store.send_message(from_peer="parent", to_peer="child",
+                           subject="alpha", body="x")
+    b = store.send_message(from_peer="parent", to_peer="child",
+                           subject="beta", body="y")
+    # Reply b — moves it to processed/
+    store.mark_read(b.id)
+    store.reply_to(b.id, body="reply", from_peer="child")
+    # Search by short prefix of a
+    matches = store.find_message_by_id_prefix(a.id[:6])
+    ids = {m.id for m, _ in matches}
+    assert a.id in ids
+
+    # Search hits a message archived in processed/
+    matches_b = store.find_message_by_id_prefix(b.id[:6])
+    locations = {loc for _, loc in matches_b}
+    assert "processed" in locations or "inbox" in locations  # one of them
+
+    # Empty prefix returns nothing
+    assert store.find_message_by_id_prefix("") == []
+    assert store.find_message_by_id_prefix("   ") == []
+
+
+def test_find_message_no_match_returns_empty(relay_dir):
+    _peers("p", "c")
+    store.send_message(from_peer="p", to_peer="c", subject="s", body="b")
+    assert store.find_message_by_id_prefix("zzzzzzzz") == []

@@ -290,3 +290,29 @@ def _is_reply(msg: Message, siblings: list[Message]) -> bool:
     # treat any sibling where from_peer != "parent fan-out sender" as a reply.
     # Simpler heuristic: replies have subject starting with "Re: ".
     return msg.subject.startswith("Re: ")
+
+
+def find_message_by_id_prefix(id_prefix: str) -> list[tuple[Message, str]]:
+    """Search every peer's inbox/ and processed/ for messages whose id starts
+    with id_prefix. Returns (message, location) tuples where location is
+    "inbox" or "processed". Empty prefix returns nothing (avoid scanning the
+    whole world)."""
+    prefix = id_prefix.strip()
+    if not prefix:
+        return []
+    out: list[tuple[Message, str]] = []
+    for base, label in ((paths.INBOX_DIR, "inbox"),
+                         (paths.PROCESSED_DIR, "processed")):
+        if not base.exists():
+            continue
+        for peer_dir in base.iterdir():
+            if not peer_dir.is_dir():
+                continue
+            for p in peer_dir.glob("*.json"):
+                if not p.stem.startswith(prefix):
+                    continue
+                try:
+                    out.append((_read_message_at(p), label))
+                except StoreCorrupt:
+                    continue
+    return out

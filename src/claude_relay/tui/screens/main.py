@@ -32,6 +32,7 @@ class MainScreen(Screen):
         ("e", "edit", "Edit"),
         ("d", "delete", "Delete"),
         ("a", "toggle_archived", "Show/hide archived"),
+        ("f", "find_message", "Find message"),
         ("B,shift+b", "broadcast_status", "Bcast status"),
         ("P,shift+p", "add_peer", "Add peer"),
         ("X,shift+x", "remove_peer", "Remove peer"),
@@ -189,3 +190,30 @@ class MainScreen(Screen):
             )
             return
         self.app.push_screen(BroadcastStatusScreen(msg.broadcast_id))
+
+    def action_find_message(self) -> None:
+        from ..widgets.find_message import FindMessageModal
+
+        def after(msg):
+            if msg is None:
+                return
+            # Jump to the message: figure out which peer's inbox it sits in,
+            # switch acting-as if that peer is a registered parent (so its inbox
+            # is the active view); otherwise just show the message body without
+            # changing context.
+            peers = {p.name: p for p in store.list_peers()}
+            target_parent = msg.to_peer if (
+                msg.to_peer in peers and peers[msg.to_peer].role == "parent"
+            ) else None
+            if target_parent:
+                peer_list = self.query_one(PeerList)
+                peer_list.acting_as = target_parent
+                peer_list.refresh_from_store()
+                inbox = self.query_one(InboxList)
+                # Ensure archived shows if the message is archived
+                inbox.show_archived = msg.archived or inbox.show_archived
+                inbox.refresh_for_peer(target_parent)
+            # Show the message body either way
+            self.query_one(MessageView).show(msg.id)
+
+        self.app.push_screen(FindMessageModal(), after)

@@ -16,11 +16,12 @@ class InboxList(DataTable):
         self._current_peer: str | None = None
 
     def on_mount(self):
-        self.add_columns("S", "time", "from", "subject")
+        self.add_columns("S", "time", "id", "from", "subject")
         cols = list(self.columns.values())
-        cols[0].width = 1
-        cols[1].width = 5
-        cols[2].width = 18
+        cols[0].width = 1     # S flag
+        cols[1].width = 5     # HH:MM
+        cols[2].width = 16    # id (handles both 12-char new and 16-char legacy)
+        cols[3].width = 18    # from
 
     def refresh_for_peer(self, peer_name: str | None) -> None:
         # Capture selected message id before clearing
@@ -37,7 +38,7 @@ class InboxList(DataTable):
         for idx, m in enumerate(self._messages):
             flag = {"new": "•", "read": " ", "archived": "·"}[m.state.value]
             time_str = m.created_at[11:16] if len(m.created_at) >= 16 else ""
-            self.add_row(flag, time_str, m.from_peer, m.subject)
+            self.add_row(flag, time_str, m.id, m.from_peer, m.subject)
             if prev_id is not None and m.id == prev_id:
                 target_row = idx
         # Restore cursor — if the previously-selected message still exists, jump

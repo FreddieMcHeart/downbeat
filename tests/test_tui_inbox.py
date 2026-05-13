@@ -81,3 +81,17 @@ async def test_inbox_preserves_selection_across_refresh(relay_dir):
         await pilot.pause()
         # Cursor must still be on `target_id`, not back at row 0
         assert inbox.selected_message().id == target_id
+
+
+@pytest.mark.asyncio
+async def test_inbox_shows_id_column(relay_dir):
+    from claude_relay.core import store
+    store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
+    msg = store.send_message(from_peer="p", to_peer="c", subject="hi", body="b")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        inbox = app.screen.query_one("InboxList")
+        inbox.refresh_for_peer("c")
+        col_labels = [str(c.label) for c in inbox.columns.values()]
+        assert "id" in col_labels
