@@ -26,8 +26,9 @@ class ChatStream(VerticalScroll):
         color: $text-muted;
     }
     ChatStream > .bubble-selected {
-        background: $boost;
+        background: $accent 30%;
         border-left: thick $warning;
+        text-style: bold;
     }
     """
 
@@ -64,11 +65,13 @@ class ChatStream(VerticalScroll):
         direction = f"you → {msg.to_peer}" if is_self else f"{msg.from_peer} → you"
         time = msg.created_at[11:16] if len(msg.created_at) >= 16 else ""
         state_marker = {
-            "new": "[yellow]●[/yellow] ",
-            "read": "[green]✓[/green] ",
+            "new":      "[yellow]●[/yellow] ",
+            "read":     "[green]✓[/green] ",
             "archived": "[dim]·[/dim] ",
         }.get(msg.state.value, "")
-        header = f"{state_marker}[b]{direction}[/b]  [dim]{time}  id {msg.id}[/dim]"
+        # Render with a placeholder cursor slot that _highlight_cursor will fill
+        cursor_slot = "  "
+        header = f"{cursor_slot}{state_marker}[b]{direction}[/b]  [dim]{time}  id {msg.id}[/dim]"
         body = msg.body or ""
         if len(body) > 600:
             body = body[:600] + "\n[dim]…[truncated, press v to view full][/dim]"
@@ -76,11 +79,33 @@ class ChatStream(VerticalScroll):
         base_class = "bubble bubble-self" if is_self else "bubble bubble-other"
         bubble = Static(text, classes=base_class)
         bubble.data_idx = idx
+        bubble._msg = msg  # keep ref so _highlight_cursor can re-render
         return bubble
 
     def _highlight_cursor(self) -> None:
         for idx, child in enumerate(self.children):
-            child.set_class(idx == self._cursor, "bubble-selected")
+            is_selected = (idx == self._cursor)
+            child.set_class(is_selected, "bubble-selected")
+            # Re-render header text to include or remove the ▶ cursor arrow
+            if hasattr(child, "_msg") and self._me is not None:
+                msg = child._msg
+                is_self = (msg.from_peer == self._me)
+                direction = f"you → {msg.to_peer}" if is_self else f"{msg.from_peer} → you"
+                time = msg.created_at[11:16] if len(msg.created_at) >= 16 else ""
+                state_marker = {
+                    "new":      "[yellow]●[/yellow] ",
+                    "read":     "[green]✓[/green] ",
+                    "archived": "[dim]·[/dim] ",
+                }.get(msg.state.value, "")
+                cursor_slot = "[b yellow]▶[/b yellow] " if is_selected else "  "
+                header = (
+                    f"{cursor_slot}{state_marker}[b]{direction}[/b]"
+                    f"  [dim]{time}  id {msg.id}[/dim]"
+                )
+                body = msg.body or ""
+                if len(body) > 600:
+                    body = body[:600] + "\n[dim]…[truncated, press v to view full][/dim]"
+                child.update(f"{header}\n{body}")
 
     def _mark_focused_read(self) -> None:
         msg = self.selected_message()
