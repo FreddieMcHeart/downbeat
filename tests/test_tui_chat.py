@@ -178,3 +178,42 @@ async def test_acting_as_peer_not_in_own_tabs(relay_dir):
         members = screen._group_members()
         assert "PLAT-3113-master" not in members
         assert set(members) == {"PLAT-3113-child", "PLAT-3113-slave"}
+
+
+@pytest.mark.asyncio
+async def test_left_right_cycles_peer_tabs(relay_dir):
+    from claude_relay.core import store
+    store.register_peer(name="PLAT-3113-master", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="PLAT-3113-child",  session_id="s2", cwd="/tmp", role="child")
+    store.register_peer(name="PLAT-3113-slave",  session_id="s3", cwd="/tmp", role="child")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        # active_peer should be one of the two children
+        start = screen.active_peer
+        assert start in {"PLAT-3113-child", "PLAT-3113-slave"}
+        await pilot.press("right")
+        await pilot.pause()
+        assert screen.active_peer != start
+
+
+@pytest.mark.asyncio
+async def test_tab_does_not_land_focus_on_peer_tabs(relay_dir):
+    from claude_relay.core import store
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child",  session_id="s2", cwd="/tmp", role="child")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        # Start with Select focused (default after mount)
+        sel = app.screen.query_one("#acting-as-select")
+        sel.focus()
+        await pilot.pause()
+        # One tab — should move focus to ChatStream (not PeerTabs)
+        await pilot.press("tab")
+        await pilot.pause()
+        focused = app.screen.focused
+        # Acceptable: focused is the ChatStream id, or any focusable that isn't peer-tabs
+        assert focused is not None
+        assert focused.id != "peer-tabs"

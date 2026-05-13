@@ -9,6 +9,12 @@ from ...core.models import Message, MessageState
 
 
 class ChatStream(VerticalScroll):
+    BINDINGS = [
+        ("up,k", "cursor_up", "Up"),
+        ("down,j", "cursor_down", "Down"),
+    ]
+    can_focus = True
+
     DEFAULT_CSS = """
     ChatStream { padding: 1 1; height: 1fr; }
     ChatStream > .bubble {
@@ -126,6 +132,12 @@ class ChatStream(VerticalScroll):
                 break
         # Mark as read if it's a NEW message addressed to me
         self._mark_focused_read()
+
+    def action_cursor_up(self) -> None:
+        self.move_cursor(-1)
+
+    def action_cursor_down(self) -> None:
+        self.move_cursor(+1)
 
     def selected_message(self) -> Message | None:
         if not self._messages:

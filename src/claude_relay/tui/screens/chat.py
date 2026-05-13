@@ -20,16 +20,14 @@ class ChatScreen(Screen):
         ("f1", "help", "Help"),
         ("f5", "refresh", "Refresh"),
         ("f6", "toggle_logs", "Logs"),
-        ("up", "cursor_up", "Up"),
-        ("down", "cursor_down", "Down"),
         ("e", "edit", "Edit"),
         ("d", "delete", "Delete"),
         ("f", "find_message", "Find"),
         ("v", "view_full", "View full"),
         ("ctrl+p", "open_peers", "Peers"),
         ("B,shift+b", "broadcast_status", "Bcast"),
-        ("tab", "next_tab", "Next peer"),
-        ("shift+tab", "prev_tab", "Prev peer"),
+        ("left,h", "prev_tab", "Prev peer"),
+        ("right,l", "next_tab", "Next peer"),
     ]
 
     acting_as: reactive[str | None] = reactive(None)
@@ -141,12 +139,6 @@ class ChatScreen(Screen):
         self._refresh_thread()
 
     # ---------------- bindings ----------------
-
-    def action_cursor_up(self) -> None:
-        self.query_one("#chat-stream", ChatStream).move_cursor(-1)
-
-    def action_cursor_down(self) -> None:
-        self.query_one("#chat-stream", ChatStream).move_cursor(+1)
 
     def action_next_tab(self) -> None:
         members = self._group_members()

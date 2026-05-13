@@ -17,6 +17,8 @@ class PeerTabs(Tabs):
         super().__init__(**kwargs)
         self._members: list[str] = []
         self._populating: bool = False
+        self.can_focus = False
+        self.can_focus_children = False
 
     async def populate(self, members: list[str]) -> None:
         """Replace tabs with new member set, preserving active when possible.

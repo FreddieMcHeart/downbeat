@@ -9,9 +9,10 @@ HELP_TEXT = """\
 [b]claude-relay TUI — Chat view[/b]
 
 [b]Navigation[/b]
-  ↑/↓             move cursor through message bubbles
-  Tab / Shift+Tab cycle peer tabs
-  Click a tab     switch peer
+  Tab / Shift+Tab   cycle focus: Acting-as → Messages → Composer
+  ← / →             prev / next peer tab
+  ↑ / ↓             scroll within focused region (dropdown, messages, composer)
+  Click a tab       switch peer
 
 [b]Compose[/b]
   Enter           send to active peer

@@ -22,11 +22,12 @@ claude-relay tui                 # full management UI
 
 ### TUI keybindings
 
-| Key            | Action                              |
-|----------------|-------------------------------------|
-| Up/Down        | Move cursor through message bubbles |
-| Tab/Shift+Tab  | Cycle peer tabs                     |
-| Enter          | Send (in composer)                  |
+| Key            | Action                                        |
+|----------------|-----------------------------------------------|
+| Tab/Shift+Tab  | Cycle focus: Acting-as → Messages → Composer  |
+| Left/Right     | Prev / next peer tab                          |
+| Up/Down        | Within focused region (dropdown, messages, composer) |
+| Enter          | Send (in composer)                            |
 | e              | Edit focused message (only NEW)     |
 | d              | Delete focused message (confirm)    |
 | v              | View full body of focused message   |
