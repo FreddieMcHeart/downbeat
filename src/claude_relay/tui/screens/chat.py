@@ -125,6 +125,20 @@ class ChatScreen(Screen):
                            subject=subject, body=event.text)
         self._refresh_thread()
 
+    def on_chat_composer_broadcast(self, event) -> None:
+        if not self.acting_as:
+            self.notify("Pick a parent first", severity="warning")
+            return
+        members = [n for n in self._group_members() if n != self.acting_as]
+        if not members:
+            self.notify("No group members to broadcast to", severity="warning")
+            return
+        subject = event.text.splitlines()[0][:60] if event.text else "msg"
+        bc = store.broadcast(from_peer=self.acting_as, to_peers=members,
+                             subject=subject, body=event.text)
+        self.notify(f"Broadcast {bc.id} sent to {len(members)} peers", timeout=4)
+        self._refresh_thread()
+
     # ---------------- bindings ----------------
 
     def action_cursor_up(self) -> None:
