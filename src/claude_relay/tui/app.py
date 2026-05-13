@@ -15,6 +15,7 @@ class RelayApp(App):
     CSS_PATH = "theme.tcss"
     TITLE = "claude-relay"
     SUB_TITLE = "local relay TUI"
+    ENABLE_COMMAND_PALETTE = False
 
     def __init__(self):
         super().__init__()

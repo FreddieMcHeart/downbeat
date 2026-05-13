@@ -22,20 +22,19 @@ claude-relay tui                 # full management UI
 
 ### TUI keybindings
 
-| Key | Action |
-|-----|--------|
-| Enter | Open / mark read |
-| n | New message |
-| r | Reply |
-| e | Edit (only NEW) |
-| d | Delete (confirm) |
-| b | Toggle broadcast in composer |
+| Key     | Action                        |
+|---------|-------------------------------|
+| Enter   | Open / mark read              |
+| n       | New message                   |
+| r       | Reply                         |
+| e       | Edit (only NEW)               |
+| d       | Delete (confirm)              |
+| b       | Toggle broadcast in composer  |
 | Shift+B | Broadcast status for selected |
-| F1 | Help |
-| F5 | Refresh |
-| F6 | Toggle log viewer |
-| Ctrl+T | Dark/light toggle |
-| q | Quit |
+| F1      | Help                          |
+| F5      | Refresh                       |
+| F6      | Toggle log viewer             |
+| q       | Quit                          |
 
 ## Uninstall
 

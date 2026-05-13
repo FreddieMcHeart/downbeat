@@ -25,7 +25,6 @@ class MainScreen(Screen):
         ("f1", "help", "Help"),
         ("f5", "refresh", "Refresh"),
         ("f6", "toggle_logs", "Logs"),
-        ("ctrl+t", "toggle_dark", "Theme"),
         ("enter", "open_message", "Open"),
         ("n", "new_message", "New"),
         ("r", "reply", "Reply"),
@@ -82,9 +81,6 @@ class MainScreen(Screen):
 
     def action_toggle_logs(self) -> None:
         self.query_one(LogViewer).toggle()
-
-    def action_toggle_dark(self) -> None:
-        self.app.dark = not self.app.dark
 
     def action_open_message(self) -> None:
         msg = self.query_one(InboxList).selected_message()

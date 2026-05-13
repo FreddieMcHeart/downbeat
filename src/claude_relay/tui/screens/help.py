@@ -26,8 +26,6 @@ HELP_TEXT = """\
   F1                this help
   F5                refresh
   F6                toggle log viewer
-  :                 command palette
-  Ctrl+T            toggle dark/light theme
   q                 quit
 """
 
