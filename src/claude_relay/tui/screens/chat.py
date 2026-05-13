@@ -5,7 +5,7 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.reactive import reactive
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Select
+from textual.widgets import Footer, Header, Static
 
 from ...core import store
 from ..widgets.chat_composer import ChatComposer
@@ -22,6 +22,7 @@ class ChatScreen(Screen):
         ("f6", "toggle_logs", "Logs"),
         ("f", "find_message", "Find"),
         ("ctrl+p", "open_peers", "Peers"),
+        ("s", "switch_acting_as", "Switch acting-as"),
         ("left,h", "prev_tab", "Prev member"),
         ("right,l", "next_tab", "Next member"),
     ]
@@ -36,7 +37,7 @@ class ChatScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
         with Vertical(id="chat-root"):
-            yield Select([], prompt="Acting as", id="acting-as-select")
+            yield Static("", id="acting-as-chip")
             yield PeerTabs(id="peer-tabs")
             yield ChatStream(id="chat-stream")
             yield ChatComposer(id="chat-composer")
@@ -70,13 +71,18 @@ class ChatScreen(Screen):
         return [name for name in members if name != self.acting_as]
 
     def _populate_acting_as(self) -> None:
-        sel = self.query_one("#acting-as-select", Select)
         parents = [p for p in store.list_peers() if p.role == "parent"]
-        sel.set_options([(p.name, p.name) for p in parents])
-        if self.acting_as not in {p.name for p in parents}:
+        parent_names = {p.name for p in parents}
+        if self.acting_as not in parent_names:
             self.acting_as = parents[0].name if parents else None
+        chip = self.query_one("#acting-as-chip", Static)
         if self.acting_as:
-            sel.value = self.acting_as
+            chip.update(
+                f"[b]Acting as:[/b] {self.acting_as}   "
+                f"[dim]s to switch[/dim]"
+            )
+        else:
+            chip.update("[dim]No parents registered — press Ctrl+P to add one[/dim]")
 
     async def _populate_tabs(self) -> None:
         tabs = self.query_one("#peer-tabs", PeerTabs)
@@ -95,16 +101,6 @@ class ChatScreen(Screen):
         # mark-read everything on tab open — that's too aggressive.
 
     # ---------------- handlers ----------------
-
-    async def on_select_changed(self, event: Select.Changed) -> None:
-        if event.select.id == "acting-as-select" and event.value not in (None, Select.BLANK):
-            new_val = str(event.value)
-            if new_val == self.acting_as:
-                # Same value — already initialised by on_mount; skip re-populate
-                return
-            self.acting_as = new_val
-            await self._populate_tabs()
-            self._refresh_thread()
 
     async def on_peer_tabs_peer_selected(self, event) -> None:
         self.active_peer = event.peer_name
@@ -200,6 +196,20 @@ class ChatScreen(Screen):
         def after(_):
             self.action_refresh()
         self.app.push_screen(PeersScreen(), after)
+
+    def action_switch_acting_as(self) -> None:
+        from ..widgets.switch_acting_as import SwitchActingAsModal
+        def after(name):
+            if name is None or name == self.acting_as:
+                return
+            self.acting_as = name
+            self._populate_acting_as()
+            self.call_after_refresh(self._populate_tabs_and_refresh)
+        self.app.push_screen(SwitchActingAsModal(self.acting_as), after)
+
+    async def _populate_tabs_and_refresh(self) -> None:
+        await self._populate_tabs()
+        self._refresh_thread()
 
     async def on_store_changed(self, event) -> None:
         await self.action_refresh()

@@ -9,9 +9,10 @@ HELP_TEXT = """\
 [b]claude-relay TUI — Chat view[/b]
 
 [b]Navigation[/b]
-  Tab / Shift+Tab   cycle focus: Acting-as → Messages → Composer
+  Tab / Shift+Tab   cycle focus: Messages → Composer
   ← / →             prev / next group member
-  ↑ / ↓             scroll within focused region (dropdown, messages, composer)
+  ↑ / ↓             scroll within focused region (messages, composer)
+  s                 switch acting-as parent
   Click a tab       switch peer
 
 [b]Compose[/b]

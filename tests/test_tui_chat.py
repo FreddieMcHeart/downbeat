@@ -4,7 +4,7 @@ from claude_relay.tui.app import RelayApp
 
 
 @pytest.mark.asyncio
-async def test_chat_screen_mounts_with_acting_as_select_and_tabs(relay_dir):
+async def test_chat_screen_mounts_with_acting_as_chip_and_tabs(relay_dir):
     from claude_relay.core import store
     store.register_peer(name="PLAT-3113-master", session_id="s1",
                         cwd="/tmp", role="parent")
@@ -12,9 +12,9 @@ async def test_chat_screen_mounts_with_acting_as_select_and_tabs(relay_dir):
                         cwd="/tmp", role="child")
     app = RelayApp()
     async with app.run_test(headless=True):
-        # Acting-as picker is mounted
-        sel = app.screen.query_one("#acting-as-select")
-        assert sel is not None
+        # Acting-as chip is mounted
+        chip = app.screen.query_one("#acting-as-chip")
+        assert chip is not None
         # PeerTabs is mounted and includes both members
         tabs = app.screen.query_one("#peer-tabs")
         assert tabs is not None
@@ -45,15 +45,13 @@ async def test_sending_via_composer_adds_message_to_thread(relay_dir):
 
 
 @pytest.mark.asyncio
-async def test_acting_as_select_lists_only_parents(relay_dir):
+async def test_chat_screen_auto_picks_first_parent_as_acting_as(relay_dir):
     from claude_relay.core import store
     store.register_peer(name="P", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="C", session_id="s2", cwd="/tmp", role="child")
     app = RelayApp()
     async with app.run_test(headless=True):
-        sel = app.screen.query_one("#acting-as-select")
-        # Internal options should only contain P
-        assert sel.value == "P"
+        assert app.screen.acting_as == "P"
 
 
 @pytest.mark.asyncio
@@ -206,15 +204,15 @@ async def test_tab_does_not_land_focus_on_peer_tabs(relay_dir):
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
         await pilot.pause()
-        # Start with Select focused (default after mount)
-        sel = app.screen.query_one("#acting-as-select")
-        sel.focus()
+        # Start with ChatStream focused (chip is non-focusable Static)
+        stream = app.screen.query_one("#chat-stream")
+        stream.focus()
         await pilot.pause()
-        # One tab — should move focus to ChatStream (not PeerTabs)
+        # One tab — should move focus to Composer (not PeerTabs)
         await pilot.press("tab")
         await pilot.pause()
         focused = app.screen.focused
-        # Acceptable: focused is the ChatStream id, or any focusable that isn't peer-tabs
+        # Acceptable: focused is any focusable widget that isn't peer-tabs
         assert focused is not None
         assert focused.id != "peer-tabs"
 
@@ -248,3 +246,21 @@ async def test_enter_on_message_opens_detail_screen(relay_dir):
         assert selected.id == msg.id, "selected message must match the sent message"
         # Verify action_open_detail is callable (wires correctly)
         assert hasattr(stream, "action_open_detail")
+
+
+@pytest.mark.asyncio
+async def test_switch_acting_as_modal_lists_parents(relay_dir):
+    from claude_relay.core import store
+    from claude_relay.tui.widgets.switch_acting_as import SwitchActingAsModal
+    store.register_peer(name="P1", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="P2", session_id="s2", cwd="/tmp", role="parent")
+    store.register_peer(name="C",  session_id="s3", cwd="/tmp", role="child")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        modal = SwitchActingAsModal(current="P1")
+        app.push_screen(modal)
+        await pilot.pause()
+        # The modal listed exactly the two parents
+        assert modal._parents == ["P1", "P2"]
+        # And selected the current one
+        assert modal._listview.index == 0
