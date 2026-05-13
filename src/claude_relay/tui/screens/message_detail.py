@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from textual.app import ComposeResult
-from textual.containers import Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Label, Markdown, Static
 
@@ -10,6 +9,13 @@ from ...core import store
 
 
 class MessageDetailScreen(Screen):
+    DEFAULT_CSS = """
+    MessageDetailScreen { layout: vertical; }
+    #msg-title { padding: 1 2 0 2; }
+    #msg-meta  { padding: 0 2 1 2; color: $text-muted; }
+    #msg-body  { padding: 0 2 2 2; }
+    """
+
     BINDINGS = [
         ("escape,q", "app.pop_screen", "Back"),
         ("e", "edit", "Edit"),
@@ -28,23 +34,24 @@ class MessageDetailScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
-        with Vertical(id="msg-detail-root"):
-            self._title = Label("", id="msg-title")
-            yield self._title
-            self._meta = Static("", id="msg-meta", classes="pane")
-            yield self._meta
-            with VerticalScroll(id="msg-body-scroll", classes="pane"):
-                self._body = Markdown("", id="msg-body")
-                yield self._body
+        self._title = Label("", id="msg-title")
+        yield self._title
+        self._meta = Static("", id="msg-meta")
+        yield self._meta
+        self._body = Markdown("", id="msg-body")
+        yield self._body
         yield Footer()
 
     def on_mount(self) -> None:
-        self._render()
+        self._render_content_safe()
 
-    def _render(self) -> None:
-        msg = store.get_message(self.msg_id)
-        self._title.update(f"[b]{msg.subject}[/b]   "
-                            f"[dim]{msg.state.value}[/dim]")
+    def _render_content_safe(self) -> None:
+        try:
+            msg = store.get_message(self.msg_id)
+        except Exception as e:
+            self._title.update(f"[red]Error loading {self.msg_id}: {e}[/red]")
+            return
+        self._title.update(f"[b]{msg.subject}[/b]   [dim]({msg.state.value})[/dim]")
         meta_lines = [
             f"id:        {msg.id}",
             f"from:      {msg.from_peer}",
@@ -60,7 +67,7 @@ class MessageDetailScreen(Screen):
         if msg.archived:
             meta_lines.append("[dim]archived[/dim]")
         self._meta.update("\n".join(meta_lines))
-        self._body.update(msg.body or "[dim](empty body)[/dim]")
+        self._body.update(msg.body or "*(empty body)*")
 
     def action_edit(self) -> None:
         msg = store.get_message(self.msg_id)
@@ -70,16 +77,14 @@ class MessageDetailScreen(Screen):
             return
         from ..widgets.edit_modal import EditModal
         def after(_):
-            self._render()
+            self._render_content_safe()
         self.app.push_screen(EditModal(self.msg_id), after)
 
     def action_reply(self) -> None:
         msg = store.get_message(self.msg_id)
         from ..widgets.composer import Composer
         def after(_):
-            # After replying, pop back to chat which will refresh
             self.app.pop_screen()
-        # The reply Composer routes correctly: sender=msg.to_peer, reply_to=msg.id
         self.app.push_screen(
             Composer(sender=msg.to_peer, reply_to=msg.id, prefill_to=msg.from_peer),
             after,
@@ -104,7 +109,6 @@ class MessageDetailScreen(Screen):
         self.app.push_screen(BroadcastStatusScreen(msg.broadcast_id))
 
     def action_copy_id(self) -> None:
-        # Best-effort clipboard; fall back to notify-only if pyperclip isn't installed
         try:
             import pyperclip  # type: ignore
             pyperclip.copy(self.msg_id)
