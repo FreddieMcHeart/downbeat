@@ -94,11 +94,9 @@ class ChatScreen(Screen):
     def _refresh_thread(self) -> None:
         stream = self.query_one("#chat-stream", ChatStream)
         stream.refresh_thread(self.acting_as, self.active_peer)
-        # Mark all unread messages from active_peer as read
-        if self.acting_as and self.active_peer:
-            for m in store.list_inbox(self.acting_as):
-                if m.from_peer == self.active_peer and m.state.value == "new":
-                    store.mark_read(m.id)
+        # Per-bubble mark-read is handled by ChatStream._mark_focused_read
+        # (called automatically on refresh and on cursor move). We do NOT bulk
+        # mark-read everything on tab open — that's too aggressive.
 
     # ---------------- handlers ----------------
 
