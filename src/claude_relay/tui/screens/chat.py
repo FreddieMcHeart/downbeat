@@ -20,12 +20,8 @@ class ChatScreen(Screen):
         ("f1", "help", "Help"),
         ("f5", "refresh", "Refresh"),
         ("f6", "toggle_logs", "Logs"),
-        ("e", "edit", "Edit"),
-        ("d", "delete", "Delete"),
         ("f", "find_message", "Find"),
-        ("v", "view_full", "View full"),
         ("ctrl+p", "open_peers", "Peers"),
-        ("B,shift+b", "broadcast_status", "Bcast"),
         ("left,h", "prev_tab", "Prev peer"),
         ("right,l", "next_tab", "Next peer"),
     ]
@@ -173,30 +169,11 @@ class ChatScreen(Screen):
     def action_toggle_logs(self) -> None:
         self.query_one(LogViewer).toggle()
 
-    def action_edit(self) -> None:
-        from ..widgets.edit_modal import EditModal
-        msg = self.query_one("#chat-stream", ChatStream).selected_message()
-        if not msg:
-            self.notify("No message focused", severity="warning")
-            return
-        if msg.state.value != "new":
-            self.notify(f"message is {msg.state.value} — edit blocked", severity="warning")
-            return
+    def on_chat_stream_message_opened(self, event) -> None:
+        from .message_detail import MessageDetailScreen
         async def after(_):
-            self._refresh_thread()
-        self.app.push_screen(EditModal(msg.id), after)
-
-    def action_delete(self) -> None:
-        from ..widgets.confirm import ConfirmDelete, perform_delete
-        msg = self.query_one("#chat-stream", ChatStream).selected_message()
-        if not msg:
-            return
-        def after(confirmed):
-            if confirmed:
-                perform_delete(msg.id)
-                self._refresh_thread()
-        self.app.push_screen(ConfirmDelete(
-            f"Delete message {msg.id} from {msg.from_peer}?"), after)
+            await self.action_refresh()
+        self.app.push_screen(MessageDetailScreen(event.msg_id), after)
 
     def action_find_message(self) -> None:
         from ..widgets.find_message import FindMessageModal
@@ -218,34 +195,11 @@ class ChatScreen(Screen):
                 self._refresh_thread()
         self.app.push_screen(FindMessageModal(), after)
 
-    def action_view_full(self) -> None:
-        # Could push a modal showing untruncated message body; for MVP, no-op + hint
-        msg = self.query_one("#chat-stream", ChatStream).selected_message()
-        if not msg:
-            return
-        self.notify(f"Full body of {msg.id}:\n{msg.body}", timeout=10)
-
     def action_open_peers(self) -> None:
         from .peers import PeersScreen
         def after(_):
             self.action_refresh()
         self.app.push_screen(PeersScreen(), after)
-
-    def action_broadcast_status(self) -> None:
-        from .broadcast_status import BroadcastStatusScreen
-        msg = self.query_one("#chat-stream", ChatStream).selected_message()
-        if not msg:
-            self.notify("Select a message first", severity="warning")
-            return
-        if not msg.broadcast_id:
-            self.notify(
-                f"Message {msg.id} is not part of a broadcast — "
-                "broadcast status is only meaningful for fan-out messages.",
-                severity="warning",
-                timeout=5,
-            )
-            return
-        self.app.push_screen(BroadcastStatusScreen(msg.broadcast_id))
 
     async def on_store_changed(self, event) -> None:
         await self.action_refresh()

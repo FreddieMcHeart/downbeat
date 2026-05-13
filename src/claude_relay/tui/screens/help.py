@@ -21,10 +21,8 @@ HELP_TEXT = """\
   Ctrl+E          open $EDITOR on composer buffer
 
 [b]Actions on focused bubble[/b]
-  e               edit (only on your unread sent messages)
-  d               delete (with confirm)
-  v               toast full body of focused message
-  Shift+B         broadcast status (when applicable)
+  Enter           open focused message in detail view
+                  (Edit / Reply / Delete / Broadcast status / Copy id)
 
 [b]Peer management[/b]
   Ctrl+P          open Peers screen (add / remove / gc)

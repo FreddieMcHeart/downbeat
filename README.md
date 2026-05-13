@@ -22,22 +22,24 @@ claude-relay tui                 # full management UI
 
 ### TUI keybindings
 
-| Key            | Action                                        |
-|----------------|-----------------------------------------------|
-| Tab/Shift+Tab  | Cycle focus: Acting-as → Messages → Composer  |
-| Left/Right     | Prev / next peer tab                          |
-| Up/Down        | Within focused region (dropdown, messages, composer) |
-| Enter          | Send (in composer)                            |
-| e              | Edit focused message (only NEW)     |
-| d              | Delete focused message (confirm)    |
-| v              | View full body of focused message   |
-| Shift+B        | Broadcast status for selected       |
-| Ctrl+P         | Peers screen (add / remove / gc)    |
-| f              | Find message by id                  |
-| F1             | Help                                |
-| F5             | Refresh                             |
-| F6             | Toggle log viewer                   |
-| q              | Quit                                |
+| Key           | Action                                               |
+|---------------|------------------------------------------------------|
+| Tab/Shift+Tab | Cycle focus: Acting-as → Messages → Composer         |
+| Left/Right    | Prev / next peer tab                                 |
+| Up/Down       | Within focused region (dropdown, messages, composer) |
+| Enter         | Send (in composer) / Open message detail (in message list) |
+| Escape / q    | Back (in message detail)                             |
+| e             | Edit (in message detail, only NEW)                   |
+| r             | Reply (in message detail)                            |
+| d             | Delete with confirm (in message detail)              |
+| Shift+B       | Broadcast status (in message detail, when applicable) |
+| c             | Copy message id to clipboard (in message detail)     |
+| Ctrl+P        | Peers screen (add / remove / gc)                     |
+| f             | Find message by id                                   |
+| F1            | Help                                                 |
+| F5            | Refresh                                              |
+| F6            | Toggle log viewer                                    |
+| q             | Quit                                                 |
 
 ## Uninstall
 

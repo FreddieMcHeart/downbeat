@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from textual.containers import VerticalScroll
+from textual.message import Message as TextualMessage
 from textual.widgets import Static
 
 from ...core import store
@@ -12,8 +13,14 @@ class ChatStream(VerticalScroll):
     BINDINGS = [
         ("up,k", "cursor_up", "Up"),
         ("down,j", "cursor_down", "Down"),
+        ("enter", "open_detail", "Open"),
     ]
     can_focus = True
+
+    class MessageOpened(TextualMessage):
+        def __init__(self, msg_id: str):
+            super().__init__()
+            self.msg_id = msg_id
 
     DEFAULT_CSS = """
     ChatStream { padding: 1 1; height: 1fr; }
@@ -80,7 +87,7 @@ class ChatStream(VerticalScroll):
         header = f"{cursor_slot}{state_marker}[b]{direction}[/b]  [dim]{time}  id {msg.id}[/dim]"
         body = msg.body or ""
         if len(body) > 600:
-            body = body[:600] + "\n[dim]…[truncated, press v to view full][/dim]"
+            body = body[:600] + "\n[dim]…[truncated, press Enter to view full][/dim]"
         text = f"{header}\n{body}"
         base_class = "bubble bubble-self" if is_self else "bubble bubble-other"
         bubble = Static(text, classes=base_class)
@@ -110,7 +117,7 @@ class ChatStream(VerticalScroll):
                 )
                 body = msg.body or ""
                 if len(body) > 600:
-                    body = body[:600] + "\n[dim]…[truncated, press v to view full][/dim]"
+                    body = body[:600] + "\n[dim]…[truncated, press Enter to view full][/dim]"
                 child.update(f"{header}\n{body}")
 
     def _mark_focused_read(self) -> None:
@@ -145,3 +152,8 @@ class ChatStream(VerticalScroll):
         if 0 <= self._cursor < len(self._messages):
             return self._messages[self._cursor]
         return None
+
+    def action_open_detail(self) -> None:
+        msg = self.selected_message()
+        if msg:
+            self.post_message(self.MessageOpened(msg.id))

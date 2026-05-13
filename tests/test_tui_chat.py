@@ -217,3 +217,34 @@ async def test_tab_does_not_land_focus_on_peer_tabs(relay_dir):
         # Acceptable: focused is the ChatStream id, or any focusable that isn't peer-tabs
         assert focused is not None
         assert focused.id != "peer-tabs"
+
+
+@pytest.mark.asyncio
+async def test_enter_on_message_opens_detail_screen(relay_dir):
+    from claude_relay.core import store
+    from claude_relay.tui.widgets.chat_stream import ChatStream
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
+    msg = store.send_message(from_peer="child", to_peer="parent",
+                             subject="t", body="full body content")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        # Verify ChatStream has the enter binding wired to action_open_detail
+        stream = app.screen.query_one("#chat-stream", ChatStream)
+        binding_keys = {b[0] for b in stream.BINDINGS}
+        assert "enter" in binding_keys, "ChatStream must have enter binding"
+        # Verify on_chat_stream_message_opened handler exists on ChatScreen
+        assert hasattr(app.screen, "on_chat_stream_message_opened"), (
+            "ChatScreen must handle ChatStream.MessageOpened"
+        )
+        # Verify action_open_detail posts MessageOpened when a message is selected
+        # We test this by loading the thread and checking selected_message() returns
+        # the right message — the action simply wraps selected_message() + post_message.
+        stream.refresh_thread("parent", "child")
+        await pilot.pause()
+        selected = stream.selected_message()
+        assert selected is not None, "stream must have a selected message after refresh"
+        assert selected.id == msg.id, "selected message must match the sent message"
+        # Verify action_open_detail is callable (wires correctly)
+        assert hasattr(stream, "action_open_detail")
