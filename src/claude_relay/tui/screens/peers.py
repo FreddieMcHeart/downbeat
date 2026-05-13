@@ -18,7 +18,7 @@ class PeersScreen(Screen):
         ("n,N", "add_peer", "Add"),
         ("d,delete,X,x,shift+x", "remove_peer", "Remove"),
         ("g,G,shift+g", "gc_stale", "GC stale"),
-        ("f5", "refresh", "Refresh"),
+        ("ctrl+r", "refresh", "Refresh"),
     ]
 
     def compose(self) -> ComposeResult:

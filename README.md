@@ -37,7 +37,7 @@ claude-relay tui                 # full management UI
 | Ctrl+P        | Peers screen (add / remove / gc)                     |
 | f             | Find message by id                                   |
 | F1            | Help                                                 |
-| F5            | Refresh                                              |
+| Ctrl+R        | Refresh                                              |
 | F6            | Toggle log viewer                                    |
 | q             | Quit                                                 |
 

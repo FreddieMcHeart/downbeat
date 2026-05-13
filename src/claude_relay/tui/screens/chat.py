@@ -18,7 +18,7 @@ class ChatScreen(Screen):
     BINDINGS = [
         ("q", "app.quit", "Quit"),
         ("f1", "help", "Help"),
-        ("f5", "refresh", "Refresh"),
+        ("ctrl+r", "refresh", "Refresh"),
         ("f6", "toggle_logs", "Logs"),
         ("f", "find_message", "Find"),
         ("ctrl+p", "open_peers", "Peers"),

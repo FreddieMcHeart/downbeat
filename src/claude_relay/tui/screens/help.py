@@ -30,7 +30,7 @@ HELP_TEXT = """\
 [b]System[/b]
   f               find message by id across all inboxes
   F1              this help
-  F5              refresh
+  Ctrl+R          refresh
   F6              toggle log viewer
   q               quit
 """

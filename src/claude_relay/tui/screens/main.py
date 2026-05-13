@@ -23,7 +23,7 @@ class MainScreen(Screen):
     BINDINGS = [
         ("q", "app.quit", "Quit"),
         ("f1", "help", "Help"),
-        ("f5", "refresh", "Refresh"),
+        ("ctrl+r", "refresh", "Refresh"),
         ("f6", "toggle_logs", "Logs"),
         ("enter", "open_message", "Open"),
         ("n", "new_message", "New"),
