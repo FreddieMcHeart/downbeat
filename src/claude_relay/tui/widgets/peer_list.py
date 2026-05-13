@@ -61,22 +61,49 @@ class PeerList(Vertical):
     def on_mount(self):
         self.refresh_from_store()
 
+    def _related_prefix(self, parent_name: str) -> str:
+        """Return the naming prefix used to find related children.
+        For 'PLAT-3113-master' returns 'PLAT-3113-'; for 'parent' returns ''.
+        Empty prefix means "fallback to all children"."""
+        if "-" not in parent_name:
+            return ""
+        return parent_name.rsplit("-", 1)[0] + "-"
+
     def refresh_from_store(self) -> None:
-        peers = store.list_peers()
+        all_peers = store.list_peers()
+        parents = [p for p in all_peers if p.role == "parent"]
+        children = [p for p in all_peers if p.role == "child"]
+
+        # Maintain or pick acting_as among PARENTS only.
+        parent_names = {p.name for p in parents}
+        if self.acting_as not in parent_names:
+            self.acting_as = parents[0].name if parents else None
+
+        # Filter children to those related to the acting-as parent.
+        if self.acting_as:
+            prefix = self._related_prefix(self.acting_as)
+            if prefix:
+                related = [c for c in children if c.name.startswith(prefix)]
+            else:
+                related = children
+        else:
+            related = []
+
+        # Build list items
         self.items = []
-        for p in peers:
+        for p in related:
             unread = len([m for m in store.list_inbox(p.name)
                           if m.state.value == "new"])
             row = PeerRow(peer_name=p.name, role=p.role, unread=unread)
             self.items.append(_PeerListItem(row))
+
         self._listview.clear()
         for it in self.items:
             self._listview.append(it)
-        options = [(p.name, p.name) for p in peers]
+
+        # Dropdown options: PARENTS ONLY
+        options = [(p.name, p.name) for p in parents]
         self._select.set_options(options)
-        if self.acting_as is None:
-            parents = [p for p in peers if p.role == "parent"]
-            self.acting_as = parents[0].name if parents else (peers[0].name if peers else None)
         if self.acting_as:
             self._select.value = self.acting_as
 
@@ -90,9 +117,7 @@ class PeerList(Vertical):
 
     def on_list_view_selected(self, event) -> None:
         name = self.selected_peer_name()
-        if name and name != self.acting_as:
-            self.acting_as = name
-            self._select.value = name
+        if name:
             self.post_message(self.ActingAsChanged(name))
             event.stop()
 

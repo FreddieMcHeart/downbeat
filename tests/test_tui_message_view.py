@@ -9,14 +9,15 @@ async def test_pressing_enter_on_inbox_opens_message(relay_dir):
     from claude_relay.core.models import MessageState
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
-    msg = store.send_message(from_peer="p", to_peer="c", subject="t", body="hi")
+    # Send a message TO the parent so it appears in the parent's inbox
+    msg = store.send_message(from_peer="c", to_peer="p", subject="t", body="hi")
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
         peers = app.screen.query_one("PeerList")
-        peers.acting_as = "c"
+        # acting_as defaults to "p" (parent); refresh to load inbox
         peers.refresh_from_store()
         inbox = app.screen.query_one("InboxList")
-        inbox.refresh_for_peer("c")
+        inbox.refresh_for_peer("p")
         await pilot.pause()
         inbox.focus()
         await pilot.pause()
@@ -32,16 +33,16 @@ async def test_opening_message_marks_it_read(relay_dir):
     from claude_relay.core.models import MessageState
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
-    msg = store.send_message(from_peer="p", to_peer="c", subject="s", body="hello")
+    # Send a message TO the parent so it appears in the parent's inbox
+    msg = store.send_message(from_peer="c", to_peer="p", subject="s", body="hello")
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
         await pilot.pause()
         peers = app.screen.query_one("PeerList")
-        peers.acting_as = "c"
         peers.refresh_from_store()
         await pilot.pause()
         inbox = app.screen.query_one("InboxList")
-        inbox.refresh_for_peer("c")
+        inbox.refresh_for_peer("p")
         await pilot.pause()
         view = app.screen.query_one("MessageView")
         view.show(msg.id)
