@@ -11,7 +11,7 @@ from enum import StrEnum
 
 
 def now_iso() -> str:
-    return datetime.now(UTC).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="microseconds")
 
 
 def new_id() -> str:
