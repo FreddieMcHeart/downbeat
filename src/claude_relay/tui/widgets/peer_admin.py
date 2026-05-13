@@ -27,7 +27,7 @@ class RemovePeerConfirm(ModalScreen):
         with Vertical(classes="pane"):
             yield Label(f"[b]Remove peer[/b] {self.peer_name}?")
             yield Label("[dim]Inbox / processed message files are left untouched.[/dim]")
-            yield Label("[y]es / [n]o")
+            yield Label("Press [b]y[/b] to confirm, [b]n[/b] to cancel")
 
     def action_yes(self) -> None:
         perform_remove_peer(self.peer_name)

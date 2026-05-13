@@ -26,7 +26,7 @@ class ConfirmDelete(ModalScreen):
     def compose(self):
         with Vertical(classes="pane"):
             yield Label(self.prompt)
-            yield Label("[y]es / [n]o")
+            yield Label("Press [b]y[/b] to confirm, [b]n[/b] to cancel")
 
     def action_confirm(self) -> None:
         self.dismiss(True)

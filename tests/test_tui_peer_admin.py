@@ -73,3 +73,20 @@ async def test_gc_stale_prunes_only_old_peers(relay_dir):
         pruned = modal._prune()
         assert "old" in pruned
         assert "new" not in pruned
+
+
+@pytest.mark.asyncio
+async def test_remove_peer_y_keybinding_triggers_removal(relay_dir):
+    """Pressing 'y' in the RemovePeerConfirm modal must actually remove the peer."""
+    from claude_relay.core import store
+    from claude_relay.core.errors import PeerNotFound
+    store.register_peer(name="to-remove", session_id="s", cwd="/tmp", role="child")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        app.push_screen(RemovePeerConfirm("to-remove"))
+        await pilot.pause()
+        await pilot.press("y")
+        await pilot.pause()
+        # Peer should be gone
+        with pytest.raises(PeerNotFound):
+            store.get_peer("to-remove")
