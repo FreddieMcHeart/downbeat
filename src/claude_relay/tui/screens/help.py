@@ -10,7 +10,7 @@ HELP_TEXT = """\
 
 [b]Navigation[/b]
   Tab / Shift+Tab   cycle focus: Acting-as → Messages → Composer
-  ← / →             prev / next peer tab
+  ← / →             prev / next group member
   ↑ / ↓             scroll within focused region (dropdown, messages, composer)
   Click a tab       switch peer
 

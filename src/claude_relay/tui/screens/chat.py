@@ -22,8 +22,8 @@ class ChatScreen(Screen):
         ("f6", "toggle_logs", "Logs"),
         ("f", "find_message", "Find"),
         ("ctrl+p", "open_peers", "Peers"),
-        ("left,h", "prev_tab", "Prev peer"),
-        ("right,l", "next_tab", "Next peer"),
+        ("left,h", "prev_tab", "Prev member"),
+        ("right,l", "next_tab", "Next member"),
     ]
 
     acting_as: reactive[str | None] = reactive(None)

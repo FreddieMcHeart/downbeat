@@ -25,7 +25,7 @@ claude-relay tui                 # full management UI
 | Key           | Action                                               |
 |---------------|------------------------------------------------------|
 | Tab/Shift+Tab | Cycle focus: Acting-as → Messages → Composer         |
-| Left/Right    | Prev / next peer tab                                 |
+| Left/Right    | Prev / next group member                             |
 | Up/Down       | Within focused region (dropdown, messages, composer) |
 | Enter         | Send (in composer) / Open message detail (in message list) |
 | Escape / q    | Back (in message detail)                             |
