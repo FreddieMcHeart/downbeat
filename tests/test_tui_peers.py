@@ -12,11 +12,11 @@ async def test_peer_list_shows_registered_peers(relay_dir):
     async with app.run_test(headless=True) as pilot:
         await pilot.pause()
         peer_widget = app.screen.query_one("PeerList")
-        # List now shows only children (related to acting-as parent).
-        # "parent" has no "-" so prefix is empty → fallback: all children shown.
+        # List shows all peers (parent + children).
+        # "parent" has no "-" so prefix is empty → fallback: all peers shown.
         names = [item.peer_name for item in peer_widget.items]
         assert "child" in names
-        assert "parent" not in names
+        assert "parent" in names
 
 
 @pytest.mark.asyncio
@@ -62,7 +62,7 @@ async def test_dropdown_lists_only_parents(relay_dir):
 
 
 @pytest.mark.asyncio
-async def test_list_shows_only_related_children(relay_dir):
+async def test_list_shows_all_related_peers_including_parent(relay_dir):
     from claude_relay.core import store
     store.register_peer(name="PLAT-3113-master", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="PLAT-3113-child", session_id="s2", cwd="/tmp", role="child")
@@ -73,13 +73,12 @@ async def test_list_shows_only_related_children(relay_dir):
         peer_widget = app.screen.query_one("PeerList")
         peer_widget.refresh_from_store()
         names = [item.peer_name for item in peer_widget.items]
-        assert set(names) == {"PLAT-3113-child", "PLAT-3113-slave"}
+        assert set(names) == {"PLAT-3113-master", "PLAT-3113-child", "PLAT-3113-slave"}
         assert "other-child" not in names
-        assert "PLAT-3113-master" not in names  # parent itself not in list
 
 
 @pytest.mark.asyncio
-async def test_list_falls_back_to_all_children_when_prefix_empty(relay_dir):
+async def test_list_falls_back_to_all_peers_when_prefix_empty(relay_dir):
     from claude_relay.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="alpha", session_id="s2", cwd="/tmp", role="child")
@@ -89,4 +88,4 @@ async def test_list_falls_back_to_all_children_when_prefix_empty(relay_dir):
         peer_widget = app.screen.query_one("PeerList")
         peer_widget.refresh_from_store()
         names = [item.peer_name for item in peer_widget.items]
-        assert set(names) == {"alpha", "beta"}
+        assert set(names) == {"parent", "alpha", "beta"}

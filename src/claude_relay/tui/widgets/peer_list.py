@@ -72,20 +72,20 @@ class PeerList(Vertical):
     def refresh_from_store(self) -> None:
         all_peers = store.list_peers()
         parents = [p for p in all_peers if p.role == "parent"]
-        children = [p for p in all_peers if p.role == "child"]
 
         # Maintain or pick acting_as among PARENTS only.
         parent_names = {p.name for p in parents}
         if self.acting_as not in parent_names:
             self.acting_as = parents[0].name if parents else None
 
-        # Filter children to those related to the acting-as parent.
+        # Build list: ALL peers (parent + children) that share the prefix.
         if self.acting_as:
             prefix = self._related_prefix(self.acting_as)
             if prefix:
-                related = [c for c in children if c.name.startswith(prefix)]
+                related = [p for p in all_peers if p.name.startswith(prefix)]
             else:
-                related = children
+                # Fallback when parent name has no '-': show everyone
+                related = all_peers
         else:
             related = []
 
