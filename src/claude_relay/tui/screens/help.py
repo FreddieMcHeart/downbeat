@@ -14,7 +14,10 @@ HELP_TEXT = """\
   Click a tab     switch peer
 
 [b]Compose[/b]
-  Type in the bottom input, [b]Enter[/b] to send to active peer.
+  Enter           send to active peer
+  Shift+Enter     newline in composer
+  Ctrl+B          broadcast to all group children
+  Ctrl+E          open $EDITOR on composer buffer
 
 [b]Actions on focused bubble[/b]
   e               edit (only on your unread sent messages)
