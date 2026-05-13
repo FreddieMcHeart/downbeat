@@ -5,23 +5,42 @@ from textual.containers import VerticalScroll
 from textual.widgets import Static
 
 from ...core import store
-from ...core.models import Message
+from ...core.models import Message, MessageState
 
 
 class ChatStream(VerticalScroll):
     DEFAULT_CSS = """
-    ChatStream { padding: 0 1; height: 1fr; }
-    ChatStream > .bubble-self { color: $accent; padding: 0 0 1 0; }
-    ChatStream > .bubble-other { padding: 0 0 1 8; }
-    ChatStream > .bubble-selected { background: $boost; }
+    ChatStream { padding: 1 1; height: 1fr; }
+    ChatStream > .bubble {
+        padding: 0 1;
+        margin: 0 0 1 0;
+        border-left: thick transparent;
+    }
+    ChatStream > .bubble-self {
+        border-left: thick $accent;
+        color: $text;
+    }
+    ChatStream > .bubble-other {
+        margin-left: 8;
+        border-left: thick $primary-darken-2;
+        color: $text-muted;
+    }
+    ChatStream > .bubble-selected {
+        background: $boost;
+        border-left: thick $warning;
+    }
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._messages: list[Message] = []
         self._cursor: int = 0  # index into _messages; the "focused" bubble
+        self._me: str | None = None
+        self._peer: str | None = None
 
     def refresh_thread(self, me: str | None, peer: str | None) -> None:
+        self._me = me
+        self._peer = peer
         self.remove_children()
         if not me or not peer:
             self._messages = []
@@ -30,10 +49,13 @@ class ChatStream(VerticalScroll):
         for idx, m in enumerate(self._messages):
             self.mount(self._render_bubble(m, me, idx))
         if self._messages:
-            self._cursor = min(self._cursor, len(self._messages) - 1)
+            # Always land cursor at the bottom (newest message) on thread load
+            self._cursor = len(self._messages) - 1
             self._highlight_cursor()
             # Scroll to bottom (newest)
             self.scroll_end(animate=False)
+            # Mark the most-recent focused message as read on thread open
+            self._mark_focused_read()
         else:
             self._cursor = 0
 
@@ -41,19 +63,31 @@ class ChatStream(VerticalScroll):
         is_self = (msg.from_peer == me)
         direction = f"you → {msg.to_peer}" if is_self else f"{msg.from_peer} → you"
         time = msg.created_at[11:16] if len(msg.created_at) >= 16 else ""
-        header = f"[b]{direction}[/b]  [dim]{time}  id {msg.id}[/dim]"
+        state_marker = {
+            "new": "[yellow]●[/yellow] ",
+            "read": "[green]✓[/green] ",
+            "archived": "[dim]·[/dim] ",
+        }.get(msg.state.value, "")
+        header = f"{state_marker}[b]{direction}[/b]  [dim]{time}  id {msg.id}[/dim]"
         body = msg.body or ""
-        # Truncate very long body for the bubble view; full body on demand
         if len(body) > 600:
             body = body[:600] + "\n[dim]…[truncated, press v to view full][/dim]"
         text = f"{header}\n{body}"
-        bubble = Static(text, classes="bubble-self" if is_self else "bubble-other")
-        bubble.data_idx = idx  # custom attribute we use to find which bubble
+        base_class = "bubble bubble-self" if is_self else "bubble bubble-other"
+        bubble = Static(text, classes=base_class)
+        bubble.data_idx = idx
         return bubble
 
     def _highlight_cursor(self) -> None:
         for idx, child in enumerate(self.children):
             child.set_class(idx == self._cursor, "bubble-selected")
+
+    def _mark_focused_read(self) -> None:
+        msg = self.selected_message()
+        if not msg:
+            return
+        if msg.state == MessageState.NEW and self._me and msg.to_peer == self._me:
+            store.mark_read(msg.id)
 
     def move_cursor(self, delta: int) -> None:
         if not self._messages:
@@ -65,6 +99,8 @@ class ChatStream(VerticalScroll):
             if idx == self._cursor:
                 self.scroll_to_widget(child, animate=False)
                 break
+        # Mark as read if it's a NEW message addressed to me
+        self._mark_focused_read()
 
     def selected_message(self) -> Message | None:
         if not self._messages:
