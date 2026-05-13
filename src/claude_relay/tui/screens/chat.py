@@ -67,9 +67,11 @@ class ChatScreen(Screen):
         prefix = self._related_prefix(self.acting_as)
         all_peers = store.list_peers()
         if prefix:
+            # Grouped parent → only peers sharing the same prefix
             members = [p.name for p in all_peers if p.name.startswith(prefix)]
         else:
-            members = [p.name for p in all_peers]
+            # Ungrouped parent (no '-') → only other ungrouped peers
+            members = [p.name for p in all_peers if "-" not in p.name]
         # The parent shouldn't have a tab to talk to itself
         return [name for name in members if name != self.acting_as]
 

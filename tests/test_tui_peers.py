@@ -82,16 +82,24 @@ async def test_list_shows_all_related_peers_including_parent(relay_dir):
         assert "other-child" not in names
 
 
-@pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
-async def test_list_falls_back_to_all_peers_when_prefix_empty(relay_dir):
+async def test_list_falls_back_to_ungrouped_peers_when_prefix_empty(relay_dir):
+    """When acting-as parent has no '-', tabs should show only other
+    ungrouped peers (no '-' in name)."""
     from claude_relay.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
-    store.register_peer(name="alpha", session_id="s2", cwd="/tmp", role="child")
-    store.register_peer(name="beta", session_id="s3", cwd="/tmp", role="child")
+    store.register_peer(name="alpha",  session_id="s2", cwd="/tmp", role="child")
+    store.register_peer(name="beta",   session_id="s3", cwd="/tmp", role="child")
+    store.register_peer(name="PLAT-3113-master", session_id="s4", cwd="/tmp", role="parent")
+    store.register_peer(name="PLAT-3113-child",  session_id="s5", cwd="/tmp", role="child")
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
-        peer_widget = app.screen.query_one("PeerList")
-        peer_widget.refresh_from_store()
-        names = [item.peer_name for item in peer_widget.items]
-        assert set(names) == {"parent", "alpha", "beta"}
+        await pilot.pause()
+        screen = app.screen
+        # If acting_as defaults to a different parent, force it
+        screen.acting_as = "parent"
+        members = screen._group_members()
+        # Only ungrouped peers, excluding "parent" itself
+        assert set(members) == {"alpha", "beta"}
+        assert "PLAT-3113-master" not in members
+        assert "PLAT-3113-child" not in members
