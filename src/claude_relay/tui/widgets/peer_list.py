@@ -80,6 +80,22 @@ class PeerList(Vertical):
         if self.acting_as:
             self._select.value = self.acting_as
 
+    def selected_peer_name(self) -> str | None:
+        if not self._listview:
+            return None
+        idx = self._listview.index
+        if idx is None or idx >= len(self.items):
+            return None
+        return self.items[idx].peer_name
+
+    def on_list_view_selected(self, event) -> None:
+        name = self.selected_peer_name()
+        if name and name != self.acting_as:
+            self.acting_as = name
+            self._select.value = name
+            self.post_message(self.ActingAsChanged(name))
+            event.stop()
+
     @on(Select.Changed, "#acting-as-select")
     def _on_select(self, event: Select.Changed) -> None:
         if event.value and event.value != Select.BLANK:

@@ -6,6 +6,7 @@ from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header
 
+from ...core import store
 from ..messages import StoreChanged
 from ..widgets.composer import Composer
 from ..widgets.confirm import ConfirmDelete, perform_delete
@@ -32,6 +33,9 @@ class MainScreen(Screen):
         ("d", "delete", "Delete"),
         ("a", "toggle_archived", "Show/hide archived"),
         ("B,shift+b", "broadcast_status", "Bcast status"),
+        ("P,shift+p", "add_peer", "Add peer"),
+        ("X,shift+x", "remove_peer", "Remove peer"),
+        ("G,shift+g", "gc_stale", "GC stale"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -139,6 +143,37 @@ class MainScreen(Screen):
         inbox.toggle_archived()
         state = "shown" if inbox.show_archived else "hidden"
         self.notify(f"Archived messages {state}", timeout=2)
+
+    def action_add_peer(self) -> None:
+        from ..widgets.add_peer_modal import AddPeerModal
+        def after(name):
+            peer_list = self.query_one(PeerList)
+            peer_list.refresh_from_store()
+            if name:
+                self.notify(f"Registered peer {name}", timeout=2)
+        self.app.push_screen(AddPeerModal(), after)
+
+    def action_remove_peer(self) -> None:
+        from ..widgets.peer_admin import RemovePeerConfirm
+        peer_list = self.query_one(PeerList)
+        target = peer_list.selected_peer_name() or peer_list.acting_as
+        if not target:
+            self.notify("No peer to remove", severity="warning")
+            return
+        def after(removed):
+            peer_list.refresh_from_store()
+            if removed:
+                self.notify(f"Removed peer {removed}", timeout=2)
+                inbox = self.query_one(InboxList)
+                if peer_list.acting_as not in {p.name for p in store.list_peers()}:
+                    inbox.refresh_for_peer(None)
+        self.app.push_screen(RemovePeerConfirm(target), after)
+
+    def action_gc_stale(self) -> None:
+        from ..widgets.peer_admin import GcStaleModal
+        def after(pruned):
+            self.query_one(PeerList).refresh_from_store()
+        self.app.push_screen(GcStaleModal(), after)
 
     def action_broadcast_status(self) -> None:
         msg = self.query_one(InboxList).selected_message()
