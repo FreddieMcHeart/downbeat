@@ -38,15 +38,42 @@ class PeersScreen(Screen):
     def _refresh(self) -> None:
         self._table.clear()
         now = datetime.now(UTC)
-        for p in store.list_peers():
+
+        def group_key(peer):
+            # Group prefix: everything before the last '-', or '~ungrouped' so
+            # peers with no '-' sort to the bottom of the table.
+            if "-" in peer.name:
+                return peer.name.rsplit("-", 1)[0]
+            return "~ungrouped"
+
+        def sort_key(peer):
+            return (
+                group_key(peer),
+                0 if peer.role == "parent" else 1,
+                peer.name,
+            )
+
+        sorted_peers = sorted(store.list_peers(), key=sort_key)
+
+        last_group: str | None = None
+        for p in sorted_peers:
+            g = group_key(p)
+            # Insert a visual separator row between groups (after the first)
+            if last_group is not None and g != last_group:
+                self._table.add_row("", "", "", "", "", "")  # blank divider
+            last_group = g
+
             try:
                 ls = datetime.fromisoformat(p.last_seen)
                 age = (now - ls).total_seconds() / 86400.0
                 age_str = f"{age:.1f}"
             except ValueError:
                 age_str = "?"
+
+            # Visually indent children so the parent → children relationship is obvious
+            display_name = p.name if p.role == "parent" else f"  {p.name}"
             self._table.add_row(
-                p.name, p.role, p.session_id,
+                display_name, p.role, p.session_id,
                 p.cwd[:30] + ("…" if len(p.cwd) > 30 else ""),
                 p.last_seen[:19],
                 age_str,
@@ -60,7 +87,7 @@ class PeersScreen(Screen):
             row_data = self._table.get_row_at(row)
         except IndexError:
             return None
-        return row_data[0] if row_data else None
+        return row_data[0].strip() if row_data and row_data[0] else None
 
     def action_refresh(self) -> None:
         self._refresh()

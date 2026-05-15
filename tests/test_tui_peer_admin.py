@@ -118,3 +118,32 @@ async def test_peers_screen_lists_peers(relay_dir):
         table = app.screen.query_one("#peers-table")
         # 2 peers
         assert table.row_count == 2
+
+
+@pytest.mark.asyncio
+async def test_peers_screen_groups_by_prefix(relay_dir):
+    """Peers with shared prefix appear adjacent, parents before children."""
+    from claude_relay.core import store
+    from claude_relay.tui.screens.peers import PeersScreen
+    # Register intentionally out-of-order
+    store.register_peer(name="PLAT-3113-child", session_id="s1", cwd="/tmp", role="child")
+    store.register_peer(name="PLAT-2972-master", session_id="s2", cwd="/tmp", role="parent")
+    store.register_peer(name="PLAT-3113-master", session_id="s3", cwd="/tmp", role="parent")
+    store.register_peer(name="PLAT-2972-child", session_id="s4", cwd="/tmp", role="child")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        app.push_screen(PeersScreen())
+        await pilot.pause()
+        table = app.screen.query_one("#peers-table")
+        # Read the name column from each non-blank row in order
+        names: list[str] = []
+        for row_idx in range(table.row_count):
+            row = table.get_row_at(row_idx)
+            name = row[0].strip() if row[0] else ""
+            if name:
+                names.append(name)
+        # Both PLAT-2972 rows together, both PLAT-3113 rows together, with
+        # the parent first inside each group.
+        expected = ["PLAT-2972-master", "PLAT-2972-child",
+                    "PLAT-3113-master", "PLAT-3113-child"]
+        assert names == expected
