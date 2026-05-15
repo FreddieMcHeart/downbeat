@@ -55,14 +55,7 @@ class PeersScreen(Screen):
 
         sorted_peers = sorted(store.list_peers(), key=sort_key)
 
-        last_group: str | None = None
         for p in sorted_peers:
-            g = group_key(p)
-            # Insert a visual separator row between groups (after the first)
-            if last_group is not None and g != last_group:
-                self._table.add_row("", "", "", "", "", "")  # blank divider
-            last_group = g
-
             try:
                 ls = datetime.fromisoformat(p.last_seen)
                 age = (now - ls).total_seconds() / 86400.0
