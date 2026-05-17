@@ -120,39 +120,33 @@ async def test_broadcast_sends_to_all_group_children(relay_dir):
 
 @pytest.mark.asyncio
 async def test_auto_mark_read_on_cursor_move(relay_dir):
-    """Moving cursor to a NEW message addressed to me should mark it read."""
+    """Moving cursor to a NEW message addressed to me marks it read.
+    Opening a thread for the first time (peer change) marks the most-recent message read."""
     from claude_relay.core import store
     from claude_relay.core.models import MessageState
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
-    # Send a message from a *third* peer so _refresh_thread's bulk-mark-read
-    # (which only marks messages from active_peer) doesn't interfere.
     store.register_peer(name="other", session_id="s3", cwd="/tmp", role="child")
-    # child → parent: this is NOT from active_peer "other", so won't be bulk-marked
     a = store.send_message(from_peer="child", to_peer="parent", subject="m1", body="b1")
     b = store.send_message(from_peer="child", to_peer="parent", subject="m2", body="b2")
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
         await pilot.pause()
         screen = app.screen
-        # Set active_peer to "other" so the bulk-mark-read in _refresh_thread
-        # skips messages from "child"
         screen.acting_as = "parent"
         screen.active_peer = "other"
         screen._refresh_thread()
         await pilot.pause()
-        # Now manually call move_cursor on the stream with child messages loaded
         stream = screen.query_one("#chat-stream")
-        # Load the child thread manually into stream
+        # PEER CHANGE: _peer was "other" → now "child" → triggers _mark_focused_read
         stream.refresh_thread("parent", "child")
         await pilot.pause()
-        # Cursor is at the bottom (b). _mark_focused_read fires on refresh_thread.
-        # b is addressed to parent and was NEW → should now be READ
+        # b is the bottom (most recent) message — peer change marks it read
         assert store.get_message(b.id).state == MessageState.READ
         # a is still unread (cursor hasn't moved there yet)
         a_state = store.get_message(a.id).state
         assert a_state == MessageState.NEW
-        # Move cursor up to a
+        # Move cursor up to a — triggers _mark_focused_read explicitly
         stream.move_cursor(-1)
         await pilot.pause()
         assert store.get_message(a.id).state == MessageState.READ

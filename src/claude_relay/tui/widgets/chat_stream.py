@@ -53,6 +53,15 @@ class ChatStream(VerticalScroll):
         self._peer: str | None = None
 
     def refresh_thread(self, me: str | None, peer: str | None) -> None:
+        peer_changed = (self._peer != peer)
+        # Detect "at tail" BEFORE we wipe children — Textual exposes scroll position
+        # via self.scroll_offset.y and self.max_scroll_y.
+        try:
+            was_at_tail = self.scroll_offset.y >= max(0, self.max_scroll_y - 2)
+        except Exception:
+            was_at_tail = True
+        prev_offset = self.scroll_offset.y
+
         self._me = me
         self._peer = peer
         self.remove_children()
@@ -63,13 +72,24 @@ class ChatStream(VerticalScroll):
         for idx, m in enumerate(self._messages):
             self.mount(self._render_bubble(m, me, idx))
         if self._messages:
-            # Always land cursor at the bottom (newest message) on thread load
             self._cursor = len(self._messages) - 1
             self._highlight_cursor()
-            # Scroll to bottom (newest)
-            self.scroll_end(animate=False)
-            # Mark the most-recent focused message as read on thread open
-            self._mark_focused_read()
+            # Follow-tail rule:
+            # - Peer changed (new tab) → always show the newest message.
+            # - User was at the bottom → keep them at the bottom on refresh.
+            # - User had scrolled up → restore their previous scroll position
+            #   so refresh doesn't yank them back to bottom.
+            if peer_changed or was_at_tail:
+                self.scroll_end(animate=False)
+            else:
+                # call_after_refresh ensures children are laid out before we
+                # try to set scroll position
+                self.call_after_refresh(self.scroll_to, 0, prev_offset, animate=False)
+            # Only auto-mark-read on peer change (initial open of a thread),
+            # not on every watcher-driven refresh — otherwise mark_read fires
+            # for the bottom message constantly even when the user is reading older ones.
+            if peer_changed:
+                self._mark_focused_read()
         else:
             self._cursor = 0
 
