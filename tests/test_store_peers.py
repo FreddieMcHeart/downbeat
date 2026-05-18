@@ -1,3 +1,5 @@
+import pytest
+
 from claude_relay.core import store
 from claude_relay.core.errors import PeerNotFound
 
@@ -36,6 +38,33 @@ def test_touch_peer_updates_last_seen(relay_dir):
     store.touch_peer("p")
     after = store.get_peer("p").last_seen
     assert after >= before
+
+
+def test_rebind_updates_session_id_only(relay_dir):
+    store.register_peer(name="p", session_id="old-sid",
+                        cwd="/orig", role="parent")
+    peer = store.rebind_session("p", "new-sid")
+    assert peer.session_id == "new-sid"
+    # role, cwd, registered_at preserved
+    assert peer.role == "parent"
+    assert peer.cwd == "/orig"
+    fresh = store.get_peer("p")
+    assert fresh.session_id == "new-sid"
+    assert fresh.registered_at == peer.registered_at
+
+
+def test_rebind_unknown_peer_raises(relay_dir):
+    with pytest.raises(PeerNotFound):
+        store.rebind_session("nope", "sid")
+
+
+def test_rebind_auto_detect_fails_when_no_marker(relay_dir, monkeypatch):
+    from claude_relay.core import session as session_mod
+    from claude_relay.core.errors import RelayError
+    store.register_peer(name="p", session_id="old", cwd="/tmp", role="parent")
+    monkeypatch.setattr(session_mod, "detect_session_id", lambda: None)
+    with pytest.raises(RelayError):
+        store.rebind_session("p", None)
 
 
 def test_load_legacy_sessions_without_name_field(relay_dir):

@@ -60,6 +60,14 @@ def build_parser() -> argparse.ArgumentParser:
     sp_gc.add_argument("--days", type=int, default=None)
     sp_gc.set_defaults(func=relay_cmds.cmd_gc_stale)
 
+    sp_rebind = sub.add_parser("rebind",
+                               help="update a peer's session_id (preserves role/cwd)",
+                               parents=[debug_parent])
+    sp_rebind.add_argument("name")
+    sp_rebind.add_argument("--session-id", dest="session_id", default=None,
+                           help="explicit session_id; auto-detected if omitted")
+    sp_rebind.set_defaults(func=relay_cmds.cmd_rebind)
+
     sp_tui = sub.add_parser("tui", help="launch the TUI",
                             parents=[debug_parent])
     sp_tui.set_defaults(func=relay_cmds.cmd_tui)

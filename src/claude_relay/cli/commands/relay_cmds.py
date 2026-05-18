@@ -105,6 +105,23 @@ def cmd_gc_stale(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_rebind(args: argparse.Namespace) -> int:
+    from ...core.errors import RelayError
+    try:
+        peer = store.rebind_session(args.name, args.session_id)
+    except PeerNotFound:
+        print(f"error: no peer named {args.name!r}", file=sys.stderr)
+        return 2
+    except RelayError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 2
+    # Also write a self-marker so future auto-detect finds the new mapping
+    if args.session_id is None:
+        session.write_marker_for_self(peer.session_id)
+    print(f"rebound: {peer.name} (session={peer.session_id}, role={peer.role})")
+    return 0
+
+
 def cmd_tui(args: argparse.Namespace) -> int:
     from ...tui.app import RelayApp
     RelayApp().run()

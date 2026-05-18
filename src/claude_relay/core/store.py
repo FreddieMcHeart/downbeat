@@ -285,6 +285,32 @@ def broadcast_status(broadcast_id: str) -> list[dict]:
     return rows
 
 
+def rebind_session(name: str, new_session_id: str | None = None) -> Peer:
+    """Update only the session_id (and last_seen) for an existing peer.
+    role, cwd, registered_at are preserved. If new_session_id is None, the
+    function auto-detects via session.detect_session_id(); raises RelayError
+    if no detection is possible."""
+    from . import session as session_mod
+    from .errors import RelayError
+
+    sessions = _load_sessions()
+    if name not in sessions:
+        raise PeerNotFound(name)
+
+    if new_session_id is None:
+        new_session_id = session_mod.detect_session_id()
+        if new_session_id is None:
+            raise RelayError(
+                "could not auto-detect a session id; pass --session-id explicitly"
+            )
+
+    sessions[name]["session_id"] = new_session_id
+    sessions[name]["last_seen"] = now_iso()
+    _save_sessions(sessions)
+    _log.info("rebind peer=%s session=%s", name, new_session_id)
+    return Peer.from_dict(sessions[name])
+
+
 def _is_reply(msg: Message, siblings: list[Message]) -> bool:
     # A reply has both from_peer and to_peer flipped vs the original. We
     # treat any sibling where from_peer != "parent fan-out sender" as a reply.

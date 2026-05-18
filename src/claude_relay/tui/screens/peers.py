@@ -19,6 +19,7 @@ class PeersScreen(Screen):
         ("d,delete,X,x,shift+x", "remove_peer", "Remove"),
         ("g,G,shift+g", "gc_stale", "GC stale"),
         ("ctrl+r", "refresh", "Refresh"),
+        ("u", "rebind_session", "Rebind"),
     ]
 
     def compose(self) -> ComposeResult:
@@ -110,3 +111,15 @@ class PeersScreen(Screen):
         def after(pruned):
             self._refresh()
         self.app.push_screen(GcStaleModal(), after)
+
+    def action_rebind_session(self) -> None:
+        target = self._selected_peer_name()
+        if not target:
+            self.notify("Select a peer first", severity="warning")
+            return
+        from ..widgets.rebind_modal import RebindSessionModal
+        def after(name):
+            self._refresh()
+            if name:
+                self.notify(f"Rebound session_id for {name}", timeout=2)
+        self.app.push_screen(RebindSessionModal(target), after)

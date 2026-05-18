@@ -27,6 +27,16 @@ def test_send_writes_message(relay_dir, capsys, monkeypatch):
     assert msgs[0].body == "do work"
 
 
+def test_rebind_cli_updates_session_id(relay_dir, capsys, monkeypatch):
+    from claude_relay.core import store
+    store.register_peer(name="p", session_id="old", cwd="/tmp", role="parent")
+    monkeypatch.setattr(sys, "argv",
+        ["claude-relay", "rebind", "p", "--session-id", "new-sid"])
+    rc = main()
+    assert rc == 0
+    assert store.get_peer("p").session_id == "new-sid"
+
+
 def test_inbox_prints_messages(relay_dir, capsys, monkeypatch):
     from claude_relay.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
