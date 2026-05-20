@@ -21,6 +21,25 @@ Local file-based message broker for handing off work between parallel Claude Cod
 - Cross-machine handoffs → same-host only
 - Plain copy-paste of a short prompt → no value over manual paste
 
+## First-invocation offer: schedule a 3-minute inbox poll
+
+On the FIRST time this skill triggers in a session AND the user has at least one peer registered (`~/.claude/relay/relay.py peers` returns non-empty), use the AskUserQuestion tool to ask:
+
+> "Start an automatic inbox check every 3 minutes? When new relay messages arrive, I'll surface them and ask how to handle them."
+
+Options:
+- "Yes, poll every 3 min (Recommended)" — invoke /loop with 3-minute cadence:
+  `/loop 3m Check the relay inbox via ~/.claude/relay/relay.py inbox. If there are new messages addressed to a peer I am registered as, surface them concisely (sender, subject, id) and ask the user how to handle each. If the inbox is empty, stay silent — do not interrupt with a "no messages" notification.`
+- "Yes, poll every 5 min" — same instruction, /loop 5m
+- "No, manual only" — do not start a loop
+
+After the user picks, remember the choice for this session (do not re-ask in the same session). If the user explicitly wants to stop the loop later, they can type `/loop stop` or close the session.
+
+Do NOT offer this if:
+- A relay /loop is already running this session
+- The user has zero peers registered (offer to register one instead)
+- This is itself a /loop tick (i.e., the skill was triggered BY the loop)
+
 ## Three flows
 
 ### 1. SEND (you are the Parent)

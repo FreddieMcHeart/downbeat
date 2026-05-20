@@ -20,6 +20,12 @@ claude-relay reply <msg_id> "done"
 claude-relay tui                 # full management UI
 ```
 
+### Background inbox polling
+
+The first time you invoke a relay action in a Claude Code session, the skill
+offers to start a 3-minute inbox poll via `/loop`. Accept to get notified of
+incoming messages without having to manually check.
+
 ### TUI keybindings
 
 | Key           | Action                                               |
