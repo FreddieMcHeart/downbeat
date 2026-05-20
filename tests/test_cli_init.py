@@ -41,6 +41,19 @@ def test_init_installs_skill(tmp_path, monkeypatch, relay_dir):
     assert pkg_skill.exists()
 
 
+def test_skill_md_uses_context_aware_offer(relay_dir):
+    """The packaged skill no longer offers the poll on every first invocation;
+    it conditions the offer on whether the user is about to idle waiting."""
+    import claude_relay
+    from pathlib import Path
+    skill = (Path(claude_relay.__file__).parent / "skill" / "SKILL.md").read_text()
+    # The old chronological wording is gone:
+    assert "First-invocation offer" not in skill
+    # The new context-aware wording is present:
+    assert "Context-aware offer" in skill
+    assert "Do NOT offer a /loop poll by default" in skill
+
+
 def test_uninstall_removes_skill(tmp_path, monkeypatch, relay_dir):
     monkeypatch.setenv("HOME", str(tmp_path))
     run_init()

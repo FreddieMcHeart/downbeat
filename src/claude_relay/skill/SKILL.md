@@ -21,24 +21,32 @@ Local file-based message broker for handing off work between parallel Claude Cod
 - Cross-machine handoffs → same-host only
 - Plain copy-paste of a short prompt → no value over manual paste
 
-## First-invocation offer: schedule a 3-minute inbox poll
+## Context-aware offer: schedule an inbox poll when you're about to wait
 
-On the FIRST time this skill triggers in a session AND the user has at least one peer registered (`~/.claude/relay/relay.py peers` returns non-empty), use the AskUserQuestion tool to ask:
+Do NOT offer a /loop poll by default. Only offer it when the conversation is about to idle waiting for a peer reply. Concretely, offer the poll AFTER one of these moments:
 
-> "Start an automatic inbox check every 3 minutes? When new relay messages arrive, I'll surface them and ask how to handle them."
+1. The user just sent a message via `send` (or `/relay-send`) and gave no follow-up task to work on locally. The conversation pauses on the receiving peer.
+2. The user just sent a reply via `reply` (or `/relay-reply`) and the parent peer is expected to acknowledge or assign next work.
+3. The user explicitly says any of: "let me know when X replies", "ping me when done", "wait for the other session", "watch the inbox", "babysit this".
+
+DO NOT offer when:
+- The current invocation is a read-only check (`peers`, `inbox` with no follow-up)
+- A `/loop` related to relay is already running in this session
+- A relay message just arrived (the user is responding, not waiting)
+- The user already declined the offer earlier in this session
+- The user has zero peers registered (suggest registering instead)
+
+When you DO offer, use AskUserQuestion with:
+
+> "You just sent a message to <peer>. Want me to check the inbox every 3 minutes for a reply and surface it when it arrives?"
 
 Options:
-- "Yes, poll every 3 min (Recommended)" — invoke /loop with 3-minute cadence:
-  `/loop 3m Check the relay inbox via ~/.claude/relay/relay.py inbox. If there are new messages addressed to a peer I am registered as, surface them concisely (sender, subject, id) and ask the user how to handle each. If the inbox is empty, stay silent — do not interrupt with a "no messages" notification.`
+- "Yes, poll every 3 min" — invoke /loop with:
+  `/loop 3m Check the relay inbox via ~/.claude/relay/relay.py inbox. If there are new messages addressed to a peer I'm registered as, surface them concisely (sender, subject, id) and ask the user how to handle each. If the inbox is empty, stay silent — do not interrupt with "no messages".`
 - "Yes, poll every 5 min" — same instruction, /loop 5m
-- "No, manual only" — do not start a loop
+- "No, I'll check manually" — do not start a loop. Record this choice so we don't re-offer in this session.
 
-After the user picks, remember the choice for this session (do not re-ask in the same session). If the user explicitly wants to stop the loop later, they can type `/loop stop` or close the session.
-
-Do NOT offer this if:
-- A relay /loop is already running this session
-- The user has zero peers registered (offer to register one instead)
-- This is itself a /loop tick (i.e., the skill was triggered BY the loop)
+After the question is answered (Yes or No), remember the decision for the rest of the session. If the user later types `/loop stop` or closes the session, the loop is gone — no need to re-offer until a new "about to wait" moment.
 
 ## Three flows
 
