@@ -10,7 +10,11 @@ from ...core import store
 
 class MessageDetailScreen(Screen):
     DEFAULT_CSS = """
-    MessageDetailScreen { layout: vertical; }
+    MessageDetailScreen {
+        layout: vertical;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
     #msg-title { padding: 1 2 0 2; }
     #msg-meta  { padding: 0 2 1 2; color: $text-muted; }
     #msg-body  { padding: 0 2 2 2; }
@@ -23,6 +27,12 @@ class MessageDetailScreen(Screen):
         ("d", "delete", "Delete"),
         ("B,shift+b", "broadcast_status", "Bcast"),
         ("c", "copy_id", "Copy id"),
+        ("up,k", "scroll_up", "Up"),
+        ("down,j", "scroll_down", "Down"),
+        ("pageup", "page_up", "PgUp"),
+        ("pagedown", "page_down", "PgDn"),
+        ("home", "scroll_home", "Top"),
+        ("end", "scroll_end", "Bottom"),
     ]
 
     def __init__(self, msg_id: str):
