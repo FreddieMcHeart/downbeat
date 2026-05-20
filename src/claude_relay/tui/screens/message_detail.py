@@ -31,8 +31,6 @@ class MessageDetailScreen(Screen):
         ("down,j", "scroll_down", "Down"),
         ("ctrl+b,pageup", "page_up", "PgUp"),
         ("ctrl+f,pagedown", "page_down", "PgDn"),
-        ("g,home", "scroll_home", "Top"),
-        ("G,end", "scroll_end", "Bottom"),
     ]
 
     def __init__(self, msg_id: str):
@@ -86,8 +84,13 @@ class MessageDetailScreen(Screen):
                         severity="warning")
             return
         from ..widgets.edit_modal import EditModal
-        def after(_):
-            self._render_content_safe()
+        def after(result):
+            if result:
+                # Edit succeeded — return to chat where the change is visible
+                self.app.pop_screen()
+            else:
+                # Edit cancelled — re-render in place
+                self._render_content_safe()
         self.app.push_screen(EditModal(self.msg_id), after)
 
     def action_reply(self) -> None:

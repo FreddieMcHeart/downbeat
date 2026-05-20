@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from textual.containers import Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, Select
+from textual.widgets import Input, Label, Select, Static
 
 from ...core import store
 
@@ -37,11 +37,10 @@ class AddPeerModal(ModalScreen):
             self._cwd = Input(placeholder="cwd (optional, defaults to $PWD)",
                               id="ap-cwd")
             yield self._cwd
-            yield Button("Register", id="ap-submit", variant="primary")
+            yield Static("[dim]Press Enter in any field to register, Esc to cancel[/dim]")
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "ap-submit":
-            self.submit()
+    def on_input_submitted(self, event) -> None:
+        self.submit()
 
     def submit(self) -> None:
         import os

@@ -40,8 +40,6 @@ HELP_TEXT = """\
   ↓ / j           scroll down one line
   Ctrl+B / PgUp   page up
   Ctrl+F / PgDn   page down
-  g / Home        top of message
-  G / End         bottom of message
 """
 
 

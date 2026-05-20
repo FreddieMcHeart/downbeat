@@ -16,6 +16,10 @@ class RelayApp(App):
     TITLE = "claude-relay"
     SUB_TITLE = "local relay TUI"
     ENABLE_COMMAND_PALETTE = False
+    # Mouse / trackpad scroll is enabled by default; affirming here for clarity:
+    # Textual's terminal layer emits mouse wheel as MouseScrollUp/MouseScrollDown.
+    # Scroll-container widgets (VerticalScroll, RichLog, DataTable) handle them
+    # natively when their content exceeds viewport.
 
     def __init__(self):
         super().__init__()
