@@ -121,6 +121,16 @@ class MessageDetailScreen(Screen):
         from .broadcast_status import BroadcastStatusScreen
         self.app.push_screen(BroadcastStatusScreen(msg.broadcast_id))
 
+    SCROLL_STEP = 3  # lines per mouse-wheel event
+
+    def on_mouse_scroll_up(self, event) -> None:
+        self.scroll_relative(y=-self.SCROLL_STEP, animate=False)
+        event.stop()
+
+    def on_mouse_scroll_down(self, event) -> None:
+        self.scroll_relative(y=+self.SCROLL_STEP, animate=False)
+        event.stop()
+
     def action_copy_id(self) -> None:
         try:
             import pyperclip  # type: ignore

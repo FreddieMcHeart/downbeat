@@ -166,6 +166,16 @@ class ChatStream(VerticalScroll):
     def action_cursor_down(self) -> None:
         self.move_cursor(+1)
 
+    SCROLL_STEP = 3  # lines per mouse-wheel event
+
+    def on_mouse_scroll_up(self, event) -> None:
+        self.scroll_relative(y=-self.SCROLL_STEP, animate=False)
+        event.stop()
+
+    def on_mouse_scroll_down(self, event) -> None:
+        self.scroll_relative(y=+self.SCROLL_STEP, animate=False)
+        event.stop()
+
     def selected_message(self) -> Message | None:
         if not self._messages:
             return None
