@@ -243,6 +243,19 @@ async def test_enter_on_message_opens_detail_screen(relay_dir):
 
 
 @pytest.mark.asyncio
+async def test_acting_as_restored_from_persisted_state(relay_dir):
+    from claude_relay.core import state, store
+    store.register_peer(name="P1", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="P2", session_id="s2", cwd="/tmp", role="parent")
+    state.set_last_acting_as("P2")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        # The persisted value (P2) should be chosen, not P1 (default first parent)
+        assert app.screen.acting_as == "P2"
+
+
+@pytest.mark.asyncio
 async def test_switch_acting_as_modal_lists_parents(relay_dir):
     from claude_relay.core import store
     from claude_relay.tui.widgets.switch_acting_as import SwitchActingAsModal

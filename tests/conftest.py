@@ -12,9 +12,13 @@ def relay_dir(tmp_path, monkeypatch):
     # Reload store so it binds to the reloaded paths
     from claude_relay.core import store
     importlib.reload(store)
+    # Reload state so it binds to the reloaded paths
+    from claude_relay.core import state
+    importlib.reload(state)
     paths.ensure_dirs()
     yield tmp_path
     # Restore default paths so unrelated tests (e.g. test_paths) see the real env
     monkeypatch.delenv("CLAUDE_RELAY_DIR", raising=False)
     importlib.reload(paths)
     importlib.reload(store)
+    importlib.reload(state)

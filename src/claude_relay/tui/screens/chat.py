@@ -7,7 +7,7 @@ from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Static
 
-from ...core import store
+from ...core import state, store
 from ..widgets.chat_composer import ChatComposer
 from ..widgets.chat_stream import ChatStream
 from ..widgets.log_viewer import LogViewer
@@ -73,8 +73,13 @@ class ChatScreen(Screen):
     def _populate_acting_as(self) -> None:
         parents = [p for p in store.list_peers() if p.role == "parent"]
         parent_names = {p.name for p in parents}
-        if self.acting_as not in parent_names:
-            self.acting_as = parents[0].name if parents else None
+        # Prefer persisted last-acting-as if still valid
+        if self.acting_as is None or self.acting_as not in parent_names:
+            last = state.get_last_acting_as()
+            if last in parent_names:
+                self.acting_as = last
+            else:
+                self.acting_as = parents[0].name if parents else None
         chip = self.query_one("#acting-as-chip", Static)
         if self.acting_as:
             chip.update(
@@ -88,10 +93,15 @@ class ChatScreen(Screen):
         tabs = self.query_one("#peer-tabs", PeerTabs)
         members = self._group_members()
         await tabs.populate(members)
-        # When tabs.populate sets self.active, on_tabs_tab_activated will fire
-        # and set self.active_peer. As a defensive default:
-        if members and not self.active_peer:
-            self.active_peer = members[0]
+        if not members:
+            return
+        # Prefer persisted last_active_peer if it's still a member; else first member
+        if self.active_peer not in members:
+            last = state.get_last_active_peer()
+            if last in members:
+                self.active_peer = last
+            else:
+                self.active_peer = members[0]
 
     def _refresh_thread(self) -> None:
         stream = self.query_one("#chat-stream", ChatStream)
@@ -104,6 +114,7 @@ class ChatScreen(Screen):
 
     async def on_peer_tabs_peer_selected(self, event) -> None:
         self.active_peer = event.peer_name
+        state.set_last_active_peer(event.peer_name)
         self._refresh_thread()
 
     def on_chat_composer_send(self, event) -> None:
@@ -138,6 +149,7 @@ class ChatScreen(Screen):
             return
         idx = members.index(self.active_peer) if self.active_peer in members else -1
         self.active_peer = members[(idx + 1) % len(members)]
+        state.set_last_active_peer(self.active_peer)
         # Reflect on Tabs widget (active is a reactive, not an await)
         tabs = self.query_one("#peer-tabs", PeerTabs)
         tabs.active = f"tab-{tabs._safe_id(self.active_peer)}"
@@ -149,6 +161,7 @@ class ChatScreen(Screen):
             return
         idx = members.index(self.active_peer) if self.active_peer in members else 1
         self.active_peer = members[(idx - 1) % len(members)]
+        state.set_last_active_peer(self.active_peer)
         tabs = self.query_one("#peer-tabs", PeerTabs)
         tabs.active = f"tab-{tabs._safe_id(self.active_peer)}"
         self._refresh_thread()
@@ -203,6 +216,9 @@ class ChatScreen(Screen):
             if name is None or name == self.acting_as:
                 return
             self.acting_as = name
+            state.set_last_acting_as(name)
+            # Clear active_peer so _populate_tabs picks default for new group
+            self.active_peer = None
             self._populate_acting_as()
             self.call_after_refresh(self._populate_tabs_and_refresh)
         self.app.push_screen(SwitchActingAsModal(self.acting_as), after)
