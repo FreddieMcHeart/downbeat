@@ -17,9 +17,9 @@ from ..widgets.peer_tabs import PeerTabs
 class ChatScreen(Screen):
     BINDINGS = [
         ("q", "app.quit", "Quit"),
-        ("f1", "help", "Help"),
+        ("question_mark,f1", "help", "Help"),
         ("ctrl+r", "refresh", "Refresh"),
-        ("f6", "toggle_logs", "Logs"),
+        ("ctrl+l,f6", "toggle_logs", "Logs"),
         ("f", "find_message", "Find"),
         ("ctrl+p", "open_peers", "Peers"),
         ("s", "switch_acting_as", "Switch acting-as"),

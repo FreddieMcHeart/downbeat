@@ -16,7 +16,7 @@ class PeersScreen(Screen):
         ("escape", "app.pop_screen", "Back"),
         ("q", "app.pop_screen", "Back"),
         ("n,N", "add_peer", "Add"),
-        ("d,delete,X,x,shift+x", "remove_peer", "Remove"),
+        ("d,X,x,shift+x", "remove_peer", "Remove"),
         ("g,G,shift+g", "gc_stale", "GC stale"),
         ("ctrl+r", "refresh", "Refresh"),
         ("u", "rebind_session", "Rebind"),

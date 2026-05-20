@@ -35,11 +35,16 @@ claude-relay tui                 # full management UI
 | d             | Delete with confirm (in message detail)              |
 | Shift+B       | Broadcast status (in message detail, when applicable) |
 | c             | Copy message id to clipboard (in message detail)     |
+| Up/k, Down/j  | Scroll up / down in message detail                   |
+| Ctrl+B / PgUp | Page up in message detail (Fn+↑ alias)               |
+| Ctrl+F / PgDn | Page down in message detail (Fn+↓ alias)             |
+| g / Home      | Top of message detail (Fn+← alias)                  |
+| G / End       | Bottom of message detail (Fn+→ alias)                |
 | Ctrl+P        | Peers screen (add / remove / gc)                     |
 | f             | Find message by id                                   |
-| F1            | Help                                                 |
+| ? / F1        | Help                                                 |
 | Ctrl+R        | Refresh                                              |
-| F6            | Toggle log viewer                                    |
+| Ctrl+L / F6   | Toggle log viewer                                    |
 | q             | Quit                                                 |
 
 ## Uninstall

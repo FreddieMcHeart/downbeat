@@ -22,9 +22,9 @@ from .help import HelpScreen
 class MainScreen(Screen):
     BINDINGS = [
         ("q", "app.quit", "Quit"),
-        ("f1", "help", "Help"),
+        ("question_mark,f1", "help", "Help"),
         ("ctrl+r", "refresh", "Refresh"),
-        ("f6", "toggle_logs", "Logs"),
+        ("ctrl+l,f6", "toggle_logs", "Logs"),
         ("enter", "open_message", "Open"),
         ("n", "new_message", "New"),
         ("r", "reply", "Reply"),

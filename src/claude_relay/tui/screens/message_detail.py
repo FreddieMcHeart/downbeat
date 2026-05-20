@@ -29,10 +29,10 @@ class MessageDetailScreen(Screen):
         ("c", "copy_id", "Copy id"),
         ("up,k", "scroll_up", "Up"),
         ("down,j", "scroll_down", "Down"),
-        ("pageup", "page_up", "PgUp"),
-        ("pagedown", "page_down", "PgDn"),
-        ("home", "scroll_home", "Top"),
-        ("end", "scroll_end", "Bottom"),
+        ("ctrl+b,pageup", "page_up", "PgUp"),
+        ("ctrl+f,pagedown", "page_down", "PgDn"),
+        ("g,home", "scroll_home", "Top"),
+        ("G,end", "scroll_end", "Bottom"),
     ]
 
     def __init__(self, msg_id: str):

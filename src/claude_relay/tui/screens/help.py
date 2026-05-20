@@ -30,17 +30,25 @@ HELP_TEXT = """\
 
 [b]System[/b]
   f               find message by id across all inboxes
-  F1              this help
+  ? / F1          this help
   Ctrl+R          refresh
-  F6              toggle log viewer
+  Ctrl+L / F6     toggle log viewer
   q               quit
+
+[b]Message detail — scroll[/b]
+  ↑ / k           scroll up one line
+  ↓ / j           scroll down one line
+  Ctrl+B / PgUp   page up
+  Ctrl+F / PgDn   page down
+  g / Home        top of message
+  G / End         bottom of message
 """
 
 
 class HelpScreen(ModalScreen):
     BINDINGS = [
         ("escape", "close", "Close"),
-        ("f1", "close", "Close"),
+        ("question_mark,f1", "close", "Close"),
         ("q", "close", "Close"),
     ]
 
