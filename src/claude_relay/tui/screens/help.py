@@ -24,6 +24,7 @@ HELP_TEXT = """\
 [b]Actions on focused bubble[/b]
   Enter           open focused message in detail view
                   (Edit / Reply / Delete / Broadcast status / Copy id)
+  y               yank (copy) focused message body to clipboard
 
 [b]Peer management[/b]
   Ctrl+P          open Peers screen (add / remove / gc)
@@ -34,6 +35,10 @@ HELP_TEXT = """\
   Ctrl+R          refresh
   Ctrl+L / F6     toggle log viewer
   q               quit
+
+[b]Message detail — actions[/b]
+  y               yank message body to clipboard
+  c               copy message id to clipboard
 
 [b]Message detail — scroll[/b]
   ↑ / k           scroll up one line

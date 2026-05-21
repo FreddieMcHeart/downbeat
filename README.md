@@ -40,6 +40,7 @@ incoming messages without having to manually check.
 | r             | Reply (in message detail)                            |
 | d             | Delete with confirm (in message detail)              |
 | Shift+B       | Broadcast status (in message detail, when applicable) |
+| y             | Yank (copy) message body to clipboard (chat view and message detail) |
 | c             | Copy message id to clipboard (in message detail)     |
 | Up/k, Down/j  | Scroll up / down in message detail                   |
 | Ctrl+B / PgUp | Page up in message detail (Fn+↑ alias)               |

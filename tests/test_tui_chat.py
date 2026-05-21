@@ -256,6 +256,33 @@ async def test_acting_as_restored_from_persisted_state(relay_dir):
 
 
 @pytest.mark.asyncio
+async def test_yank_body_copies_to_clipboard(relay_dir, monkeypatch):
+    """Pressing y on a focused bubble should call copy_to_clipboard with
+    the message body."""
+    from claude_relay.core import store
+    store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
+    store.send_message(from_peer="c", to_peer="p", subject="hi", body="THE_BODY")
+    # Stub the clipboard helper to capture the call
+    captured = {}
+    def fake_copy(text):
+        captured["text"] = text
+        return True
+    from claude_relay.tui.widgets import clipboard
+    monkeypatch.setattr(clipboard, "copy_to_clipboard", fake_copy)
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        stream = app.screen.query_one("#chat-stream")
+        stream.focus()
+        await pilot.pause()
+        # Press y
+        await pilot.press("y")
+        await pilot.pause()
+        assert captured.get("text") == "THE_BODY"
+
+
+@pytest.mark.asyncio
 async def test_switch_acting_as_modal_lists_parents(relay_dir):
     from claude_relay.core import store
     from claude_relay.tui.widgets.switch_acting_as import SwitchActingAsModal

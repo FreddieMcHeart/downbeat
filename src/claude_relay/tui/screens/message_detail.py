@@ -26,6 +26,7 @@ class MessageDetailScreen(Screen):
         ("r", "reply", "Reply"),
         ("d", "delete", "Delete"),
         ("B,shift+b", "broadcast_status", "Bcast"),
+        ("y", "yank_body", "Yank body"),
         ("c", "copy_id", "Copy id"),
         ("up,k", "scroll_up", "Up"),
         ("down,j", "scroll_down", "Down"),
@@ -131,10 +132,21 @@ class MessageDetailScreen(Screen):
         self.scroll_relative(y=+self.SCROLL_STEP, animate=False)
         event.stop()
 
+    def action_yank_body(self) -> None:
+        from ..widgets.clipboard import copy_to_clipboard
+        msg = store.get_message(self.msg_id)
+        ok = copy_to_clipboard(msg.body or "")
+        if ok:
+            self.notify(f"Copied body ({len(msg.body or '')} chars)", timeout=2)
+        else:
+            self.notify(
+                "Clipboard tool not available — install pyperclip or use pbcopy/xclip.",
+                severity="error", timeout=4,
+            )
+
     def action_copy_id(self) -> None:
-        try:
-            import pyperclip  # type: ignore
-            pyperclip.copy(self.msg_id)
+        from ..widgets.clipboard import copy_to_clipboard
+        if copy_to_clipboard(self.msg_id):
             self.notify(f"Copied id {self.msg_id} to clipboard", timeout=2)
-        except Exception:
+        else:
             self.notify(f"id: {self.msg_id}", timeout=5)

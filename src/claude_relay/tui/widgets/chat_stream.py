@@ -14,6 +14,7 @@ class ChatStream(VerticalScroll):
         ("up,k", "cursor_up", "Up"),
         ("down,j", "cursor_down", "Down"),
         ("enter", "open_detail", "Open"),
+        ("y", "yank_body", "Yank body"),
     ]
     can_focus = True
 
@@ -187,3 +188,19 @@ class ChatStream(VerticalScroll):
         msg = self.selected_message()
         if msg:
             self.post_message(self.MessageOpened(msg.id))
+
+    def action_yank_body(self) -> None:
+        msg = self.selected_message()
+        if not msg:
+            self.app.notify("No message focused", severity="warning", timeout=2)
+            return
+        from .clipboard import copy_to_clipboard
+        ok = copy_to_clipboard(msg.body or "")
+        if ok:
+            self.app.notify(f"Copied body of {msg.id} ({len(msg.body or '')} chars)",
+                            timeout=2)
+        else:
+            self.app.notify(
+                "Clipboard tool not available — install pyperclip or use pbcopy/xclip.",
+                severity="error", timeout=4,
+            )
