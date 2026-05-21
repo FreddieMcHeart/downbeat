@@ -25,8 +25,16 @@ def _detect_peer_or_error(name: str | None) -> str:
     raise SystemExit(2)
 
 
+def cmd_gc_markers(args: argparse.Namespace) -> int:
+    counts = session.gc_stale_markers()
+    print(f"pruned stale markers: tmp={counts['tmp']} relay={counts['relay']}")
+    return 0
+
+
 def cmd_register(args: argparse.Namespace) -> int:
     import os
+    # Sweep stale markers first so subsequent detects don't trust them
+    session.gc_stale_markers()
     sid = session.detect_session_id()
     if sid is None:
         # Best-effort: synthesize from our pid
