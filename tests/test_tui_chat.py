@@ -283,6 +283,60 @@ async def test_yank_body_copies_to_clipboard(relay_dir, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_refresh_thread_uses_differential_update(relay_dir):
+    """A second refresh with the same messages should NOT remove and re-mount
+    every bubble — the same widget instances should still be present."""
+    from claude_relay.core import store
+    store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
+    for i in range(5):
+        store.send_message(from_peer="c", to_peer="p",
+                           subject=f"m{i}", body=f"b{i}")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        stream = app.screen.query_one("#chat-stream")
+        # Capture widget identities after first mount
+        before_ids = [id(c) for c in stream.children]
+        # Second refresh (same data)
+        stream.refresh_thread("p", "c")
+        await pilot.pause()
+        after_ids = [id(c) for c in stream.children]
+        # No widget was removed-and-readded — identities should be unchanged
+        assert before_ids == after_ids, (
+            "Differential refresh broken: widget identities changed; "
+            "this means remove-all-and-remount is still happening."
+        )
+
+
+@pytest.mark.asyncio
+async def test_refresh_thread_appends_new_message_without_full_rebuild(relay_dir):
+    """When a new message arrives, only that bubble should be mounted; existing
+    bubbles keep their widget identity."""
+    from claude_relay.core import store
+    store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
+    store.send_message(from_peer="c", to_peer="p", subject="a", body="x")
+    store.send_message(from_peer="c", to_peer="p", subject="b", body="y")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        stream = app.screen.query_one("#chat-stream")
+        before_ids = [id(c) for c in stream.children]
+        # Add a third message and refresh
+        store.send_message(from_peer="c", to_peer="p", subject="c", body="z")
+        stream.refresh_thread("p", "c")
+        await pilot.pause()
+        after_ids = [id(c) for c in stream.children]
+        # The two original widgets should still be present in after_ids
+        assert all(b in after_ids for b in before_ids), (
+            "Original bubble identities changed — full rebuild happened unexpectedly."
+        )
+        # One new widget added
+        assert len(after_ids) == len(before_ids) + 1
+
+
+@pytest.mark.asyncio
 async def test_switch_acting_as_modal_lists_parents(relay_dir):
     from claude_relay.core import store
     from claude_relay.tui.widgets.switch_acting_as import SwitchActingAsModal
