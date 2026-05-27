@@ -47,7 +47,6 @@ async def test_detail_screen_renders_title_without_markup_split_error(relay_dir)
     )
     # Test _render_content_safe directly — it would have raised MarkupError
     # with split markup tags, but programmatic styling avoids the parser.
-    from rich.text import Text
     screen = MessageDetailScreen(msg.id)
     # Mock the widgets to avoid needing an active app context
     screen._title = type('MockLabel', (), {'update': lambda self, text: None})()

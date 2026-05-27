@@ -21,6 +21,8 @@ def new_id() -> str:
 class MessageState(StrEnum):
     NEW = "new"
     READ = "read"
+    DELIVERED = "delivered"     # in delivered/, awaiting ack
+    QUARANTINED = "quarantined" # in quarantine/, manual recovery needed
     ARCHIVED = "archived"
 
 
@@ -36,11 +38,23 @@ class Message:
     edited_at: str | None = None
     broadcast_id: str | None = None
     archived: bool = False
+    # --- Phase 0 schema additions ---
+    delivered_at: str | None = None
+    delivered_to_session_id: str | None = None
+    redelivery_count: int = 0
+    delivery_ack_at: str | None = None
+    in_reply_to: str | None = None
+    quarantined_at: str | None = None
+    quarantine_reason: str | None = None
 
     @property
     def state(self) -> MessageState:
+        if self.quarantined_at is not None:
+            return MessageState.QUARANTINED
         if self.archived:
             return MessageState.ARCHIVED
+        if self.delivered_at is not None and self.delivery_ack_at is None:
+            return MessageState.DELIVERED
         if self.read_at is not None:
             return MessageState.READ
         return MessageState.NEW
@@ -57,6 +71,13 @@ class Message:
             "edited_at": self.edited_at,
             "broadcast_id": self.broadcast_id,
             "archived": self.archived,
+            "delivered_at": self.delivered_at,
+            "delivered_to_session_id": self.delivered_to_session_id,
+            "redelivery_count": self.redelivery_count,
+            "delivery_ack_at": self.delivery_ack_at,
+            "in_reply_to": self.in_reply_to,
+            "quarantined_at": self.quarantined_at,
+            "quarantine_reason": self.quarantine_reason,
         }
 
     def to_json(self) -> str:
@@ -75,6 +96,13 @@ class Message:
             edited_at=d.get("edited_at"),
             broadcast_id=d.get("broadcast_id"),
             archived=d.get("archived", False),
+            delivered_at=d.get("delivered_at"),
+            delivered_to_session_id=d.get("delivered_to_session_id"),
+            redelivery_count=d.get("redelivery_count", 0),
+            delivery_ack_at=d.get("delivery_ack_at"),
+            in_reply_to=d.get("in_reply_to"),
+            quarantined_at=d.get("quarantined_at"),
+            quarantine_reason=d.get("quarantine_reason"),
         )
 
     @classmethod

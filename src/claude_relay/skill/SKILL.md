@@ -81,3 +81,20 @@ EOF
 - `claude-relay peers` — list registered peers
 - `claude-relay inbox` — your pending messages
 - `claude-relay tui` — full management TUI (read, edit, delete, broadcast)
+
+## Delivery acknowledgement
+
+When you process a Relay inbox banner (the `### Relay inbox — N new message(s)`
+block), after you've taken action on the messages (replied, internalized, or
+decided to ignore), run:
+
+    ~/.claude/relay/relay.py ack <id1> <id2> ...
+
+This confirms consumption. Without an ack, the relay's reconciler re-queues
+unacknowledged messages after 30 minutes (up to 3 redeliveries, then
+quarantine). Replying via `reply` auto-acks the original — no separate ack
+needed in that case.
+
+If you decide to ignore a message but want to stop the redelivery loop,
+ack it explicitly. The ack is the model's promise that the message was
+seen and acted upon.

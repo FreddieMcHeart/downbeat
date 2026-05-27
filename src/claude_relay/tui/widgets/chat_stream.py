@@ -180,9 +180,11 @@ class ChatStream(VerticalScroll):
         direction = f"you → {to_safe}" if is_self else f"{from_safe} → you"
         time = msg.created_at[11:16] if len(msg.created_at) >= 16 else ""
         state_marker = {
-            "new":      "[yellow]●[/yellow] ",
-            "read":     "[green]✓[/green] ",
-            "archived": "[dim]·[/dim] ",
+            "new":         "[yellow]●[/yellow] ",
+            "read":        "[green]✓[/green] ",
+            "delivered":   "[cyan]⏳[/cyan] ",
+            "archived":    "[dim]·[/dim] ",
+            "quarantined": "[red]!![/red] ",
         }.get(msg.state.value, "")
         cursor_slot = "[b yellow]▶[/b yellow] " if is_selected else "  "
         header = (

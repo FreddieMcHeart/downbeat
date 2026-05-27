@@ -76,7 +76,8 @@ def cmd_inbox(args: argparse.Namespace) -> int:
         print(f"inbox empty for {peer}")
         return 0
     for m in msgs:
-        flag = {"new": "*", "read": " ", "archived": "."}[m.state.value]
+        flag = {"new": "*", "read": " ", "delivered": "~",
+                "quarantined": "!", "archived": "."}[m.state.value]
         print(f"{flag} {m.id}  {m.created_at}  {m.from_peer:<16}  {m.subject}")
     return 0
 
@@ -127,6 +128,36 @@ def cmd_rebind(args: argparse.Namespace) -> int:
     if args.session_id is None:
         session.write_marker_for_self(peer.session_id)
     print(f"rebound: {peer.name} (session={peer.session_id}, role={peer.role})")
+    return 0
+
+
+def cmd_drain(args: argparse.Namespace) -> int:
+    msgs = store.deliver_messages(peer_name=args.peer, session_id=args.session_id,
+                                  max=args.max)
+    print(f"delivered {len(msgs)} messages to {args.peer}")
+    for m in msgs:
+        print(f"  {m.id}  from={m.from_peer}  subject={m.subject!r}")
+    return 0
+
+
+def cmd_ack(args: argparse.Namespace) -> int:
+    results = store.ack_messages(args.ids)
+    okay = sum(1 for v in results.values() if v)
+    print(f"acked {okay}/{len(args.ids)}")
+    for mid, ok in results.items():
+        marker = "✓" if ok else "·"
+        print(f"  {marker} {mid}")
+    return 0 if okay == len(args.ids) else 2
+
+
+def cmd_reconcile(args: argparse.Namespace) -> int:
+    counts = store.reconcile(window_minutes=args.window_minutes,
+                             max_redelivery=args.max_redelivery)
+    print(f"reconciled: promoted={counts['promoted']} "
+          f"requeued={counts['requeued']} quarantined={counts['quarantined']}")
+    if counts["quarantined"] > 0:
+        print(f"⚠ {counts['quarantined']} message(s) quarantined — "
+              "check ~/.claude/relay/quarantine/")
     return 0
 
 

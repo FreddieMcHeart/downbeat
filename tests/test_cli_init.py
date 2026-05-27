@@ -44,8 +44,9 @@ def test_init_installs_skill(tmp_path, monkeypatch, relay_dir):
 def test_skill_md_uses_context_aware_offer(relay_dir):
     """The packaged skill no longer offers the poll on every first invocation;
     it conditions the offer on whether the user is about to idle waiting."""
-    import claude_relay
     from pathlib import Path
+
+    import claude_relay
     skill = (Path(claude_relay.__file__).parent / "skill" / "SKILL.md").read_text()
     # The old chronological wording is gone:
     assert "First-invocation offer" not in skill

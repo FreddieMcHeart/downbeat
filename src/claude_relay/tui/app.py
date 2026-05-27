@@ -6,7 +6,7 @@ import logging
 from textual.app import App
 
 from ..core import logging as relay_logging
-from ..core import watcher
+from ..core import store, watcher
 from .messages import StoreChanged
 from .screens.chat import ChatScreen
 
@@ -27,6 +27,14 @@ class RelayApp(App):
 
     def on_mount(self) -> None:
         relay_logging.setup(level="INFO")
+        try:
+            counts = store.reconcile()
+            if counts["quarantined"] > 0:
+                logging.getLogger("claude_relay.tui").warning(
+                    "reconcile at startup: %s", counts
+                )
+        except Exception:
+            logging.getLogger("claude_relay.tui").exception("reconcile failed at startup")
         logging.getLogger("claude_relay.tui").info("app mounted")
         self.push_screen(ChatScreen())
         self._watcher = watcher.make_watcher(

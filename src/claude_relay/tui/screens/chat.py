@@ -82,9 +82,14 @@ class ChatScreen(Screen):
                 self.acting_as = parents[0].name if parents else None
         chip = self.query_one("#acting-as-chip", Static)
         if self.acting_as:
+            q_count = sum(
+                1 for m in store.list_inbox(self.acting_as, include_archived=True)
+                if m.state.value == "quarantined"
+            )
+            suffix = f"   [red]⚠ {q_count} quarantined[/red]" if q_count else ""
             chip.update(
                 f"[b]Acting as:[/b] {self.acting_as}   "
-                f"[dim]s to switch[/dim]"
+                f"[dim]s to switch[/dim]{suffix}"
             )
         else:
             chip.update("[dim]No parents registered — press Ctrl+P to add one[/dim]")

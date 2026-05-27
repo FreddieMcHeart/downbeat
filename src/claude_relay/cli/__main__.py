@@ -76,6 +76,24 @@ def build_parser() -> argparse.ArgumentParser:
                             parents=[debug_parent])
     sp_tui.set_defaults(func=relay_cmds.cmd_tui)
 
+    sp_drain = sub.add_parser("drain", help="drain inbox to delivered (used by hook)",
+                              parents=[debug_parent])
+    sp_drain.add_argument("--peer", required=True)
+    sp_drain.add_argument("--session-id", required=True, dest="session_id")
+    sp_drain.add_argument("--max", type=int, default=20)
+    sp_drain.set_defaults(func=relay_cmds.cmd_drain)
+
+    sp_ack = sub.add_parser("ack", help="confirm consumption of delivered messages",
+                            parents=[debug_parent])
+    sp_ack.add_argument("ids", nargs="+")
+    sp_ack.set_defaults(func=relay_cmds.cmd_ack)
+
+    sp_rec = sub.add_parser("reconcile", help="re-queue or quarantine stale delivered messages",
+                            parents=[debug_parent])
+    sp_rec.add_argument("--window-minutes", type=int, default=30)
+    sp_rec.add_argument("--max-redelivery", type=int, default=3)
+    sp_rec.set_defaults(func=relay_cmds.cmd_reconcile)
+
     sp_init = sub.add_parser("init", help="bootstrap relay dir, skill, shim",
                              parents=[debug_parent])
     sp_init.add_argument("--force", action="store_true")

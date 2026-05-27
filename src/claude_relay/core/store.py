@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import tempfile
+from datetime import UTC
 from pathlib import Path
 
 from . import paths
@@ -27,6 +28,13 @@ def _atomic_write_text(target: Path, text: str) -> None:
     except Exception:
         Path(tmp).unlink(missing_ok=True)
         raise
+
+
+def _append_delivery_log(event: dict) -> None:
+    paths.RELAY_DIR.mkdir(parents=True, exist_ok=True)
+    line = json.dumps({**event, "at": now_iso()})
+    with paths.DELIVERY_LOG.open("a") as f:
+        f.write(line + "\n")
 
 
 def _load_sessions() -> dict[str, dict]:
@@ -85,18 +93,33 @@ def touch_peer(name: str) -> None:
 
 
 def _message_path(msg: Message) -> Path:
-    base = paths.PROCESSED_DIR if msg.archived else paths.INBOX_DIR
+    if msg.quarantined_at is not None:
+        base = paths.QUARANTINE_DIR
+    elif msg.archived:
+        base = paths.PROCESSED_DIR
+    elif msg.delivered_at is not None and msg.delivery_ack_at is None:
+        base = paths.DELIVERED_DIR
+    else:
+        base = paths.INBOX_DIR
     return base / msg.to_peer / f"{msg.id}.json"
 
 
+def _find_message_in(base: Path, msg_id: str) -> Path | None:
+    if not base.exists():
+        return None
+    for peer_dir in base.iterdir():
+        candidate = peer_dir / f"{msg_id}.json"
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def _find_message_path(msg_id: str) -> Path:
-    for base in (paths.INBOX_DIR, paths.PROCESSED_DIR):
-        if not base.exists():
-            continue
-        for peer_dir in base.iterdir():
-            candidate = peer_dir / f"{msg_id}.json"
-            if candidate.exists():
-                return candidate
+    for base in (paths.INBOX_DIR, paths.DELIVERED_DIR, paths.PROCESSED_DIR,
+                 paths.QUARANTINE_DIR):
+        p = _find_message_in(base, msg_id)
+        if p is not None:
+            return p
     raise MessageNotFound(msg_id)
 
 
@@ -117,7 +140,8 @@ def get_message(msg_id: str) -> Message:
 
 
 def send_message(from_peer: str, to_peer: str, subject: str, body: str,
-                 broadcast_id: str | None = None) -> Message:
+                 broadcast_id: str | None = None,
+                 in_reply_to: str | None = None) -> Message:
     # Sender doesn't need to be registered (CLI may send before its own
     # register completes); recipient must exist.
     get_peer(to_peer)
@@ -129,11 +153,74 @@ def send_message(from_peer: str, to_peer: str, subject: str, body: str,
         body=body,
         created_at=now_iso(),
         broadcast_id=broadcast_id,
+        in_reply_to=in_reply_to,
     )
     _write_message(msg)
-    _log.info("send from=%s to=%s msg=%s broadcast=%s bytes=%d",
-              from_peer, to_peer, msg.id, broadcast_id, len(body))
+    _log.info("send from=%s to=%s msg=%s broadcast=%s in_reply_to=%s bytes=%d",
+              from_peer, to_peer, msg.id, broadcast_id, in_reply_to, len(body))
     return msg
+
+
+def deliver_messages(peer_name: str, session_id: str,
+                     max: int = 20) -> list[Message]:
+    """Move up to max messages from inbox/<peer>/ to delivered/<peer>/,
+    stamping delivered_at + delivered_to_session_id."""
+    inbox_dir = paths.INBOX_DIR / peer_name
+    if not inbox_dir.exists():
+        return []
+    delivered_dir = paths.DELIVERED_DIR / peer_name
+    delivered_dir.mkdir(parents=True, exist_ok=True)
+    paths_sorted = sorted(inbox_dir.glob("*.json"),
+                          key=lambda p: p.stat().st_mtime)[:max]
+    out: list[Message] = []
+    for p in paths_sorted:
+        try:
+            msg = _read_message_at(p)
+        except StoreCorrupt:
+            continue
+        d = msg.to_dict()
+        d["delivered_at"] = now_iso()
+        d["delivered_to_session_id"] = session_id
+        updated = Message.from_dict(d)
+        target = delivered_dir / p.name
+        _atomic_write_text(target, updated.to_json())
+        p.unlink()
+        out.append(updated)
+        _log.info("deliver msg=%s peer=%s to_session=%s redelivery=%d",
+                  msg.id, peer_name, session_id, msg.redelivery_count)
+        _append_delivery_log({"event": "deliver", "msg_id": msg.id,
+                              "peer": peer_name, "session_id": session_id,
+                              "redelivery_count": msg.redelivery_count})
+    return out
+
+
+def ack_messages(ids: list[str]) -> dict[str, bool]:
+    """For each id, find the message in delivered/, set delivery_ack_at,
+    move to processed/, archive=True. Returns map of id→success."""
+    result: dict[str, bool] = {}
+    for mid in ids:
+        try:
+            path = _find_message_in(paths.DELIVERED_DIR, mid)
+            if path is None:
+                # Maybe already processed; treat as not-found
+                result[mid] = False
+                continue
+            msg = _read_message_at(path)
+            d = msg.to_dict()
+            d["delivery_ack_at"] = now_iso()
+            d["archived"] = True
+            updated = Message.from_dict(d)
+            peer = path.parent.name
+            target = paths.PROCESSED_DIR / peer / path.name
+            _atomic_write_text(target, updated.to_json())
+            path.unlink()
+            _log.info("ack msg=%s peer=%s", mid, peer)
+            _append_delivery_log({"event": "ack", "msg_id": mid, "peer": peer})
+            result[mid] = True
+        except Exception:
+            _log.exception("ack failed for %s", mid)
+            result[mid] = False
+    return result
 
 
 def mark_read(msg_id: str) -> Message:
@@ -176,16 +263,20 @@ def delete_message(msg_id: str) -> None:
 def reply_to(msg_id: str, body: str, from_peer: str,
              subject_prefix: str = "Re: ") -> Message:
     original = get_message(msg_id)
-    # Archive original
+    old_path = _find_message_path(msg_id)
+    # Archive original + auto-ack if it was in delivered/
     d = original.to_dict()
     d["archived"] = True
+    if original.delivered_at is not None and original.delivery_ack_at is None:
+        d["delivery_ack_at"] = now_iso()
+        _append_delivery_log({"event": "auto_ack_via_reply",
+                              "msg_id": msg_id, "peer": original.to_peer})
     archived = Message.from_dict(d)
-    # Move from inbox/ to processed/
-    old_path = _find_message_path(msg_id)
     old_path.unlink()
     _write_message(archived)
-    # Send the reply back to the original sender (bypass peer check — the
-    # broadcaster may not be registered in the peer registry).
+    # Send the reply with in_reply_to set.
+    # Bypass peer check — the broadcaster (original.from_peer) may not be
+    # registered in the peer registry (broadcast fan-out case).
     reply = Message(
         id=new_id(),
         from_peer=from_peer,
@@ -194,6 +285,7 @@ def reply_to(msg_id: str, body: str, from_peer: str,
         body=body,
         created_at=now_iso(),
         broadcast_id=original.broadcast_id,
+        in_reply_to=msg_id,
     )
     _write_message(reply)
     _log.info("reply original=%s reply=%s", msg_id, reply.id)
@@ -203,23 +295,88 @@ def reply_to(msg_id: str, body: str, from_peer: str,
 def list_inbox(peer_name: str, include_archived: bool = False) -> list[Message]:
     out: list[Message] = []
     seen: set[str] = set()
-    inbox_dir = paths.INBOX_DIR / peer_name
-    if inbox_dir.exists():
-        for p in sorted(inbox_dir.glob("*.json")):
-            msg = _read_message_at(p)
+    # Always include inbox/ and delivered/ (in-flight messages)
+    bases = [paths.INBOX_DIR, paths.DELIVERED_DIR]
+    if include_archived:
+        bases.extend([paths.PROCESSED_DIR, paths.QUARANTINE_DIR])
+    for base in bases:
+        if not base.exists():
+            continue
+        peer_dir = base / peer_name
+        if not peer_dir.exists():
+            continue
+        for p in sorted(peer_dir.glob("*.json")):
+            try:
+                msg = _read_message_at(p)
+            except StoreCorrupt:
+                continue
             if msg.id not in seen:
                 out.append(msg)
                 seen.add(msg.id)
-    if include_archived:
-        processed_dir = paths.PROCESSED_DIR / peer_name
-        if processed_dir.exists():
-            for p in sorted(processed_dir.glob("*.json")):
-                msg = _read_message_at(p)
-                if msg.id not in seen:
-                    out.append(msg)
-                    seen.add(msg.id)
     out.sort(key=lambda m: m.created_at, reverse=True)
     return out
+
+
+def reconcile(window_minutes: int = 30, max_redelivery: int = 3) -> dict:
+    """Scan delivered/. For each message with delivered_at older than
+    window_minutes: requeue if redelivery_count < max_redelivery, else quarantine."""
+    from datetime import datetime, timedelta
+    now = datetime.now(UTC)
+    threshold = now - timedelta(minutes=window_minutes)
+    counts = {"promoted": 0, "requeued": 0, "quarantined": 0}
+    if not paths.DELIVERED_DIR.exists():
+        return counts
+    for peer_dir in paths.DELIVERED_DIR.iterdir():
+        if not peer_dir.is_dir():
+            continue
+        for p in list(peer_dir.glob("*.json")):
+            try:
+                msg = _read_message_at(p)
+            except StoreCorrupt:
+                continue
+            if not msg.delivered_at:
+                continue
+            try:
+                d_at = datetime.fromisoformat(msg.delivered_at)
+            except ValueError:
+                continue
+            if d_at > threshold:
+                continue  # still within window
+            if msg.redelivery_count + 1 > max_redelivery:
+                # Quarantine
+                d = msg.to_dict()
+                d["quarantined_at"] = now_iso()
+                d["quarantine_reason"] = (
+                    f"unacked after {max_redelivery} redeliveries"
+                )
+                quarantined = Message.from_dict(d)
+                target = paths.QUARANTINE_DIR / peer_dir.name / p.name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                _atomic_write_text(target, quarantined.to_json())
+                p.unlink()
+                counts["quarantined"] += 1
+                _log.warning("quarantine msg=%s peer=%s reason=%s",
+                             msg.id, peer_dir.name, d["quarantine_reason"])
+                _append_delivery_log({"event": "quarantine",
+                                      "msg_id": msg.id, "peer": peer_dir.name})
+            else:
+                # Requeue back to inbox/
+                d = msg.to_dict()
+                d["delivered_at"] = None
+                d["delivered_to_session_id"] = None
+                d["redelivery_count"] = msg.redelivery_count + 1
+                requeued = Message.from_dict(d)
+                target = paths.INBOX_DIR / peer_dir.name / p.name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                _atomic_write_text(target, requeued.to_json())
+                p.unlink()
+                counts["requeued"] += 1
+                _log.info("requeue msg=%s peer=%s attempt=%d",
+                          msg.id, peer_dir.name, d["redelivery_count"])
+                _append_delivery_log({"event": "requeue",
+                                      "msg_id": msg.id, "peer": peer_dir.name,
+                                      "redelivery_count": d["redelivery_count"]})
+    return counts
 
 
 def broadcast(from_peer: str, to_peers: list[str],
@@ -245,10 +402,13 @@ def broadcast(from_peer: str, to_peers: list[str],
 
 def _scan_all_messages() -> list[Message]:
     out: list[Message] = []
-    for base in (paths.INBOX_DIR, paths.PROCESSED_DIR):
+    for base in (paths.INBOX_DIR, paths.DELIVERED_DIR, paths.PROCESSED_DIR,
+                 paths.QUARANTINE_DIR):
         if not base.exists():
             continue
         for peer_dir in base.iterdir():
+            if not peer_dir.is_dir():
+                continue
             for p in peer_dir.glob("*.json"):
                 try:
                     out.append(_read_message_at(p))
@@ -334,16 +494,17 @@ def list_thread(peer_a: str, peer_b: str,
 
 
 def find_message_by_id_prefix(id_prefix: str) -> list[tuple[Message, str]]:
-    """Search every peer's inbox/ and processed/ for messages whose id starts
-    with id_prefix. Returns (message, location) tuples where location is
-    "inbox" or "processed". Empty prefix returns nothing (avoid scanning the
-    whole world)."""
+    """Search every peer's inbox/, delivered/, processed/, and quarantine/ for
+    messages whose id starts with id_prefix. Returns (message, location) tuples.
+    Empty prefix returns nothing (avoid scanning the whole world)."""
     prefix = id_prefix.strip()
     if not prefix:
         return []
     out: list[tuple[Message, str]] = []
     for base, label in ((paths.INBOX_DIR, "inbox"),
-                         (paths.PROCESSED_DIR, "processed")):
+                         (paths.DELIVERED_DIR, "delivered"),
+                         (paths.PROCESSED_DIR, "processed"),
+                         (paths.QUARANTINE_DIR, "quarantine")):
         if not base.exists():
             continue
         for peer_dir in base.iterdir():
