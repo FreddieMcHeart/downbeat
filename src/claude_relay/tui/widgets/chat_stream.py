@@ -194,7 +194,7 @@ class ChatStream(VerticalScroll):
         if len(body_raw) > 600:
             body_safe = (
                 _rich_escape(body_raw[:600])
-                + "\n[dim]…[truncated, press Enter to view full][/dim]"
+                + "\n[dim]… (truncated, press Enter to view full)[/dim]"
             )
         else:
             body_safe = _rich_escape(body_raw)

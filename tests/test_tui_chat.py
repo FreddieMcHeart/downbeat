@@ -377,3 +377,30 @@ async def test_switch_acting_as_modal_lists_parents(relay_dir):
         assert modal._parents == ["P1", "P2"]
         # And selected the current one
         assert modal._listview.index == 0
+
+
+@pytest.mark.asyncio
+async def test_long_body_with_brackets_renders_truncation_suffix_without_crashing(relay_dir):
+    """Bodies > 600 chars get a truncation suffix; the suffix must not
+    contain literal '[…]' that Rich would parse as a tag.
+
+    Specifically reproduces the [type='CNAME'] crash when body > 600 chars."""
+    from claude_relay.core import store
+    store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
+    body = (
+        "## PR #4410 apply ERRORED — import didn't persist\n\n"
+        "Error: [type='CNAME'] but it already exists\n"
+        + "padding " * 100  # ensure body > 600 chars so the suffix path runs
+    )
+    store.send_message(from_peer="c", to_peer="p", subject="long brackets", body=body)
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        # If we got here, the render completed without MarkupError
+        stream = app.screen.query_one("#chat-stream")
+        assert any(
+            getattr(c, "_msg", None) is not None
+            and "long brackets" in c._msg.subject
+            for c in stream.children
+        )
