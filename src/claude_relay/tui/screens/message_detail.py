@@ -1,7 +1,6 @@
 """Dedicated single-message view with per-message actions."""
 from __future__ import annotations
 
-from rich.markup import escape as _rich_escape
 from rich.text import Text
 from textual.app import ComposeResult
 from textual.screen import Screen
@@ -60,15 +59,17 @@ class MessageDetailScreen(Screen):
         try:
             msg = store.get_message(self.msg_id)
         except Exception as e:
-            err = Text.from_markup(f"[red]Error loading {_rich_escape(self.msg_id)}[/red]")
+            err = Text()
+            err.append(f"Error loading {self.msg_id}", style="red")
             err.append(": ")
             err.append(str(e))
             self._title.update(err)
             return
-        # Title: markup-parsed wrapper, subject appended as literal text.
-        title = Text.from_markup("[b]")
-        title.append(msg.subject)   # literal — no parsing
-        title.append_text(Text.from_markup(f"[/b]   [dim]({msg.state.value})[/dim]"))
+        # Title: programmatic styling — never goes through the markup parser.
+        title = Text()
+        title.append(msg.subject, style="bold")
+        title.append("   ")
+        title.append(f"({msg.state.value})", style="dim")
         self._title.update(title)
 
         # Meta: all values appended as literal text — no markup parser sees them.
@@ -90,7 +91,8 @@ class MessageDetailScreen(Screen):
         if msg.broadcast_id:
             meta.append(f"\nbroadcast: {msg.broadcast_id}")
         if msg.archived:
-            meta.append_text(Text.from_markup("\n[dim]archived[/dim]"))
+            meta.append("\n")
+            meta.append("archived", style="dim")
         self._meta.update(meta)
         # Markdown widget parses markdown, not Rich markup — no escaping needed.
         self._body.update(msg.body or "*(empty body)*")

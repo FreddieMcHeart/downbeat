@@ -32,3 +32,27 @@ async def test_detail_screen_delete_removes_message(relay_dir):
     perform_delete(msg.id)
     with pytest.raises(MessageNotFound):
         store.get_message(msg.id)
+
+
+@pytest.mark.asyncio
+async def test_detail_screen_renders_title_without_markup_split_error(relay_dir):
+    """Subjects containing brackets must not trigger MarkupError; programmatic
+    styling on Text avoids the parser entirely."""
+    store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
+    msg = store.send_message(
+        from_peer="c", to_peer="p",
+        subject="Re: Re: [PLAT-3074] (Phase 3 Wave A: BFFs)",
+        body="literal [text='with brackets'] body",
+    )
+    # Test _render_content_safe directly — it would have raised MarkupError
+    # with split markup tags, but programmatic styling avoids the parser.
+    from rich.text import Text
+    screen = MessageDetailScreen(msg.id)
+    # Mock the widgets to avoid needing an active app context
+    screen._title = type('MockLabel', (), {'update': lambda self, text: None})()
+    screen._meta = type('MockMeta', (), {'update': lambda self, text: None})()
+    screen._body = type('MockMarkdown', (), {'update': lambda self, text: None})()
+    # This call should not raise MarkupError
+    screen._render_content_safe()
+    assert screen.msg_id == msg.id
