@@ -106,3 +106,33 @@ def write_marker_for_self(session_id: str) -> None:
     paths.RELAY_DIR.mkdir(parents=True, exist_ok=True)
     marker = paths.RELAY_DIR / f".sid-{os.getpid()}"
     marker.write_text(session_id)
+
+
+def process_start_time(pid: int) -> str | None:
+    """Return ISO-8601 normalized process start time, or None.
+    macOS: `ps -o lstart=` returns 'Mon May 27 09:11:11 2026'.
+    Linux: `ps -o lstart=` returns the same format on most distros.
+    We parse and re-emit as ISO-8601 with second precision."""
+    try:
+        raw = subprocess.check_output(
+            ["ps", "-o", "lstart=", "-p", str(pid)],
+            stderr=subprocess.DEVNULL,
+        ).decode().strip()
+    except Exception:
+        return None
+    if not raw:
+        return None
+    try:
+        from datetime import datetime
+        dt = datetime.strptime(raw, "%a %b %d %H:%M:%S %Y")
+        return dt.isoformat(timespec="seconds")
+    except ValueError:
+        return None
+
+
+def detect_live_claude_pid() -> int | None:
+    """Walk ancestors and return the first PID that is a live claude process."""
+    for pid in _walk_ancestors():
+        if _process_is_claude(pid):
+            return pid
+    return None

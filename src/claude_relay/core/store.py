@@ -55,15 +55,27 @@ def _save_sessions(data: dict[str, dict]) -> None:
     _atomic_write_text(paths.SESSIONS_FILE, json.dumps(data, indent=2))
 
 
-def register_peer(name: str, session_id: str, cwd: str, role: str) -> Peer:
+def register_peer(name: str, session_id: str, cwd: str, role: str,
+                  claude_pid: int | None = None,
+                  claude_pid_start: str | None = None) -> Peer:
     sessions = _load_sessions()
     existing = sessions.get(name)
     registered_at = existing["registered_at"] if existing else now_iso()
-    peer = Peer(name=name, session_id=session_id, cwd=cwd, role=role,
-                registered_at=registered_at, last_seen=now_iso())
+    history = list(existing.get("session_id_history", [])) if existing else []
+    if existing and existing.get("session_id") and existing["session_id"] != session_id:
+        if existing["session_id"] not in history:
+            history.append(existing["session_id"])
+    peer = Peer(
+        name=name, session_id=session_id, cwd=cwd, role=role,
+        registered_at=registered_at, last_seen=now_iso(),
+        claude_pid=claude_pid,
+        claude_pid_start=claude_pid_start,
+        session_id_history=history,
+    )
     sessions[name] = peer.to_dict()
     _save_sessions(sessions)
-    _log.info("register peer=%s session=%s role=%s", name, session_id, role)
+    _log.info("register peer=%s session=%s role=%s claude_pid=%s",
+              name, session_id, role, claude_pid)
     return peer
 
 
@@ -449,7 +461,8 @@ def rebind_session(name: str, new_session_id: str | None = None) -> Peer:
     """Update only the session_id (and last_seen) for an existing peer.
     role, cwd, registered_at are preserved. If new_session_id is None, the
     function auto-detects via session.detect_session_id(); raises RelayError
-    if no detection is possible."""
+    if no detection is possible.
+    Also appends to rebind_log.jsonl and updates session_id_history."""
     from . import session as session_mod
     from .errors import RelayError
 
@@ -464,11 +477,46 @@ def rebind_session(name: str, new_session_id: str | None = None) -> Peer:
                 "could not auto-detect a session id; pass --session-id explicitly"
             )
 
-    sessions[name]["session_id"] = new_session_id
-    sessions[name]["last_seen"] = now_iso()
+    entry = sessions[name]
+    old_sid = entry.get("session_id")
+    history = list(entry.get("session_id_history", []))
+    if old_sid and old_sid != new_session_id and old_sid not in history:
+        history.append(old_sid)
+    entry["session_id"] = new_session_id
+    entry["session_id_history"] = history
+    entry["last_rebind_at"] = now_iso()
+    entry["last_seen"] = now_iso()
+    sessions[name] = entry
     _save_sessions(sessions)
-    _log.info("rebind peer=%s session=%s", name, new_session_id)
-    return Peer.from_dict(sessions[name])
+    _log.info("rebind peer=%s old_session=%s new_session=%s",
+              name, old_sid, new_session_id)
+    # Append to rebind_log.jsonl
+    _append_rebind_log({"peer": name, "old_session_id": old_sid,
+                        "new_session_id": new_session_id})
+    return Peer.from_dict(entry)
+
+
+def _append_rebind_log(event: dict) -> None:
+    paths.RELAY_DIR.mkdir(parents=True, exist_ok=True)
+    line = json.dumps({**event, "at": now_iso()})
+    with paths.REBIND_LOG.open("a") as f:
+        f.write(line + "\n")
+
+
+def find_peer_by_claude_pid(claude_pid: int,
+                            claude_pid_start: str | None) -> list[Peer]:
+    """Return peers whose claude_pid matches.
+    If both stored and provided start times are non-None, require them to match.
+    If either is None, accept the pid match alone."""
+    out = []
+    for p in list_peers():
+        if p.claude_pid != claude_pid:
+            continue
+        # Strict start-time match when both sides have a value
+        if p.claude_pid_start and claude_pid_start and p.claude_pid_start != claude_pid_start:
+            continue
+        out.append(p)
+    return out
 
 
 def _is_reply(msg: Message, siblings: list[Message]) -> bool:

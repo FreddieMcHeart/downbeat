@@ -50,3 +50,21 @@ def set_last_active_peer(name: str | None) -> None:
     else:
         data["last_active_peer"] = name
     _save(data)
+
+
+def get_last_seen_rebind_at() -> str | None:
+    return _load().get("last_seen_rebind_at")
+
+
+def set_last_seen_rebind_at(when: str | None) -> None:
+    data = _load()
+    if when is None:
+        data.pop("last_seen_rebind_at", None)
+    else:
+        data["last_seen_rebind_at"] = when
+    _save(data)
+
+
+def now_iso() -> str:
+    from .models import now_iso as _ni
+    return _ni()

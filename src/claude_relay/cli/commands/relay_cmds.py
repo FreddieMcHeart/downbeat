@@ -17,11 +17,33 @@ def _detect_peer_or_error(name: str | None) -> str:
         print("error: could not detect session id; pass --from explicitly",
               file=sys.stderr)
         raise SystemExit(2)
+    # Fast path: direct session_id match
     for peer in store.list_peers():
         if peer.session_id == sid:
             return peer.name
-    print(f"error: session {sid} is not registered; run `claude-relay register`",
-          file=sys.stderr)
+    # Slow path: try auto-rebind via (claude_pid, claude_pid_start) tuple
+    claude_pid = session.detect_live_claude_pid()
+    if claude_pid is None:
+        print(f"error: session {sid} is not registered; run "
+              "`claude-relay register`", file=sys.stderr)
+        raise SystemExit(2)
+    claude_pid_start = session.process_start_time(claude_pid)
+    candidates = store.find_peer_by_claude_pid(claude_pid, claude_pid_start)
+    if len(candidates) == 1:
+        peer = candidates[0]
+        store.rebind_session(peer.name, new_session_id=sid)
+        print(f"[rebind] {peer.name}: session_id updated "
+              f"{peer.session_id[:8]}→{sid[:8]} "
+              f"(claude PID {claude_pid} unchanged)",
+              file=sys.stderr)
+        return peer.name
+    if len(candidates) > 1:
+        names = [c.name for c in candidates]
+        print(f"error: multiple peers ({names}) share claude_pid={claude_pid}; "
+              "pass --from explicitly to disambiguate", file=sys.stderr)
+        raise SystemExit(2)
+    print(f"error: session {sid} is not registered; run "
+          "`claude-relay register`", file=sys.stderr)
     raise SystemExit(2)
 
 
@@ -40,9 +62,16 @@ def cmd_register(args: argparse.Namespace) -> int:
         # Best-effort: synthesize from our pid
         sid = f"unknown-{os.getpid()}"
     cwd = os.getcwd()
-    peer = store.register_peer(name=args.name, session_id=sid, cwd=cwd, role=args.role)
+    claude_pid = session.detect_live_claude_pid()
+    claude_pid_start = session.process_start_time(claude_pid) if claude_pid else None
+    peer = store.register_peer(
+        name=args.name, session_id=sid, cwd=cwd, role=args.role,
+        claude_pid=claude_pid, claude_pid_start=claude_pid_start,
+    )
     session.write_marker_for_self(sid)
     print(f"registered: {peer.name} (session={peer.session_id}, role={peer.role})")
+    if claude_pid:
+        print(f"  claude_pid={claude_pid} start={claude_pid_start}")
     return 0
 
 

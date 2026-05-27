@@ -118,13 +118,29 @@ class Peer:
     role: str   # "parent" | "child"
     registered_at: str
     last_seen: str
+    # --- rebind identity ---
+    claude_pid: int | None = None
+    claude_pid_start: str | None = None         # ISO-8601 normalized
+    session_id_history: list[str] = field(default_factory=list)
+    last_rebind_at: str | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
 
     @classmethod
     def from_dict(cls, d: dict) -> Peer:
-        return cls(**d)
+        return cls(
+            name=d["name"],
+            session_id=d["session_id"],
+            cwd=d.get("cwd", ""),
+            role=d.get("role", "child"),
+            registered_at=d.get("registered_at", ""),
+            last_seen=d.get("last_seen", ""),
+            claude_pid=d.get("claude_pid"),
+            claude_pid_start=d.get("claude_pid_start"),
+            session_id_history=d.get("session_id_history", []),
+            last_rebind_at=d.get("last_rebind_at"),
+        )
 
 
 @dataclass

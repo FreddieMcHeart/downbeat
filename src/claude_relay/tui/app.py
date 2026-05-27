@@ -1,6 +1,7 @@
 """RelayApp — root Textual application."""
 from __future__ import annotations
 
+import json
 import logging
 
 from textual.app import App
@@ -35,12 +36,50 @@ class RelayApp(App):
                 )
         except Exception:
             logging.getLogger("claude_relay.tui").exception("reconcile failed at startup")
+
+        # Check for unseen rebind events and surface as toasts
+        try:
+            unseen = self._unseen_rebinds()
+            if unseen:
+                for event in unseen:
+                    self.notify(
+                        f"{event['peer']} rebound after /clear: "
+                        f"session {event['old_session_id'][:8]}→"
+                        f"{event['new_session_id'][:8]}",
+                        timeout=5,
+                    )
+                self._mark_rebinds_seen()
+        except Exception:
+            logging.getLogger("claude_relay.tui").exception("rebind notification failed")
+
         logging.getLogger("claude_relay.tui").info("app mounted")
         self.push_screen(ChatScreen())
         self._watcher = watcher.make_watcher(
             on_change=lambda: self.call_from_thread(self._on_change)
         )
         self._watcher.start()
+
+    def _unseen_rebinds(self) -> list[dict]:
+        """Return rebind events newer than the last-seen timestamp in tui_state."""
+        from ..core import paths, state
+        if not paths.REBIND_LOG.exists():
+            return []
+        last_seen = state.get_last_seen_rebind_at()
+        events: list[dict] = []
+        with paths.REBIND_LOG.open() as f:
+            for line in f:
+                try:
+                    event = json.loads(line)
+                except Exception:
+                    continue
+                ts = event.get("at", "")
+                if last_seen is None or ts > last_seen:
+                    events.append(event)
+        return events
+
+    def _mark_rebinds_seen(self) -> None:
+        from ..core import state
+        state.set_last_seen_rebind_at(state.now_iso())
 
     def on_unmount(self) -> None:
         if self._watcher:
