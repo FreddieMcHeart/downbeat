@@ -404,3 +404,27 @@ async def test_long_body_with_brackets_renders_truncation_suffix_without_crashin
             and "long brackets" in c._msg.subject
             for c in stream.children
         )
+
+
+@pytest.mark.asyncio
+async def test_body_with_brackets_renders_via_text_renderable(relay_dir):
+    """Bodies containing '[type=value]'-style content must render as literal
+    text — never get re-parsed by Textual's visualize markup tokeniser."""
+    from claude_relay.core import store
+    store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
+    bodies = [
+        "Error: [type='CNAME'] already exists",
+        "JIRA: [PLAT-3238] mentioned [PLAT-1234] in description",
+        "Python: foo: list[int] = [1, 2, 3]",
+        "Heredoc: \"$(cat <<'EOF'\\n[section]\\nkey=val\\nEOF\\n)\"",
+        "Markdown: [link text](http://example.com) and [another]",
+    ]
+    for i, body in enumerate(bodies):
+        store.send_message(from_peer="c", to_peer="p", subject=f"brackets-{i}", body=body)
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        stream = app.screen.query_one("#chat-stream")
+        # If we got here, every bubble rendered without MarkupError.
+        assert len(list(stream.children)) >= len(bodies)

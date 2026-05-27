@@ -1,7 +1,7 @@
 """Right pane: render the selected message body."""
 from __future__ import annotations
 
-from rich.markup import escape as _rich_escape
+from rich.text import Text
 from textual.containers import Vertical
 from textual.widgets import Markdown, Static
 
@@ -36,14 +36,20 @@ class MessageView(Vertical):
             msg = store.get_message(msg_id)
         self._current_id = msg.id
         self.body_text = msg.body
-        from_safe = _rich_escape(msg.from_peer)
-        to_safe = _rich_escape(msg.to_peer)
-        self._meta.update(
-            f"[b]{_rich_escape(msg.subject)}[/b]\n"
-            f"id: {msg.id}   from: {from_safe}   to: {to_safe}\n"
-            f"state: [cyan]{msg.state.value}[/cyan]   "
-            f"created: {msg.created_at}"
-        )
+        # Compose meta as Text: markup-parsed brackets, user content appended literal.
+        meta = Text.from_markup("[b]")
+        meta.append(msg.subject)   # literal
+        meta.append_text(Text.from_markup("[/b]\n"))
+        meta.append("id: ")
+        meta.append(msg.id)
+        meta.append("   from: ")
+        meta.append(msg.from_peer)
+        meta.append("   to: ")
+        meta.append(msg.to_peer)
+        meta.append("\n")
+        meta.append_text(Text.from_markup(f"state: [cyan]{msg.state.value}[/cyan]   "))
+        meta.append(f"created: {msg.created_at}")
+        self._meta.update(meta)
         self._body.update(msg.body)
 
     def current_id(self) -> str | None:

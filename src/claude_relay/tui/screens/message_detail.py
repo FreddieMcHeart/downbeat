@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from rich.markup import escape as _rich_escape
+from rich.text import Text
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Label, Markdown, Static
@@ -59,29 +60,38 @@ class MessageDetailScreen(Screen):
         try:
             msg = store.get_message(self.msg_id)
         except Exception as e:
-            self._title.update(
-                f"[red]Error loading {self.msg_id}: {_rich_escape(str(e))}[/red]"
-            )
+            err = Text.from_markup(f"[red]Error loading {_rich_escape(self.msg_id)}[/red]")
+            err.append(": ")
+            err.append(str(e))
+            self._title.update(err)
             return
-        self._title.update(
-            f"[b]{_rich_escape(msg.subject)}[/b]   "
-            f"[dim]({msg.state.value})[/dim]"
-        )
-        meta_lines = [
-            f"id:        {msg.id}",
-            f"from:      {_rich_escape(msg.from_peer)}",
-            f"to:        {_rich_escape(msg.to_peer)}",
-            f"created:   {msg.created_at}",
-        ]
+        # Title: markup-parsed wrapper, subject appended as literal text.
+        title = Text.from_markup("[b]")
+        title.append(msg.subject)   # literal — no parsing
+        title.append_text(Text.from_markup(f"[/b]   [dim]({msg.state.value})[/dim]"))
+        self._title.update(title)
+
+        # Meta: all values appended as literal text — no markup parser sees them.
+        meta = Text()
+        meta.append("id:        ")
+        meta.append(msg.id)
+        meta.append("\n")
+        meta.append("from:      ")
+        meta.append(msg.from_peer)
+        meta.append("\n")
+        meta.append("to:        ")
+        meta.append(msg.to_peer)
+        meta.append("\n")
+        meta.append(f"created:   {msg.created_at}")
         if msg.read_at:
-            meta_lines.append(f"read:      {msg.read_at}")
+            meta.append(f"\nread:      {msg.read_at}")
         if msg.edited_at:
-            meta_lines.append(f"edited:    {msg.edited_at}")
+            meta.append(f"\nedited:    {msg.edited_at}")
         if msg.broadcast_id:
-            meta_lines.append(f"broadcast: {msg.broadcast_id}")
+            meta.append(f"\nbroadcast: {msg.broadcast_id}")
         if msg.archived:
-            meta_lines.append("[dim]archived[/dim]")
-        self._meta.update("\n".join(meta_lines))
+            meta.append_text(Text.from_markup("\n[dim]archived[/dim]"))
+        self._meta.update(meta)
         # Markdown widget parses markdown, not Rich markup — no escaping needed.
         self._body.update(msg.body or "*(empty body)*")
 

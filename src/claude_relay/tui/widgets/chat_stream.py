@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from rich.markup import escape as _rich_escape
+from rich.text import Text
 from textual.containers import VerticalScroll
 from textual.message import Message as TextualMessage
 from textual.widgets import Static
@@ -173,7 +174,7 @@ class ChatStream(VerticalScroll):
     ) -> None:
         """Update an existing bubble's text + classes in place (no re-mount)."""
         is_self = (msg.from_peer == me) if me else False
-        # Escape user-provided peer names so '[' in names doesn't break markup parsing.
+        # Escape peer names for the header — header IS parsed as markup.
         from_safe = _rich_escape(msg.from_peer)
         to_safe = _rich_escape(msg.to_peer)
         direction = f"you → {to_safe}" if is_self else f"{from_safe} → you"
@@ -189,16 +190,18 @@ class ChatStream(VerticalScroll):
             f"  [dim]{time}  id {msg.id}[/dim]"
         )
         body_raw = msg.body or ""
-        # Truncate first, then escape — keeps our own '[dim]…[/dim]' suffix as
-        # real markup while brackets in user content get escaped.
         if len(body_raw) > 600:
-            body_safe = (
-                _rich_escape(body_raw[:600])
-                + "\n[dim]… (truncated, press Enter to view full)[/dim]"
-            )
+            body_text = body_raw[:600] + "\n… (truncated, press Enter to view full)"
         else:
-            body_safe = _rich_escape(body_raw)
-        child.update(f"{header}\n{body_safe}")
+            body_text = body_raw
+
+        # Compose Text: header parsed as markup, body appended as LITERAL text
+        # (no markup parser ever sees the body's brackets).
+        rendered = Text.from_markup(header)
+        rendered.append("\n")
+        rendered.append(body_text)   # literal — Textual's parser does NOT touch this
+
+        child.update(rendered)
         child.set_class(is_self, "bubble-self")
         child.set_class(not is_self, "bubble-other")
         child.set_class(is_selected, "bubble-selected")
