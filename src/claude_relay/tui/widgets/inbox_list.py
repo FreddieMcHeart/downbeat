@@ -1,6 +1,7 @@
 """Middle pane: messages for the currently-selected peer."""
 from __future__ import annotations
 
+from rich.markup import escape as _rich_escape
 from textual.widgets import DataTable
 
 from ...core import store
@@ -38,7 +39,7 @@ class InboxList(DataTable):
         for idx, m in enumerate(self._messages):
             flag = {"new": "•", "read": " ", "archived": "·"}[m.state.value]
             time_str = m.created_at[11:16] if len(m.created_at) >= 16 else ""
-            self.add_row(flag, time_str, m.id, m.from_peer, m.subject)
+            self.add_row(flag, time_str, m.id, _rich_escape(m.from_peer), _rich_escape(m.subject))
             if prev_id is not None and m.id == prev_id:
                 target_row = idx
         # Restore cursor — if the previously-selected message still exists, jump

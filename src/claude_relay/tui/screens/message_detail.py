@@ -1,6 +1,7 @@
 """Dedicated single-message view with per-message actions."""
 from __future__ import annotations
 
+from rich.markup import escape as _rich_escape
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Label, Markdown, Static
@@ -58,13 +59,18 @@ class MessageDetailScreen(Screen):
         try:
             msg = store.get_message(self.msg_id)
         except Exception as e:
-            self._title.update(f"[red]Error loading {self.msg_id}: {e}[/red]")
+            self._title.update(
+                f"[red]Error loading {self.msg_id}: {_rich_escape(str(e))}[/red]"
+            )
             return
-        self._title.update(f"[b]{msg.subject}[/b]   [dim]({msg.state.value})[/dim]")
+        self._title.update(
+            f"[b]{_rich_escape(msg.subject)}[/b]   "
+            f"[dim]({msg.state.value})[/dim]"
+        )
         meta_lines = [
             f"id:        {msg.id}",
-            f"from:      {msg.from_peer}",
-            f"to:        {msg.to_peer}",
+            f"from:      {_rich_escape(msg.from_peer)}",
+            f"to:        {_rich_escape(msg.to_peer)}",
             f"created:   {msg.created_at}",
         ]
         if msg.read_at:
@@ -76,6 +82,7 @@ class MessageDetailScreen(Screen):
         if msg.archived:
             meta_lines.append("[dim]archived[/dim]")
         self._meta.update("\n".join(meta_lines))
+        # Markdown widget parses markdown, not Rich markup — no escaping needed.
         self._body.update(msg.body or "*(empty body)*")
 
     def action_edit(self) -> None:

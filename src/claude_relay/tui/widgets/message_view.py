@@ -1,6 +1,7 @@
 """Right pane: render the selected message body."""
 from __future__ import annotations
 
+from rich.markup import escape as _rich_escape
 from textual.containers import Vertical
 from textual.widgets import Markdown, Static
 
@@ -35,9 +36,11 @@ class MessageView(Vertical):
             msg = store.get_message(msg_id)
         self._current_id = msg.id
         self.body_text = msg.body
+        from_safe = _rich_escape(msg.from_peer)
+        to_safe = _rich_escape(msg.to_peer)
         self._meta.update(
-            f"[b]{msg.subject}[/b]\n"
-            f"id: {msg.id}   from: {msg.from_peer}   to: {msg.to_peer}\n"
+            f"[b]{_rich_escape(msg.subject)}[/b]\n"
+            f"id: {msg.id}   from: {from_safe}   to: {to_safe}\n"
             f"state: [cyan]{msg.state.value}[/cyan]   "
             f"created: {msg.created_at}"
         )

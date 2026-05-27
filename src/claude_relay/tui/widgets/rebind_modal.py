@@ -1,6 +1,7 @@
 """Modal to rebind a peer's session_id."""
 from __future__ import annotations
 
+from rich.markup import escape as _rich_escape
 from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label
@@ -20,7 +21,7 @@ class RebindSessionModal(ModalScreen):
 
     def compose(self):
         with Vertical(classes="pane"):
-            yield Label(f"[b]Rebind session_id for {self.peer_name}[/b]")
+            yield Label(f"[b]Rebind session_id for {_rich_escape(self.peer_name)}[/b]")
             yield Label(
                 "[dim]Paste the new session_id, or leave blank to auto-detect "
                 "(only works when this TUI runs inside the target Claude Code "

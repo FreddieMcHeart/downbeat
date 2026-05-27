@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from rich.markup import escape as _rich_escape
 from textual import on
 from textual.containers import Vertical
 from textual.message import Message
@@ -32,7 +33,8 @@ class _PeerListItem(ListItem):
             unread = f"[b]{row.unread}[/b]"
         else:
             unread = "[dim]0[/dim]"
-        name = row.peer_name if len(row.peer_name) <= 18 else row.peer_name[:17] + "…"
+        raw_name = row.peer_name if len(row.peer_name) <= 18 else row.peer_name[:17] + "…"
+        name = _rich_escape(raw_name)
         return f"{name}  [dim]{role_glyph}[/dim]  {unread}"
 
 

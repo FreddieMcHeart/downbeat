@@ -337,6 +337,31 @@ async def test_refresh_thread_appends_new_message_without_full_rebuild(relay_dir
 
 
 @pytest.mark.asyncio
+async def test_bubble_renders_body_with_brackets_without_crashing(relay_dir):
+    """Message bodies containing '[' characters (terraform errors, JIRA tags,
+    Python type hints) must not crash the bubble renderer."""
+    from claude_relay.core import store
+    store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
+    body = (
+        "Error: [type='CNAME'] but it already exists\n"
+        "Reference: [PLAT-3238]\n"
+        "Code: list[int] = [1, 2, 3]"
+    )
+    store.send_message(from_peer="c", to_peer="p", subject="brackets test", body=body)
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        # If we got here, the bubble rendered without raising MarkupError.
+        stream = app.screen.query_one("#chat-stream")
+        assert any(
+            getattr(c, "_msg", None) is not None
+            and "brackets" in c._msg.subject
+            for c in stream.children
+        )
+
+
+@pytest.mark.asyncio
 async def test_switch_acting_as_modal_lists_parents(relay_dir):
     from claude_relay.core import store
     from claude_relay.tui.widgets.switch_acting_as import SwitchActingAsModal

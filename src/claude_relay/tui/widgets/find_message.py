@@ -1,6 +1,7 @@
 """Modal for finding a message across every peer's inbox and processed dirs."""
 from __future__ import annotations
 
+from rich.markup import escape as _rich_escape
 from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import DataTable, Input, Label
@@ -37,8 +38,12 @@ class FindMessageModal(ModalScreen):
         self._table.clear()
         self._results = store.find_message_by_id_prefix(prefix)
         for msg, location in self._results:
-            self._table.add_row(msg.id, location, msg.to_peer,
-                                 msg.from_peer, msg.subject)
+            self._table.add_row(
+                msg.id, location,
+                _rich_escape(msg.to_peer),
+                _rich_escape(msg.from_peer),
+                _rich_escape(msg.subject),
+            )
 
     def action_open_selected(self) -> None:
         row = self._table.cursor_row

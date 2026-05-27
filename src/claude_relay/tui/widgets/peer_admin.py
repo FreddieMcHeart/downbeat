@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from rich.markup import escape as _rich_escape
 from textual.containers import Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, DataTable, Input, Label
@@ -25,7 +26,7 @@ class RemovePeerConfirm(ModalScreen):
 
     def compose(self):
         with Vertical(classes="pane"):
-            yield Label(f"[b]Remove peer[/b] {self.peer_name}?")
+            yield Label(f"[b]Remove peer[/b] {_rich_escape(self.peer_name)}?")
             yield Label("[dim]Inbox / processed message files are left untouched.[/dim]")
             yield Label("Press [b]y[/b] to confirm, [b]n[/b] to cancel")
 

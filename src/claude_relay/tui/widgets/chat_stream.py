@@ -1,6 +1,7 @@
 """Scrollable list of message bubbles between two peers."""
 from __future__ import annotations
 
+from rich.markup import escape as _rich_escape
 from textual.containers import VerticalScroll
 from textual.message import Message as TextualMessage
 from textual.widgets import Static
@@ -172,7 +173,10 @@ class ChatStream(VerticalScroll):
     ) -> None:
         """Update an existing bubble's text + classes in place (no re-mount)."""
         is_self = (msg.from_peer == me) if me else False
-        direction = f"you → {msg.to_peer}" if is_self else f"{msg.from_peer} → you"
+        # Escape user-provided peer names so '[' in names doesn't break markup parsing.
+        from_safe = _rich_escape(msg.from_peer)
+        to_safe = _rich_escape(msg.to_peer)
+        direction = f"you → {to_safe}" if is_self else f"{from_safe} → you"
         time = msg.created_at[11:16] if len(msg.created_at) >= 16 else ""
         state_marker = {
             "new":      "[yellow]●[/yellow] ",
@@ -184,10 +188,17 @@ class ChatStream(VerticalScroll):
             f"{cursor_slot}{state_marker}[b]{direction}[/b]"
             f"  [dim]{time}  id {msg.id}[/dim]"
         )
-        body = msg.body or ""
-        if len(body) > 600:
-            body = body[:600] + "\n[dim]…[truncated, press Enter to view full][/dim]"
-        child.update(f"{header}\n{body}")
+        body_raw = msg.body or ""
+        # Truncate first, then escape — keeps our own '[dim]…[/dim]' suffix as
+        # real markup while brackets in user content get escaped.
+        if len(body_raw) > 600:
+            body_safe = (
+                _rich_escape(body_raw[:600])
+                + "\n[dim]…[truncated, press Enter to view full][/dim]"
+            )
+        else:
+            body_safe = _rich_escape(body_raw)
+        child.update(f"{header}\n{body_safe}")
         child.set_class(is_self, "bubble-self")
         child.set_class(not is_self, "bubble-other")
         child.set_class(is_selected, "bubble-selected")
