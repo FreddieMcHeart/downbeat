@@ -79,7 +79,8 @@ def cmd_send(args: argparse.Namespace) -> int:
     sender = _detect_peer_or_error(args.from_peer)
     try:
         msg = store.send_message(from_peer=sender, to_peer=args.to,
-                                 subject=args.subject, body=args.body)
+                                 subject=args.subject, body=args.body,
+                                 kind=args.kind)
     except PeerNotFound:
         print(f"error: no peer named {args.to!r}", file=sys.stderr)
         return 2
@@ -90,7 +91,8 @@ def cmd_send(args: argparse.Namespace) -> int:
 def cmd_reply(args: argparse.Namespace) -> int:
     sender = _detect_peer_or_error(args.from_peer)
     try:
-        reply = store.reply_to(args.msg_id, body=args.body, from_peer=sender)
+        reply = store.reply_to(args.msg_id, body=args.body, from_peer=sender,
+                               kind=args.kind)
     except MessageNotFound:
         print(f"error: no message with id {args.msg_id!r}", file=sys.stderr)
         return 2

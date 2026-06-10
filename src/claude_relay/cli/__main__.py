@@ -33,6 +33,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp_send.add_argument("body")
     sp_send.add_argument("--from", dest="from_peer", default=None,
                          help="sender peer name; auto-detected if omitted")
+    sp_send.add_argument("--kind", default="task",
+                         help='message kind: "task" (default), "backflow-ready", '
+                              'or any future kind (open string)')
     sp_send.set_defaults(func=relay_cmds.cmd_send)
 
     sp_reply = sub.add_parser("reply", help="reply to a message",
@@ -40,6 +43,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp_reply.add_argument("msg_id")
     sp_reply.add_argument("body")
     sp_reply.add_argument("--from", dest="from_peer", default=None)
+    sp_reply.add_argument("--kind", default="task",
+                          help='message kind: "task" (default), "backflow-ready", '
+                               'or any future kind (open string)')
     sp_reply.set_defaults(func=relay_cmds.cmd_reply)
 
     sp_inbox = sub.add_parser("inbox", help="list messages for a peer",

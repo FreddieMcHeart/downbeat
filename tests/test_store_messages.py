@@ -172,3 +172,41 @@ def test_list_thread_returns_both_directions_sorted(relay_dir):
     # by sort stability but not guaranteed order — we only assert set membership here)
     assert all(thread[i].created_at <= thread[i + 1].created_at
                for i in range(len(thread) - 1))
+
+
+def test_send_message_kind_defaults_to_task(relay_dir):
+    _peers("parent", "child")
+    msg = store.send_message(from_peer="parent", to_peer="child",
+                             subject="s", body="b")
+    assert store.get_message(msg.id).kind == "task"
+
+
+def test_send_message_kind_threads_through(relay_dir):
+    _peers("parent", "child")
+    msg = store.send_message(from_peer="parent", to_peer="child",
+                             subject="s", body="b", kind="backflow-ready")
+    assert store.get_message(msg.id).kind == "backflow-ready"
+
+
+def test_reply_kind_threads_and_sets_in_reply_to(relay_dir):
+    _peers("parent", "child")
+    orig = store.send_message(from_peer="parent", to_peer="child",
+                              subject="task", body="do it")
+    rep = store.reply_to(orig.id, body="done", from_peer="child",
+                         kind="backflow-ready")
+    fetched = store.get_message(rep.id)
+    assert fetched.kind == "backflow-ready"
+    assert fetched.in_reply_to == orig.id
+
+
+def test_reply_archives_original_preserving_kind(relay_dir):
+    # Archive round-trip (spec R-2): reply_to does to_dict()->from_dict() on the
+    # original; a non-default kind must survive that round-trip.
+    _peers("parent", "child")
+    orig = store.send_message(from_peer="parent", to_peer="child",
+                              subject="bf", body="findings",
+                              kind="backflow-ready")
+    store.reply_to(orig.id, body="ack", from_peer="child")
+    archived = store.get_message(orig.id)
+    assert archived.archived is True
+    assert archived.kind == "backflow-ready"

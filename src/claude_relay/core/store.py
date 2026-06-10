@@ -153,7 +153,8 @@ def get_message(msg_id: str) -> Message:
 
 def send_message(from_peer: str, to_peer: str, subject: str, body: str,
                  broadcast_id: str | None = None,
-                 in_reply_to: str | None = None) -> Message:
+                 in_reply_to: str | None = None,
+                 kind: str = "task") -> Message:
     # Sender doesn't need to be registered (CLI may send before its own
     # register completes); recipient must exist.
     get_peer(to_peer)
@@ -166,10 +167,11 @@ def send_message(from_peer: str, to_peer: str, subject: str, body: str,
         created_at=now_iso(),
         broadcast_id=broadcast_id,
         in_reply_to=in_reply_to,
+        kind=kind,
     )
     _write_message(msg)
-    _log.info("send from=%s to=%s msg=%s broadcast=%s in_reply_to=%s bytes=%d",
-              from_peer, to_peer, msg.id, broadcast_id, in_reply_to, len(body))
+    _log.info("send from=%s to=%s msg=%s kind=%s broadcast=%s in_reply_to=%s bytes=%d",
+              from_peer, to_peer, msg.id, kind, broadcast_id, in_reply_to, len(body))
     return msg
 
 
@@ -273,7 +275,7 @@ def delete_message(msg_id: str) -> None:
 
 
 def reply_to(msg_id: str, body: str, from_peer: str,
-             subject_prefix: str = "Re: ") -> Message:
+             subject_prefix: str = "Re: ", kind: str = "task") -> Message:
     original = get_message(msg_id)
     old_path = _find_message_path(msg_id)
     # Archive original + auto-ack if it was in delivered/
@@ -298,9 +300,10 @@ def reply_to(msg_id: str, body: str, from_peer: str,
         created_at=now_iso(),
         broadcast_id=original.broadcast_id,
         in_reply_to=msg_id,
+        kind=kind,
     )
     _write_message(reply)
-    _log.info("reply original=%s reply=%s", msg_id, reply.id)
+    _log.info("reply original=%s reply=%s kind=%s", msg_id, reply.id, kind)
     return reply
 
 

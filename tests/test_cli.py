@@ -47,3 +47,26 @@ def test_inbox_prints_messages(relay_dir, capsys, monkeypatch):
     rc = main()
     assert rc == 0
     assert "hello" in capsys.readouterr().out
+
+
+def test_send_with_kind_flag(relay_dir, capsys, monkeypatch):
+    from claude_relay.core import store
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
+    monkeypatch.setattr(sys, "argv",
+        ["claude-relay", "send", "child", "bf", "body",
+         "--from", "parent", "--kind", "backflow-ready"])
+    rc = main()
+    assert rc == 0
+    assert store.list_inbox("child")[0].kind == "backflow-ready"
+
+
+def test_send_without_kind_defaults_to_task(relay_dir, capsys, monkeypatch):
+    from claude_relay.core import store
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
+    monkeypatch.setattr(sys, "argv",
+        ["claude-relay", "send", "child", "hi", "b", "--from", "parent"])
+    rc = main()
+    assert rc == 0
+    assert store.list_inbox("child")[0].kind == "task"
