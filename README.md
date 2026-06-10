@@ -20,6 +20,10 @@ claude-relay reply <msg_id> "done"
 claude-relay tui                 # full management UI
 ```
 
+`kind` is an open string: `task` (default for all normal messages) and `backflow-ready`
+(structured RLM findings from a child — see the claude-relay skill). Future kinds
+(`workflow-request`, `workflow-result`) are planned for Phase 3.
+
 ### Background inbox polling
 
 The first time you invoke a relay action in a Claude Code session, the skill
