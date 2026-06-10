@@ -73,3 +73,30 @@ def test_legacy_message_with_ts_instead_of_created_at():
     })
     m = Message.from_json(legacy)
     assert m.created_at == "2026-05-08T14:52:41+00:00"
+
+
+def test_message_kind_roundtrip():
+    m = Message(id="k1", from_peer="p", to_peer="c", subject="s", body="b",
+                created_at="2026-06-04T10:00:00+00:00", kind="backflow-ready")
+    d = m.to_dict()
+    assert d["kind"] == "backflow-ready"
+    again = Message.from_dict(d)
+    assert again.kind == "backflow-ready"
+    assert again == m
+
+
+def test_message_kind_defaults_to_task():
+    m = Message(id="k2", from_peer="p", to_peer="c", subject="s", body="b",
+                created_at="2026-06-04T10:00:00+00:00")
+    assert m.kind == "task"
+    assert m.to_dict()["kind"] == "task"
+
+
+def test_legacy_message_without_kind_reads_as_task():
+    legacy = json.dumps({
+        "id": "x", "from": "p", "to": "c",
+        "subject": "s", "body": "b",
+        "created_at": "2026-05-12T14:00:00+00:00",
+    })
+    m = Message.from_json(legacy)
+    assert m.kind == "task"

@@ -46,6 +46,10 @@ class Message:
     in_reply_to: str | None = None
     quarantined_at: str | None = None
     quarantine_reason: str | None = None
+    # --- Phase 2 schema additions ---
+    # Open string, NOT a StrEnum: "task" (default) | "backflow-ready" | future
+    # Phase-3 kinds ("workflow-request"/"workflow-result") need zero migration.
+    kind: str = "task"
 
     @property
     def state(self) -> MessageState:
@@ -78,6 +82,7 @@ class Message:
             "in_reply_to": self.in_reply_to,
             "quarantined_at": self.quarantined_at,
             "quarantine_reason": self.quarantine_reason,
+            "kind": self.kind,
         }
 
     def to_json(self) -> str:
@@ -103,6 +108,7 @@ class Message:
             in_reply_to=d.get("in_reply_to"),
             quarantined_at=d.get("quarantined_at"),
             quarantine_reason=d.get("quarantine_reason"),
+            kind=d.get("kind", "task"),
         )
 
     @classmethod
