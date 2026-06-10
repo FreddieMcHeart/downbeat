@@ -190,6 +190,28 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_quarantine(args: argparse.Namespace) -> int:
+    peer = _detect_peer_or_error(args.peer)
+    action = args.quarantine_action
+    if action == "list":
+        msgs = store.list_quarantined(peer)
+        if not msgs:
+            print(f"no quarantined messages for {peer}")
+            return 0
+        for m in msgs:
+            print(f"! {m.id}  {m.quarantined_at or ''}  "
+                  f"{m.from_peer:<16}  {m.subject}")
+        return 0
+    ids = args.id if args.id else None
+    if action == "requeue":
+        count = store.requeue_quarantined(peer, ids=ids)
+        print(f"requeued {count} quarantined message(s) to inbox for {peer}")
+    elif action == "purge":
+        count = store.purge_quarantined(peer, ids=ids)
+        print(f"purged {count} quarantined message(s) for {peer}")
+    return 0
+
+
 def cmd_tui(args: argparse.Namespace) -> int:
     from ...tui.app import RelayApp
     RelayApp().run()

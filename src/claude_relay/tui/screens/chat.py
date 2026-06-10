@@ -25,6 +25,7 @@ class ChatScreen(Screen):
         ("s", "switch_acting_as", "Switch acting-as"),
         ("left,h", "prev_tab", "Prev member"),
         ("right,l", "next_tab", "Next member"),
+        ("Q,shift+q", "open_quarantine", "Quarantine"),
     ]
 
     acting_as: reactive[str | None] = reactive(None)
@@ -214,6 +215,14 @@ class ChatScreen(Screen):
         def after(_):
             self.action_refresh()
         self.app.push_screen(PeersScreen(), after)
+
+    def action_open_quarantine(self) -> None:
+        if not self.acting_as:
+            return
+        from .quarantine import QuarantineScreen
+        def after(_):
+            self.action_refresh()
+        self.app.push_screen(QuarantineScreen(self.acting_as), after)
 
     def action_switch_acting_as(self) -> None:
         from ..widgets.switch_acting_as import SwitchActingAsModal

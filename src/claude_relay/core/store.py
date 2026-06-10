@@ -519,6 +519,78 @@ def find_peer_by_claude_pid(claude_pid: int,
     return out
 
 
+def list_quarantined(peer_name: str) -> list[Message]:
+    """All quarantined messages for a peer, newest first."""
+    out = []
+    qdir = paths.QUARANTINE_DIR / peer_name
+    if qdir.exists():
+        for p in sorted(qdir.glob("*.json")):
+            try:
+                out.append(_read_message_at(p))
+            except StoreCorrupt:
+                continue
+    out.sort(key=lambda m: m.created_at, reverse=True)
+    return out
+
+
+def requeue_quarantined(peer_name: str, ids: list[str] | None = None) -> int:
+    """Move quarantined messages back to inbox/ for a fresh delivery cycle.
+    Resets quarantine + delivery fields and redelivery_count=0. If ids is None,
+    requeue ALL for the peer. Returns count moved."""
+    qdir = paths.QUARANTINE_DIR / peer_name
+    if not qdir.exists():
+        return 0
+    moved = 0
+    for p in sorted(qdir.glob("*.json")):
+        try:
+            msg = _read_message_at(p)
+        except StoreCorrupt:
+            continue
+        if ids is not None and msg.id not in ids:
+            continue
+        d = msg.to_dict()
+        d["quarantined_at"] = None
+        d["quarantine_reason"] = None
+        d["delivered_at"] = None
+        d["delivered_to_session_id"] = None
+        d["redelivery_count"] = 0
+        requeued = Message.from_dict(d)
+        target = paths.INBOX_DIR / peer_name / p.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        _atomic_write_text(target, requeued.to_json())
+        p.unlink()
+        moved += 1
+        _log.info("requeue-quarantined msg=%s peer=%s", msg.id, peer_name)
+        _append_delivery_log({"event": "requeue_quarantined", "msg_id": msg.id,
+                              "peer": peer_name})
+    return moved
+
+
+def purge_quarantined(peer_name: str, ids: list[str] | None = None) -> int:
+    """Permanently delete quarantined messages. If ids is None, purge ALL for
+    the peer. Returns count deleted."""
+    qdir = paths.QUARANTINE_DIR / peer_name
+    if not qdir.exists():
+        return 0
+    deleted = 0
+    for p in sorted(qdir.glob("*.json")):
+        try:
+            msg = _read_message_at(p)
+        except StoreCorrupt:
+            # still allow purge of corrupt files
+            p.unlink()
+            deleted += 1
+            continue
+        if ids is not None and msg.id not in ids:
+            continue
+        p.unlink()
+        deleted += 1
+        _log.info("purge-quarantined msg=%s peer=%s", msg.id, peer_name)
+        _append_delivery_log({"event": "purge_quarantined", "msg_id": msg.id,
+                              "peer": peer_name})
+    return deleted
+
+
 def _is_reply(msg: Message, siblings: list[Message]) -> bool:
     # A reply has both from_peer and to_peer flipped vs the original. We
     # treat any sibling where from_peer != "parent fan-out sender" as a reply.

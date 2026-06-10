@@ -72,6 +72,31 @@ def build_parser() -> argparse.ArgumentParser:
                            help="explicit session_id; auto-detected if omitted")
     sp_rebind.set_defaults(func=relay_cmds.cmd_rebind)
 
+    sp_quar = sub.add_parser("quarantine",
+                             help="manage quarantined messages",
+                             parents=[debug_parent])
+    sp_quar.add_argument("--peer", default=None,
+                         help="peer name; auto-detected if omitted")
+    sp_quar_sub = sp_quar.add_subparsers(dest="quarantine_action", required=True)
+
+    sp_qlist = sp_quar_sub.add_parser("list", help="list quarantined messages",
+                                      parents=[debug_parent])
+    sp_qlist.set_defaults(id=None)  # no --id for list
+
+    sp_qreq = sp_quar_sub.add_parser("requeue",
+                                     help="move quarantined messages back to inbox",
+                                     parents=[debug_parent])
+    sp_qreq.add_argument("--id", nargs="*", dest="id", default=None,
+                         help="specific message ids; omit for all")
+
+    sp_qpurge = sp_quar_sub.add_parser("purge",
+                                       help="permanently delete quarantined messages",
+                                       parents=[debug_parent])
+    sp_qpurge.add_argument("--id", nargs="*", dest="id", default=None,
+                           help="specific message ids; omit for all")
+
+    sp_quar.set_defaults(func=relay_cmds.cmd_quarantine)
+
     sp_tui = sub.add_parser("tui", help="launch the TUI",
                             parents=[debug_parent])
     sp_tui.set_defaults(func=relay_cmds.cmd_tui)
