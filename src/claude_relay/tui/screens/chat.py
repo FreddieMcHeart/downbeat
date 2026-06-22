@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Vertical
 from textual.reactive import reactive
 from textual.screen import Screen
@@ -23,8 +24,8 @@ class ChatScreen(Screen):
         ("f", "find_message", "Find"),
         ("ctrl+p", "open_peers", "Peers"),
         ("s", "switch_acting_as", "Switch acting-as"),
-        ("left,h", "prev_tab", "Prev member"),
-        ("right,l", "next_tab", "Next member"),
+        Binding("left,h", "prev_tab", "Prev member", key_display="←"),
+        Binding("right,l", "next_tab", "Next member", key_display="→"),
         ("Q,shift+q", "open_quarantine", "Quarantine"),
     ]
 
