@@ -24,6 +24,22 @@ claude-relay tui                 # full management UI
 (structured RLM findings from a child — see the claude-relay skill). Future kinds
 (`workflow-request`, `workflow-result`) are planned for Phase 3.
 
+### Always-on inbox watch
+
+Give a child session always-on inbox awareness after pairing:
+
+```bash
+claude-relay watch                     # watch own inbox every 90 s
+claude-relay watch --peer child-1      # parent watching a child's inbox
+claude-relay watch --interval 30       # faster poll
+claude-relay watch --once              # one-shot: print all current NEW, then exit
+```
+
+Run `claude-relay watch` in the child terminal (or as a Monitor job) immediately
+after `claude-relay register`. The watcher notifies only — it never drains, acks,
+or takes any action. The human (or the session's hook at the next prompt) drives action.
+Stop with Ctrl+C.
+
 ### Background inbox polling
 
 The first time you invoke a relay action in a Claude Code session, the skill

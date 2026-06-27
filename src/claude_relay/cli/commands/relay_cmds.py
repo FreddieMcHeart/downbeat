@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from datetime import UTC, datetime, timedelta
 
 from ...core import session, store
 from ...core.errors import MessageNotFound, PeerNotFound
+from ...core.models import MessageState
 
 
 def _detect_peer_or_error(name: str | None) -> str:
@@ -218,6 +220,39 @@ def cmd_tui(args: argparse.Namespace) -> int:
     from ...tui.app import RelayApp
     RelayApp().run()
     return 0
+
+
+def cmd_watch(args: argparse.Namespace) -> int:
+    peer = _detect_peer_or_error(args.peer)
+
+    if args.once:
+        # --once: announce everything currently NEW (start with empty seen)
+        seen: set[str] = set()
+        new_msgs, _ = store.poll_new(peer, seen)
+        if new_msgs:
+            print("NEW RELAY MESSAGE(S):")
+            for m in new_msgs:
+                print(f"* {m.id}  {m.created_at}  {m.from_peer}  {m.subject}")
+        return 0
+
+    # Seed seen with current NEW ids so a pre-populated inbox is NOT re-announced.
+    seed = {m.id for m in store.list_inbox(peer)
+            if m.state == MessageState.NEW}
+    seen = seed
+
+    try:
+        while True:
+            time.sleep(args.interval)
+            new_msgs, seen = store.poll_new(peer, seen)
+            if new_msgs:
+                print("NEW RELAY MESSAGE(S):")
+                for m in new_msgs:
+                    print(f"* {m.id}  {m.created_at}  {m.from_peer}  {m.subject}")
+            elif not args.quiet:
+                pass  # suppress idle heartbeat; keep output clean
+    except KeyboardInterrupt:
+        print("[watch] stopped")
+        return 0
 
 
 def cmd_init(args: argparse.Namespace) -> int:

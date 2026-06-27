@@ -601,6 +601,18 @@ def _is_reply(msg: Message, siblings: list[Message]) -> bool:
     return msg.subject.startswith("Re: ")
 
 
+def poll_new(peer_name: str, seen: set[str]) -> tuple[list[Message], set[str]]:
+    """Return (NEW messages whose id is not in seen, updated seen-set).
+
+    Read-only — peeks inbox only, never drains or acks. Callers maintain
+    the ``seen`` set across iterations to suppress already-announced messages.
+    """
+    current = [m for m in list_inbox(peer_name) if m.state == MessageState.NEW]
+    new = [m for m in current if m.id not in seen]
+    seen = seen | {m.id for m in current}
+    return new, seen
+
+
 def list_thread(peer_a: str, peer_b: str,
                 include_archived: bool = True) -> list[Message]:
     """Return all messages between peer_a and peer_b (either direction),

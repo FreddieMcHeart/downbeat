@@ -1,0 +1,116 @@
+"""Unit tests for poll_new (pure, no sleeping) and cmd_watch --once."""
+from __future__ import annotations
+
+import argparse
+
+import pytest
+
+from claude_relay.cli.__main__ import main
+from claude_relay.core import store
+from claude_relay.core.models import MessageState
+
+
+def _peers(*names):
+    for n in names:
+        store.register_peer(name=n, session_id=f"s-{n}", cwd="/tmp", role="child")
+
+
+# ---------------------------------------------------------------------------
+# 1. First poll with empty seen returns all NEW + populated seen
+# ---------------------------------------------------------------------------
+def test_poll_new_first_call_returns_all_new(relay_dir):
+    _peers("p", "c")
+    m1 = store.send_message(from_peer="p", to_peer="c", subject="s1", body="b1")
+    m2 = store.send_message(from_peer="p", to_peer="c", subject="s2", body="b2")
+
+    new_msgs, seen = store.poll_new("c", set())
+
+    assert {m.id for m in new_msgs} == {m1.id, m2.id}
+    assert seen == {m1.id, m2.id}
+
+
+# ---------------------------------------------------------------------------
+# 2. Second poll (same inbox, seen from #1) returns []
+# ---------------------------------------------------------------------------
+def test_poll_new_second_call_returns_empty(relay_dir):
+    _peers("p", "c")
+    store.send_message(from_peer="p", to_peer="c", subject="s", body="b")
+
+    _, seen = store.poll_new("c", set())
+    new_msgs, seen2 = store.poll_new("c", seen)
+
+    assert new_msgs == []
+    assert seen2 == seen  # seen unchanged (no new ids added)
+
+
+# ---------------------------------------------------------------------------
+# 3. Newly-added message appears on next poll; prior ones don't repeat
+# ---------------------------------------------------------------------------
+def test_poll_new_only_returns_incremental(relay_dir):
+    _peers("p", "c")
+    m1 = store.send_message(from_peer="p", to_peer="c", subject="first", body="x")
+
+    _, seen = store.poll_new("c", set())  # seed seen with m1
+
+    m2 = store.send_message(from_peer="p", to_peer="c", subject="second", body="y")
+    new_msgs, seen2 = store.poll_new("c", seen)
+
+    assert [m.id for m in new_msgs] == [m2.id]
+    assert m1.id not in {m.id for m in new_msgs}
+    assert {m1.id, m2.id} <= seen2
+
+
+# ---------------------------------------------------------------------------
+# 4. Archived / delivered messages are NOT returned (only NEW)
+# ---------------------------------------------------------------------------
+def test_poll_new_excludes_non_new_states(relay_dir):
+    _peers("p", "c")
+    # delivered state: drain moves it from inbox/ to delivered/
+    m_delivered = store.send_message(from_peer="p", to_peer="c",
+                                     subject="delivered", body="x")
+    store.deliver_messages(peer_name="c", session_id="s-c")
+    assert store.get_message(m_delivered.id).state == MessageState.DELIVERED
+
+    # archived state: ack after deliver
+    m_acked = store.send_message(from_peer="p", to_peer="c",
+                                 subject="acked", body="y")
+    store.deliver_messages(peer_name="c", session_id="s-c")
+    store.ack_messages([m_acked.id])
+    assert store.get_message(m_acked.id).state == MessageState.ARCHIVED
+
+    # One genuinely NEW message
+    m_new = store.send_message(from_peer="p", to_peer="c",
+                               subject="still new", body="z")
+
+    new_msgs, _ = store.poll_new("c", set())
+
+    ids = {m.id for m in new_msgs}
+    assert m_new.id in ids
+    assert m_delivered.id not in ids
+    assert m_acked.id not in ids
+
+
+# ---------------------------------------------------------------------------
+# 5. cmd_watch --once --peer X: exits 0; prints header when NEW exists
+# ---------------------------------------------------------------------------
+def test_cmd_watch_once_with_new_messages(relay_dir, capsys):
+    _peers("p", "c")
+    store.send_message(from_peer="p", to_peer="c", subject="hello", body="world")
+
+    rc = main(["watch", "--peer", "c", "--once"])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "NEW RELAY MESSAGE(S):" in out
+    assert "hello" in out
+
+
+def test_cmd_watch_once_empty_inbox(relay_dir, capsys):
+    _peers("p", "c")
+
+    rc = main(["watch", "--peer", "c", "--once"])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    # No new messages — output should be empty (no header)
+    assert "NEW RELAY MESSAGE(S):" not in out

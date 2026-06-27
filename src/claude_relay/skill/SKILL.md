@@ -48,6 +48,12 @@ Options:
 
 After the question is answered (Yes or No), remember the decision for the rest of the session. If the user later types `/loop stop` or closes the session, the loop is gone — no need to re-offer until a new "about to wait" moment.
 
+## Registration + always-on watch
+
+After a child registers (`claude-relay register <name>`), run `claude-relay watch` in the
+child terminal (or as a Monitor job) for always-on surfacing of new mail — notify-only; the
+human still drives action at the next prompt.
+
 ## Three flows
 
 ### 1. SEND (you are the Parent)
