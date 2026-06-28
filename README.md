@@ -46,6 +46,42 @@ The first time you invoke a relay action in a Claude Code session, the skill
 offers to start a 3-minute inbox poll via `/loop`. Accept to get notified of
 incoming messages without having to manually check.
 
+### Continuous self-monitoring (/relay-monitor)
+
+In a registered Claude Code session, run the `/relay-monitor` slash command to make that
+session continuously pull its own inbox and act on new messages:
+
+```
+/relay-monitor          # start monitoring, default 3-minute interval
+/relay-monitor 5m       # custom interval
+/relay-monitor stop     # stop
+```
+
+Behaviour is role-asymmetric:
+
+- **child session:** auto-executes arriving tasks per its role briefing and replies with results
+  (consent-at-startup autonomy).
+- **parent session:** surfaces new messages concisely and asks the human how to handle each;
+  never auto-executes.
+
+Before starting the monitor, check your identity with:
+
+```bash
+claude-relay whoami          # prints: <name> <role>
+claude-relay whoami --json   # prints: {"name": "...", "role": "..."}
+```
+
+**watch vs /relay-monitor — key distinction:**
+
+| | `claude-relay watch` | `/relay-monitor` |
+|---|---|---|
+| Runs as | external bash loop (pane / Monitor job) | in-session `/loop` |
+| Does | prints new mail to a pane (human reads) | session pulls mail into its own context + acts per role |
+| Acts? | never | child: yes (autonomous); parent: no (surfaces) |
+| Use when | operator watching from outside | a session should self-drive on its inbox |
+
+Both tools are complementary and can be run simultaneously.
+
 ### TUI keybindings
 
 | Key           | Action                                               |

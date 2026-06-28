@@ -216,6 +216,17 @@ def cmd_quarantine(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_whoami(args: argparse.Namespace) -> int:
+    import json
+    name = _detect_peer_or_error(None)
+    peer = store.get_peer(name)
+    if args.json:
+        print(json.dumps({"name": peer.name, "role": peer.role}))
+    else:
+        print(f"{peer.name} {peer.role}")
+    return 0
+
+
 def cmd_tui(args: argparse.Namespace) -> int:
     from ...tui.app import RelayApp
     RelayApp().run()

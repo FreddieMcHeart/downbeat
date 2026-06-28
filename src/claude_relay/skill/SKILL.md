@@ -54,6 +54,22 @@ After a child registers (`claude-relay register <name>`), run `claude-relay watc
 child terminal (or as a Monitor job) for always-on surfacing of new mail — notify-only; the
 human still drives action at the next prompt.
 
+## Continuous self-monitoring
+
+Running `/relay-monitor [interval]` makes THIS session keep processing its own inbox on an
+interval — no external observer needed. Behaviour is role-asymmetric:
+
+- **child (executor):** auto-executes each arriving task per role briefing, then replies and
+  acks. Autonomous — the human gave consent at startup.
+- **parent:** surfaces new messages concisely (from / subject / id) and waits for the human
+  to decide how to handle each. Never auto-executes.
+
+Stop with `/relay-monitor stop`. Note: `/relay-monitor` is a Claude Code slash command, not a
+CLI subcommand.
+
+`claude-relay whoami` prints this session's `<name> <role>` (machine-parseable, one line).
+Use `--json` for `{"name": ..., "role": ...}`.
+
 ## Three flows
 
 ### 1. SEND (you are the Parent)

@@ -1,4 +1,7 @@
+import json
 import sys
+
+import pytest
 
 from claude_relay.cli.__main__ import main
 
@@ -70,3 +73,43 @@ def test_send_without_kind_defaults_to_task(relay_dir, capsys, monkeypatch):
     rc = main()
     assert rc == 0
     assert store.list_inbox("child")[0].kind == "task"
+
+
+# --- whoami tests ---
+
+def test_whoami_prints_name_and_role(relay_dir, capsys, monkeypatch):
+    from claude_relay.core import store, session
+    store.register_peer(name="my-child", session_id="sid-abc", cwd="/tmp", role="child")
+    monkeypatch.setattr(session, "detect_session_id", lambda: "sid-abc")
+    monkeypatch.setattr(sys, "argv", ["claude-relay", "whoami"])
+    rc = main()
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "my-child" in out
+    assert "child" in out
+    # Must be exactly two space-separated tokens on one line
+    line = out.strip()
+    parts = line.split()
+    assert parts == ["my-child", "child"]
+
+
+def test_whoami_json_flag(relay_dir, capsys, monkeypatch):
+    from claude_relay.core import store, session
+    store.register_peer(name="par", session_id="sid-xyz", cwd="/tmp", role="parent")
+    monkeypatch.setattr(session, "detect_session_id", lambda: "sid-xyz")
+    monkeypatch.setattr(sys, "argv", ["claude-relay", "whoami", "--json"])
+    rc = main()
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["name"] == "par"
+    assert data["role"] == "parent"
+
+
+def test_whoami_unregistered_exits_2(relay_dir, capsys, monkeypatch):
+    from claude_relay.core import session
+    monkeypatch.setattr(session, "detect_session_id", lambda: "unknown-sid")
+    monkeypatch.setattr(session, "detect_live_claude_pid", lambda: None)
+    monkeypatch.setattr(sys, "argv", ["claude-relay", "whoami"])
+    with pytest.raises(SystemExit) as exc:
+        main()
+    assert exc.value.code == 2

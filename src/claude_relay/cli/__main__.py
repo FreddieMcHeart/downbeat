@@ -103,6 +103,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp_quar.set_defaults(func=relay_cmds.cmd_quarantine)
 
+    sp_whoami = sub.add_parser("whoami",
+                               help="print this session's peer name and role",
+                               parents=[debug_parent])
+    sp_whoami.add_argument("--json", action="store_true",
+                           help='output as JSON {"name": ..., "role": ...}')
+    sp_whoami.set_defaults(func=relay_cmds.cmd_whoami)
+
     sp_tui = sub.add_parser("tui", help="launch the TUI",
                             parents=[debug_parent])
     sp_tui.set_defaults(func=relay_cmds.cmd_tui)
