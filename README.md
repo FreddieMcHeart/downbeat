@@ -29,9 +29,10 @@ claude-relay tui                 # full management UI
 Give a child session always-on inbox awareness after pairing:
 
 ```bash
-claude-relay watch                     # watch own inbox every 90 s
+claude-relay watch                     # event-driven (fswatch/FSEvents); instant, ~0 idle cost
 claude-relay watch --peer child-1      # parent watching a child's inbox
-claude-relay watch --interval 30       # faster poll
+claude-relay watch --poll              # force poll fallback (every --interval seconds)
+claude-relay watch --interval 30       # poll fallback interval (default: 90s)
 claude-relay watch --once              # one-shot: print all current NEW, then exit
 ```
 
@@ -39,6 +40,18 @@ Run `claude-relay watch` in the child terminal (or as a Monitor job) immediately
 after `claude-relay register`. The watcher notifies only — it never drains, acks,
 or takes any action. The human (or the session's hook at the next prompt) drives action.
 Stop with Ctrl+C.
+
+`watch` is event-driven by default (uses watchdog FSEvents/inotify — fires instantly on
+inbox changes, near-zero idle CPU). If watchdog is unavailable it falls back to polling
+automatically and prints `[watch] polling every Ns` on startup so you always know which
+backend is active. Use `--poll` to force the interval fallback regardless.
+
+**watch-vs-monitor cost table:**
+
+| Want | Use | Cost on idle channel |
+|---|---|---|
+| Cheap notify-to-wake, you act when woken | `claude-relay watch` as a Monitor | ~0 (blocks on FS event; model turn only on real mail) |
+| Session auto-acts role-aware on a cadence | `/relay-monitor` (/loop) | a model turn every interval |
 
 ### Background inbox polling
 
@@ -75,9 +88,11 @@ claude-relay whoami --json   # prints: {"name": "...", "role": "..."}
 
 | | `claude-relay watch` | `/relay-monitor` |
 |---|---|---|
-| Runs as | external bash loop (pane / Monitor job) | in-session `/loop` |
+| Runs as | external process (pane / Monitor job) | in-session `/loop` |
+| Backend | event-driven (FSEvents/inotify), poll fallback | timer-based loop |
 | Does | prints new mail to a pane (human reads) | session pulls mail into its own context + acts per role |
 | Acts? | never | child: yes (autonomous); parent: no (surfaces) |
+| Idle cost | ~0 (event-driven; model turn only on real mail) | a model turn every interval |
 | Use when | operator watching from outside | a session should self-drive on its inbox |
 
 Both tools are complementary and can be run simultaneously.

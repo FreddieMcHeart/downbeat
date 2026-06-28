@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 import argparse
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from claude_relay.cli.__main__ import main
+from claude_relay.cli.commands.relay_cmds import _watch_emit
 from claude_relay.core import store
 from claude_relay.core.models import MessageState
 
@@ -114,3 +116,83 @@ def test_cmd_watch_once_empty_inbox(relay_dir, capsys):
     out = capsys.readouterr().out
     # No new messages — output should be empty (no header)
     assert "NEW RELAY MESSAGE(S):" not in out
+
+
+# ---------------------------------------------------------------------------
+# _watch_emit tests — pure helper, no watcher involved
+# ---------------------------------------------------------------------------
+
+# 6. _watch_emit first call: empty seen prints all NEW + returns populated seen
+def test_watch_emit_first_call_prints_all_new(relay_dir, capsys):
+    _peers("p", "c")
+    m1 = store.send_message(from_peer="p", to_peer="c", subject="msg1", body="b1")
+    m2 = store.send_message(from_peer="p", to_peer="c", subject="msg2", body="b2")
+
+    seen2 = _watch_emit("c", set())
+
+    out = capsys.readouterr().out
+    assert "NEW RELAY MESSAGE(S):" in out
+    assert "msg1" in out
+    assert "msg2" in out
+    assert seen2 == {m1.id, m2.id}
+
+
+# 7. _watch_emit second call (same seen): prints nothing, seen unchanged
+def test_watch_emit_second_call_prints_nothing(relay_dir, capsys):
+    _peers("p", "c")
+    m1 = store.send_message(from_peer="p", to_peer="c", subject="msg1", body="b1")
+
+    seen1 = _watch_emit("c", set())
+    capsys.readouterr()  # flush
+
+    seen2 = _watch_emit("c", seen1)
+
+    out = capsys.readouterr().out
+    assert "NEW RELAY MESSAGE(S):" not in out
+    assert seen2 == seen1
+
+
+# 8. _watch_emit with new message: prints only the new one
+def test_watch_emit_prints_only_new_message(relay_dir, capsys):
+    _peers("p", "c")
+    m1 = store.send_message(from_peer="p", to_peer="c", subject="first", body="x")
+
+    seen1 = _watch_emit("c", set())
+    capsys.readouterr()  # flush
+
+    m2 = store.send_message(from_peer="p", to_peer="c", subject="second", body="y")
+    seen2 = _watch_emit("c", seen1)
+
+    out = capsys.readouterr().out
+    assert "second" in out
+    assert "first" not in out
+    assert m1.id in seen2
+    assert m2.id in seen2
+
+
+# 9. --poll flag causes make_watcher to receive prefer="poll"
+def test_cmd_watch_poll_flag_selects_poll_watcher(relay_dir):
+    _peers("p", "c")
+
+    captured: dict = {}
+
+    def fake_make_watcher(on_change, prefer="auto", poll_interval=2.0):
+        captured["prefer"] = prefer
+        captured["poll_interval"] = poll_interval
+        return MagicMock()  # .start() and .stop() are no-ops
+
+    mock_watcher_mod = MagicMock()
+    mock_watcher_mod.make_watcher.side_effect = fake_make_watcher
+
+    # Patch threading.Event so .wait() raises KeyboardInterrupt immediately,
+    # unblocking cmd_watch without a real filesystem watcher or sleep.
+    mock_event = MagicMock()
+    mock_event.wait.side_effect = KeyboardInterrupt
+
+    with patch("claude_relay.cli.commands.relay_cmds.watcher_mod", mock_watcher_mod), \
+         patch("claude_relay.cli.commands.relay_cmds.threading") as mock_threading:
+        mock_threading.Event.return_value = mock_event
+        rc = main(["watch", "--peer", "c", "--poll"])
+
+    assert captured.get("prefer") == "poll"
+    assert rc == 0

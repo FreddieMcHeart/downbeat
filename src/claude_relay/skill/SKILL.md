@@ -54,6 +54,11 @@ After a child registers (`claude-relay register <name>`), run `claude-relay watc
 child terminal (or as a Monitor job) for always-on surfacing of new mail — notify-only; the
 human still drives action at the next prompt.
 
+`claude-relay watch` is event-driven (fswatch/FSEvents) with automatic poll fallback — it
+blocks on filesystem events and costs ~0 on an idle channel. For cheap notify-to-wake, run
+it as a Monitor; `/relay-monitor` is for in-session role-aware auto-acting and costs a model
+turn per tick.
+
 ## Continuous self-monitoring
 
 Running `/relay-monitor [interval]` makes THIS session keep processing its own inbox on an

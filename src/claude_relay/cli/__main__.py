@@ -142,6 +142,8 @@ def build_parser() -> argparse.ArgumentParser:
                           help="poll once and exit (announces all current NEW)")
     sp_watch.add_argument("--quiet", action="store_true",
                           help="suppress idle output; print only on new messages")
+    sp_watch.add_argument("--poll", action="store_true",
+                          help="force poll fallback instead of event-driven")
     sp_watch.set_defaults(func=relay_cmds.cmd_watch)
 
     sp_init = sub.add_parser("init", help="bootstrap relay dir, skill, shim",
