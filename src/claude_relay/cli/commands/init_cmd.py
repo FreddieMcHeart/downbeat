@@ -1,17 +1,27 @@
 """`claude-relay init` and `claude-relay uninstall`.
 
-init:
+init makes the package the single source of truth for the WHOLE relay runtime:
   1. Create relay dirs.
   2. Migrate existing inbox messages to include new fields (read_at, edited_at,
      broadcast_id, archived) with null/False defaults.
   3. Install the skill at $HOME/.claude/skills/claude-relay/.
   4. Replace ~/.claude/relay/relay.py with a shim that dispatches to this CLI.
+  5. Install bundled hooks → ~/.claude/hooks/ (chmod +x).
+  6. Install bundled slash commands → ~/.claude/commands/.
+  7. Register the relay hooks in ~/.claude/settings.json (idempotent, backed up,
+     atomic) — never clobbering non-relay hooks sharing the same event/matcher.
 
-uninstall reverses 3 and 4. Data (#1, #2) is left in place."""
+Steps 5–7 are idempotent: re-running init on an already-installed machine is a
+no-op (content-equal files are left; already-registered hooks are skipped).
+
+uninstall reverses 3–7. Data (#1, #2) and settings backups are left in place."""
 from __future__ import annotations
 
 import json
+import os
 import shutil
+import tempfile
+from datetime import datetime
 from pathlib import Path
 
 import claude_relay
@@ -35,9 +45,15 @@ if not os.path.exists(EXE):
 os.execvp(EXE, ["claude-relay", *sys.argv[1:]])
 """
 
+# Relay-owned filenames (used for idempotent settings detection + uninstall).
+HOOK_NAMES = ("relay-inbox.py", "relay-poll-offer.py")
+
+
+class SettingsParseError(Exception):
+    """settings.json exists but is not valid JSON; backed up, not mutated."""
+
 
 def _home() -> Path:
-    import os
     return Path(os.environ.get("HOME", str(Path.home())))
 
 
@@ -45,9 +61,176 @@ def _packaged_skill_dir() -> Path:
     return Path(claude_relay.__file__).parent / "skill"
 
 
+def _packaged_assets_dir() -> Path:
+    return Path(claude_relay.__file__).parent / "assets"
+
+
 def _skill_install_dir() -> Path:
     return _home() / ".claude" / "skills" / "claude-relay"
 
+
+def _hooks_install_dir() -> Path:
+    return _home() / ".claude" / "hooks"
+
+
+def _commands_install_dir() -> Path:
+    return _home() / ".claude" / "commands"
+
+
+def _settings_path() -> Path:
+    return _home() / ".claude" / "settings.json"
+
+
+# ----------------------------- low-level IO --------------------------------
+
+def _atomic_write_json(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
+def _install_asset_file(src: Path, dst: Path, force: bool, executable: bool = False) -> str:
+    """Copy src→dst honouring the don't-clobber-local-edits rule.
+
+    Returns: 'installed' | 'updated' | 'current' | 'differs-kept'."""
+    if not dst.exists():
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, dst)
+        if executable:
+            dst.chmod(0o755)
+        return "installed"
+    if dst.read_bytes() == src.read_bytes():
+        if executable:
+            dst.chmod(0o755)  # ensure exec bit even if content already matched
+        return "current"
+    if force:
+        shutil.copyfile(src, dst)
+        if executable:
+            dst.chmod(0o755)
+        return "updated"
+    return "differs-kept"
+
+
+# --------------------------- settings.json merge ---------------------------
+
+def _hook_registered(event_list: list, cmd_name: str) -> bool:
+    """True if any nested hook command on this event contains cmd_name."""
+    for entry in event_list:
+        for h in entry.get("hooks", []):
+            if cmd_name in (h.get("command") or ""):
+                return True
+    return False
+
+
+def _entry_with_matcher(event_list: list, matcher):
+    """Find an existing entry whose matcher matches (None == no-matcher key)."""
+    for entry in event_list:
+        if entry.get("matcher") == matcher:
+            return entry
+    return None
+
+
+def _load_settings(settings_path: Path):
+    """Return (settings_dict, raw_text). Raises SettingsParseError on bad JSON
+    (after backing up the offending file)."""
+    if not settings_path.exists():
+        return {}, None
+    raw = settings_path.read_text()
+    try:
+        return json.loads(raw), raw
+    except json.JSONDecodeError as e:
+        raise SettingsParseError(str(e)) from e
+
+
+def _register_hooks(manifest: dict, hooks_dir: Path, settings_path: Path,
+                    backup_suffix: str) -> dict:
+    """Idempotently add relay hook regs to settings.json. Mirrors the real
+    nested layout. Returns {added, skipped, backup, created}."""
+    settings, raw = _load_settings(settings_path)
+    created = raw is None
+    hooks = settings.setdefault("hooks", {})
+    added: list[str] = []
+    skipped: list[str] = []
+    changed = False
+    for entry in manifest["events"]:
+        event = entry["event"]
+        matcher = entry["matcher"]
+        cmd_name = entry["command"]
+        abs_cmd = str(hooks_dir / cmd_name)
+        event_list = hooks.setdefault(event, [])
+        if _hook_registered(event_list, cmd_name):
+            skipped.append(f"{event}/{cmd_name}")
+            continue
+        hook_obj = {"type": "command", "command": abs_cmd, "timeout": entry["timeout"]}
+        slot = _entry_with_matcher(event_list, matcher)
+        if slot is not None:
+            slot.setdefault("hooks", []).append(hook_obj)
+        else:
+            new_entry: dict = {}
+            if matcher is not None:
+                new_entry["matcher"] = matcher
+            new_entry["hooks"] = [hook_obj]
+            event_list.append(new_entry)
+        added.append(f"{event}/{cmd_name}")
+        changed = True
+    backup = None
+    if changed:
+        if not created:  # back up the pre-existing file before overwriting
+            backup = settings_path.with_name(f"settings.json.bak-{backup_suffix}")
+            backup.write_text(raw)
+        _atomic_write_json(settings_path, settings)
+    return {"added": added, "skipped": skipped, "backup": backup, "created": created}
+
+
+def _unregister_hooks(settings_path: Path, names, backup_suffix: str) -> dict:
+    """Remove relay hooks from settings.json, dropping now-empty entries but
+    preserving non-relay neighbours. Returns {removed, backup}."""
+    if not settings_path.exists():
+        return {"removed": [], "backup": None}
+    raw = settings_path.read_text()
+    try:
+        settings = json.loads(raw)
+    except json.JSONDecodeError:
+        return {"removed": [], "backup": None}  # never touch malformed on uninstall
+    hooks = settings.get("hooks", {})
+    removed: list[str] = []
+    changed = False
+    for event in list(hooks.keys()):
+        new_list = []
+        for entry in hooks[event]:
+            ehooks = entry.get("hooks", [])
+            kept = [h for h in ehooks
+                    if not any(n in (h.get("command") or "") for n in names)]
+            if len(kept) != len(ehooks):
+                changed = True
+                removed.append(event)
+            if "hooks" in entry:
+                if kept:
+                    entry["hooks"] = kept
+                    new_list.append(entry)
+                # else: all hooks removed → drop the whole entry
+            else:
+                new_list.append(entry)
+        if new_list:
+            hooks[event] = new_list
+        else:
+            del hooks[event]
+    backup = None
+    if changed:
+        backup = settings_path.with_name(f"settings.json.bak-{backup_suffix}")
+        backup.write_text(raw)
+        _atomic_write_json(settings_path, settings)
+    return {"removed": removed, "backup": backup}
+
+
+# ------------------------------- migration ---------------------------------
 
 def _migrate_message(p: Path) -> None:
     try:
@@ -64,7 +247,10 @@ def _migrate_message(p: Path) -> None:
         p.write_text(json.dumps(data, indent=2))
 
 
-def run_init(force: bool = False) -> int:
+# --------------------------------- init ------------------------------------
+
+def run_init(force: bool = False, backup_suffix: str | None = None) -> int:
+    backup_suffix = backup_suffix or datetime.now().strftime("%Y%m%d-%H%M%S")
     paths.ensure_dirs()
     # Migrate inbox + processed
     for base in (paths.INBOX_DIR, paths.PROCESSED_DIR):
@@ -72,6 +258,7 @@ def run_init(force: bool = False) -> int:
             continue
         for msg_path in base.rglob("*.json"):
             _migrate_message(msg_path)
+
     # Install skill
     target = _skill_install_dir()
     src = _packaged_skill_dir()
@@ -82,29 +269,93 @@ def run_init(force: bool = False) -> int:
             shutil.rmtree(target)
         shutil.copytree(src, target)
         print(f"installed skill → {target}")
+
     # Install shim
     legacy = paths.RELAY_DIR / "relay.py"
     shim_marker = "Auto-generated by `claude-relay init`"
-    if (
-        not legacy.exists()
-        or force
-        or shim_marker not in legacy.read_text()
-    ):
+    if not legacy.exists() or force or shim_marker not in legacy.read_text():
         legacy.write_text(SHIM_TEMPLATE)
         legacy.chmod(0o755)
         print(f"installed shim → {legacy}")
+
+    assets = _packaged_assets_dir()
+
+    # Install hooks
+    hooks_dir = _hooks_install_dir()
+    for src_hook in sorted((assets / "hooks").glob("*.py")):
+        status = _install_asset_file(src_hook, hooks_dir / src_hook.name,
+                                     force, executable=True)
+        _print_asset_status("hook", src_hook.name, status)
+
+    # Install commands
+    cmds_dir = _commands_install_dir()
+    for src_cmd in sorted((assets / "commands").glob("*.md")):
+        status = _install_asset_file(src_cmd, cmds_dir / src_cmd.name, force)
+        _print_asset_status("command", src_cmd.name, status)
+
+    # Register hooks in settings.json
+    manifest = json.loads((assets / "hooks_manifest.json").read_text())
+    try:
+        res = _register_hooks(manifest, hooks_dir, _settings_path(), backup_suffix)
+    except SettingsParseError as e:
+        # Back up the malformed file; do not write a partial settings.json.
+        sp = _settings_path()
+        bak = sp.with_name(f"settings.json.bak-malformed-{backup_suffix}")
+        bak.write_text(sp.read_text())
+        print(f"ERROR: settings.json is not valid JSON ({e}). "
+              f"Backed up → {bak}. Hooks NOT registered — fix the file and re-run init.")
+        return 1
+    if res["added"]:
+        print(f"settings: registered {', '.join(res['added'])}"
+              + (f" (backup {res['backup'].name})" if res["backup"] else " (created settings.json)"))
+    if res["skipped"]:
+        print(f"settings: already registered {', '.join(res['skipped'])} (no change)")
+
     print("init complete. try: claude-relay tui")
     return 0
 
 
-def run_uninstall() -> int:
+def _print_asset_status(kind: str, name: str, status: str) -> None:
+    msg = {
+        "installed": f"installed {kind} → {name}",
+        "updated": f"updated {kind} → {name}",
+        "current": f"{kind} {name} already current",
+        "differs-kept": f"{kind} {name} differs from bundled — kept your copy "
+                        f"(use --force to overwrite)",
+    }[status]
+    print(msg)
+
+
+def run_uninstall(backup_suffix: str | None = None) -> int:
+    backup_suffix = backup_suffix or datetime.now().strftime("%Y%m%d-%H%M%S")
+    # Skill
     target = _skill_install_dir()
     if target.exists():
         shutil.rmtree(target)
         print(f"removed skill {target}")
+    # Shim
     legacy = paths.RELAY_DIR / "relay.py"
     if legacy.exists() and "Auto-generated by `claude-relay init`" in legacy.read_text():
         legacy.unlink()
         print(f"removed shim {legacy}")
-    print("uninstall complete. data preserved at ~/.claude/relay/")
+    # Hooks (relay-owned filenames)
+    hooks_dir = _hooks_install_dir()
+    for name in HOOK_NAMES:
+        p = hooks_dir / name
+        if p.exists():
+            p.unlink()
+            print(f"removed hook {name}")
+    # Commands (bundled relay-*.md)
+    cmds_dir = _commands_install_dir()
+    for src_cmd in sorted((_packaged_assets_dir() / "commands").glob("*.md")):
+        p = cmds_dir / src_cmd.name
+        if p.exists():
+            p.unlink()
+            print(f"removed command {src_cmd.name}")
+    # settings.json regs
+    res = _unregister_hooks(_settings_path(), HOOK_NAMES, backup_suffix)
+    if res["removed"]:
+        print(f"settings: removed relay hook regs from {', '.join(sorted(set(res['removed'])))}"
+              + (f" (backup {res['backup'].name})" if res["backup"] else ""))
+    print("uninstall complete. data + settings backups preserved.")
     return 0

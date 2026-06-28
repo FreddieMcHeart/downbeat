@@ -6,8 +6,22 @@ Local filesystem-backed message broker + TUI + CLI + skill for handing off work 
 
 ```bash
 uv tool install claude-relay     # or: pipx install claude-relay
-claude-relay init                # bootstraps ~/.claude/relay, installs the skill, replaces relay.py shim
+claude-relay init                # one command installs the WHOLE runtime
 ```
+
+`claude-relay init` is the single source of truth for the entire relay runtime. It:
+
+- bootstraps `~/.claude/relay/` data dirs and migrates legacy messages,
+- installs the **skill** → `~/.claude/skills/claude-relay/`,
+- writes the `relay.py` **shim** → `~/.claude/relay/relay.py`,
+- installs the bundled **hooks** (`relay-inbox.py`, `relay-poll-offer.py`) → `~/.claude/hooks/` (chmod +x),
+- installs the bundled **slash commands** (`relay-register/send/reply/peers/monitor.md`) → `~/.claude/commands/`,
+- **registers** the relay hooks in `~/.claude/settings.json` (idempotent, backed up, atomic).
+
+It is safe to re-run: content-equal files are left as-is, already-registered hooks are
+skipped, and a hook that differs from the bundled copy is **kept** (your local edit
+wins) unless you pass `--force`. settings.json edits never clobber non-relay hooks
+sharing the same event/matcher.
 
 ## Use
 
@@ -128,11 +142,13 @@ Both tools are complementary and can be run simultaneously.
 ## Uninstall
 
 ```bash
-claude-relay uninstall    # removes skill + shim; leaves data in ~/.claude/relay
+claude-relay uninstall    # removes skill + shim + hooks + commands + relay
+                          # settings.json regs; leaves data + backups in ~/.claude/relay
 ```
 
 ## Layout
 
 - Source: `src/claude_relay/{core,cli,tui,skill}`
+- Bundled runtime assets: `src/claude_relay/assets/{hooks/,commands/,hooks_manifest.json}`
 - Tests: `tests/`
 - State: `~/.claude/relay/{sessions.json, inbox/, processed/, logs/, groups.json}`

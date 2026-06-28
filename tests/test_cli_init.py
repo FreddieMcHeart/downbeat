@@ -1,7 +1,31 @@
 import json
+import os
 from pathlib import Path
 
 from claude_relay.cli.commands.init_cmd import run_init, run_uninstall
+
+
+def _relay_reg_count(settings_path: Path) -> int:
+    """Count relay hook registrations nested anywhere in settings['hooks']."""
+    d = json.loads(settings_path.read_text())
+    n = 0
+    for _event, lst in d.get("hooks", {}).items():
+        for entry in lst:
+            for h in entry.get("hooks", []):
+                cmd = h.get("command", "")
+                if "relay-inbox.py" in cmd or "relay-poll-offer.py" in cmd:
+                    n += 1
+    return n
+
+
+def _all_commands(settings_path: Path) -> list[str]:
+    d = json.loads(settings_path.read_text())
+    out = []
+    for _event, lst in d.get("hooks", {}).items():
+        for entry in lst:
+            for h in entry.get("hooks", []):
+                out.append(h.get("command", ""))
+    return out
 
 
 def test_init_creates_relay_dirs(relay_dir):
@@ -61,3 +85,117 @@ def test_uninstall_removes_skill(tmp_path, monkeypatch, relay_dir):
     rc = run_uninstall()
     assert rc == 0
     assert not (tmp_path / ".claude" / "skills" / "claude-relay").exists()
+
+
+# --------------- consolidation: hooks + commands + settings ----------------
+
+def test_init_installs_hooks_commands_and_registers_settings(tmp_path, monkeypatch, relay_dir):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    rc = run_init(backup_suffix="TEST")
+    assert rc == 0
+    hooks = tmp_path / ".claude" / "hooks"
+    assert (hooks / "relay-inbox.py").exists()
+    assert (hooks / "relay-poll-offer.py").exists()
+    # hooks must be executable
+    assert os.access(hooks / "relay-inbox.py", os.X_OK)
+    # commands copied
+    cmds = tmp_path / ".claude" / "commands"
+    for name in ("relay-register.md", "relay-send.md", "relay-reply.md",
+                 "relay-peers.md", "relay-monitor.md"):
+        assert (cmds / name).exists(), name
+    # settings gains the 3 relay regs
+    settings = tmp_path / ".claude" / "settings.json"
+    assert _relay_reg_count(settings) == 3
+
+
+def test_init_is_idempotent_on_settings(tmp_path, monkeypatch, relay_dir):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    run_init(backup_suffix="TEST")
+    first = _relay_reg_count(tmp_path / ".claude" / "settings.json")
+    run_init(backup_suffix="TEST2")
+    second = _relay_reg_count(tmp_path / ".claude" / "settings.json")
+    assert first == second == 3
+    # Second run added nothing → no second backup file created
+    assert not (tmp_path / ".claude" / "settings.json.bak-TEST2").exists()
+
+
+def test_init_leaves_preexisting_relay_regs(tmp_path, monkeypatch, relay_dir):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    # Pre-seed the exact live nested layout with all 3 relay regs present
+    hp = str(tmp_path / ".claude" / "hooks")
+    settings.write_text(json.dumps({"hooks": {
+        "UserPromptSubmit": [{"hooks": [
+            {"type": "command", "command": f"{hp}/relay-inbox.py", "timeout": 3}]}],
+        "SessionStart": [{"matcher": "startup|resume", "hooks": [
+            {"type": "command", "command": f"{hp}/relay-inbox.py", "timeout": 3}]}],
+        "PostToolUse": [{"matcher": "Bash", "hooks": [
+            {"type": "command", "command": f"{hp}/relay-poll-offer.py", "timeout": 3}]}],
+    }}, indent=2))
+    run_init(backup_suffix="TEST")
+    assert _relay_reg_count(settings) == 3
+    # nothing added → no backup
+    assert not (tmp_path / ".claude" / "settings.json.bak-TEST").exists()
+
+
+def test_init_preserves_other_hooks_and_interleaves(tmp_path, monkeypatch, relay_dir):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    # A non-relay hook on UserPromptSubmit with NO matcher (like cost-discipline)
+    settings.write_text(json.dumps({"hooks": {
+        "UserPromptSubmit": [{"hooks": [
+            {"type": "command", "command": "/x/cost-discipline.py", "timeout": 5}]}],
+    }}, indent=2))
+    run_init(backup_suffix="TEST")
+    cmds = _all_commands(settings)
+    # cost-discipline preserved
+    assert any("cost-discipline.py" in c for c in cmds)
+    # relay-inbox added alongside it (interleaved into same no-matcher entry)
+    assert _relay_reg_count(settings) == 3
+    # a backup of the pre-existing file was made
+    assert (tmp_path / ".claude" / "settings.json.bak-TEST").exists()
+
+
+def test_init_creates_settings_when_missing(tmp_path, monkeypatch, relay_dir):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    settings = tmp_path / ".claude" / "settings.json"
+    assert not settings.exists()
+    run_init(backup_suffix="TEST")
+    assert settings.exists()
+    assert _relay_reg_count(settings) == 3
+    # created fresh → no backup of a prior file
+    assert not (tmp_path / ".claude" / "settings.json.bak-TEST").exists()
+
+
+def test_uninstall_removes_relay_regs_keeps_others(tmp_path, monkeypatch, relay_dir):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    settings.write_text(json.dumps({"hooks": {
+        "UserPromptSubmit": [{"hooks": [
+            {"type": "command", "command": "/x/cost-discipline.py", "timeout": 5}]}],
+    }}, indent=2))
+    run_init(backup_suffix="TEST")
+    assert _relay_reg_count(settings) == 3
+    run_uninstall(backup_suffix="TEST")
+    # relay regs gone, cost-discipline preserved
+    assert _relay_reg_count(settings) == 0
+    assert any("cost-discipline.py" in c for c in _all_commands(settings))
+    # hook + command files removed
+    assert not (tmp_path / ".claude" / "hooks" / "relay-inbox.py").exists()
+    assert not (tmp_path / ".claude" / "commands" / "relay-send.md").exists()
+
+
+def test_init_on_malformed_settings_backs_up_and_errors(tmp_path, monkeypatch, relay_dir):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    settings.write_text("{ this is not valid json ")
+    rc = run_init(backup_suffix="TEST")
+    assert rc == 1
+    # malformed file is left untouched (no partial write)
+    assert settings.read_text() == "{ this is not valid json "
+    # a malformed-backup was made
+    assert (tmp_path / ".claude" / "settings.json.bak-malformed-TEST").exists()

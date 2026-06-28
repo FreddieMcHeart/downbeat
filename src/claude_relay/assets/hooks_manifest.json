@@ -1,0 +1,8 @@
+{
+  "_comment": "Registration source of truth for `claude-relay init`. Mirrors the real ~/.claude/settings.json hook layout: settings['hooks'][<event>] is a list of entries, each {matcher?, hooks:[{type,command,timeout}]}. Relay hooks may live INSIDE a multi-hook entry alongside non-relay hooks (e.g. cost-discipline) — init detects by command-substring and never clobbers neighbours. `command` here is the hook basename; init resolves it to <HOME>/.claude/hooks/<basename>. matcher null means the entry carries no matcher key.",
+  "events": [
+    {"event": "UserPromptSubmit", "matcher": null, "command": "relay-inbox.py", "timeout": 3},
+    {"event": "SessionStart", "matcher": "startup|resume", "command": "relay-inbox.py", "timeout": 3},
+    {"event": "PostToolUse", "matcher": "Bash", "command": "relay-poll-offer.py", "timeout": 3}
+  ]
+}
