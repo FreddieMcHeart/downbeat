@@ -539,3 +539,93 @@ async def test_own_inbox_shows_messages_from_multiple_senders(relay_dir):
         }
         assert "alice" in senders, "own-inbox must include alice's message"
         assert "bob" in senders, "own-inbox must include bob's message"
+
+
+def _subjects(stream):
+    return [
+        getattr(c, "_msg").subject
+        for c in stream.children
+        if getattr(c, "_msg", None) is not None
+    ]
+
+
+@pytest.mark.asyncio
+async def test_own_inbox_archived_toggle_reveals_processed_history(relay_dir):
+    """A sink peer must be able to toggle archived/processed messages into view
+    on its own-inbox tab. Pending-only is the default; toggling `a` adds the
+    full received history, toggling again hides it."""
+    from claude_relay.core import store
+    from claude_relay.tui.widgets.chat_stream import ChatStream
+
+    store.register_peer(name="content-inbox", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="sender",        session_id="s2", cwd="/tmp", role="child")
+
+    # One message stays pending (inbox), one gets delivered + acked → processed/
+    store.send_message(from_peer="sender", to_peer="content-inbox",
+                       subject="pending", body="still here")
+    done = store.send_message(from_peer="sender", to_peer="content-inbox",
+                              subject="archived", body="consumed")
+    store.deliver_messages("content-inbox", session_id="s1")
+    store.ack_messages([done.id])  # delivered → processed/
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        stream = screen.query_one("#chat-stream", ChatStream)
+
+        # Default: pending only, archived hidden
+        assert stream._show_archived is False
+        stream.refresh_thread("content-inbox", OWN_INBOX_ID)
+        await pilot.pause()
+        subs = _subjects(stream)
+        assert "pending" in subs
+        assert "archived" not in subs, "archived msg must be hidden by default"
+
+        # Toggle on → full received history visible
+        new_state = stream.toggle_archived()
+        await pilot.pause()
+        assert new_state is True
+        subs = _subjects(stream)
+        assert "pending" in subs
+        assert "archived" in subs, "toggle must reveal processed history"
+
+        # Toggle off → back to pending only
+        new_state = stream.toggle_archived()
+        await pilot.pause()
+        assert new_state is False
+        subs = _subjects(stream)
+        assert "archived" not in subs, "second toggle must hide archived again"
+
+
+@pytest.mark.asyncio
+async def test_archived_toggle_action_only_acts_on_own_inbox_tab(relay_dir):
+    """The screen-level `a` action toggles archived only when the own-inbox tab
+    is active; on a member-peer thread it is a no-op (no flag flip)."""
+    from claude_relay.core import store
+    from claude_relay.tui.widgets.chat_stream import ChatStream
+
+    store.register_peer(name="grp-parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="grp-child",  session_id="s2", cwd="/tmp", role="child")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        stream = screen.query_one("#chat-stream", ChatStream)
+
+        # `a` action is wired on the screen
+        assert any("toggle_archived" in str(b) for b in screen.BINDINGS), (
+            "ChatScreen must bind `a` to toggle_archived"
+        )
+
+        # On a member-peer tab the toggle is a no-op
+        screen.active_peer = "grp-child"
+        stream._show_archived = False
+        screen.action_toggle_archived()
+        assert stream._show_archived is False, "must not toggle off the inbox tab"
+
+        # On the own-inbox tab the toggle flips the flag
+        screen.active_peer = OWN_INBOX_ID
+        screen.action_toggle_archived()
+        assert stream._show_archived is True, "must toggle on the own-inbox tab"

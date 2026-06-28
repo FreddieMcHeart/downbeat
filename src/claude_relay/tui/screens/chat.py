@@ -23,6 +23,7 @@ class ChatScreen(Screen):
         ("ctrl+l,f6", "toggle_logs", "Logs"),
         ("f", "find_message", "Find"),
         ("ctrl+p", "open_peers", "Peers"),
+        ("a", "toggle_archived", "Archived"),
         ("s", "switch_acting_as", "Switch acting-as"),
         Binding("left,h", "prev_tab", "Prev member", key_display="←"),
         Binding("right,l", "next_tab", "Next member", key_display="→"),
@@ -230,6 +231,22 @@ class ChatScreen(Screen):
         def after(_):
             self.action_refresh()
         self.app.push_screen(QuarantineScreen(self.acting_as), after)
+
+    def action_toggle_archived(self) -> None:
+        # Archived view only applies to the own-inbox tab (a sink peer seeing
+        # its full received history). On a member-peer thread it's a no-op.
+        from ..widgets.chat_stream import ChatStream
+        if self.active_peer != OWN_INBOX_ID:
+            self.notify("Archived view applies to your inbox tab (←/→ to it)",
+                        severity="warning", timeout=3)
+            return
+        stream = self.query_one("#chat-stream", ChatStream)
+        showing = stream.toggle_archived()
+        self.notify(
+            "📥 inbox: showing full history (incl. archived)" if showing
+            else "📥 inbox: showing pending only",
+            timeout=3,
+        )
 
     def action_switch_acting_as(self) -> None:
         from ..widgets.switch_acting_as import SwitchActingAsModal

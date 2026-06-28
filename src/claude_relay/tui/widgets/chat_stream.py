@@ -55,6 +55,11 @@ class ChatStream(VerticalScroll):
         self._cursor: int = 0  # index into _messages; the "focused" bubble
         self._me: str | None = None
         self._peer: str | None = None
+        # Own-inbox archived toggle: when False (default) only pending
+        # (inbox/ + delivered/) mail shows; when True the full received
+        # history (processed/ + quarantine/) is included too. Only meaningful
+        # on the OWN_INBOX_ID tab — see refresh_thread.
+        self._show_archived: bool = False
 
     def refresh_thread(self, me: str | None, peer: str | None) -> None:
         # Capture scroll / peer state BEFORE any mutation so the UX guards
@@ -72,7 +77,11 @@ class ChatStream(VerticalScroll):
             if peer == OWN_INBOX_ID:
                 # Own-inbox tab: all messages addressed to me, any sender,
                 # sorted oldest→newest (list_inbox returns newest-first, so reverse).
-                new_messages = list(reversed(store.list_inbox(me)))
+                # When _show_archived is on, include processed/ + quarantine/ so a
+                # sink peer can see its full received history, not just pending.
+                new_messages = list(reversed(
+                    store.list_inbox(me, include_archived=self._show_archived)
+                ))
             else:
                 new_messages = store.list_thread(me, peer)
         else:
@@ -165,6 +174,17 @@ class ChatStream(VerticalScroll):
                 self._mark_focused_read()
         else:
             self._cursor = 0
+
+    def toggle_archived(self) -> bool:
+        """Flip the own-inbox archived view and re-render. Returns the new state.
+
+        Only the OWN_INBOX_ID tab varies its message set on this flag; on a
+        member-peer thread list_thread already includes archived, so the flag
+        is harmless there. Re-uses refresh_thread's differential update, which
+        mounts/removes archived bubbles cleanly without a full rebuild."""
+        self._show_archived = not self._show_archived
+        self.refresh_thread(self._me, self._peer)
+        return self._show_archived
 
     def _render_bubble(self, msg: Message, me: str, idx: int) -> Static:
         base_class = "bubble bubble-self" if (msg.from_peer == me) else "bubble bubble-other"
