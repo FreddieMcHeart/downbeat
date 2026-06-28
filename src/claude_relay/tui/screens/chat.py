@@ -12,7 +12,7 @@ from ...core import state, store
 from ..widgets.chat_composer import ChatComposer
 from ..widgets.chat_stream import ChatStream
 from ..widgets.log_viewer import LogViewer
-from ..widgets.peer_tabs import PeerTabs
+from ..widgets.peer_tabs import OWN_INBOX_ID, PeerTabs
 
 
 class ChatScreen(Screen):
@@ -99,16 +99,16 @@ class ChatScreen(Screen):
     async def _populate_tabs(self) -> None:
         tabs = self.query_one("#peer-tabs", PeerTabs)
         members = self._group_members()
-        await tabs.populate(members)
-        if not members:
-            return
-        # Prefer persisted last_active_peer if it's still a member; else first member
-        if self.active_peer not in members:
+        await tabs.populate(members, acting_as=self.acting_as)
+        # Build the full tab order: own-inbox first, then members
+        all_tabs = [OWN_INBOX_ID] + members
+        # Prefer persisted last_active_peer if it's still a valid tab; else own-inbox
+        if self.active_peer not in all_tabs:
             last = state.get_last_active_peer()
-            if last in members:
+            if last in all_tabs:
                 self.active_peer = last
             else:
-                self.active_peer = members[0]
+                self.active_peer = OWN_INBOX_ID
 
     def _refresh_thread(self) -> None:
         stream = self.query_one("#chat-stream", ChatStream)
@@ -121,7 +121,9 @@ class ChatScreen(Screen):
 
     async def on_peer_tabs_peer_selected(self, event) -> None:
         self.active_peer = event.peer_name
-        state.set_last_active_peer(event.peer_name)
+        # Don't persist the sentinel — it would corrupt last_active_peer state
+        if event.peer_name != OWN_INBOX_ID:
+            state.set_last_active_peer(event.peer_name)
         self._refresh_thread()
 
     def on_chat_composer_send(self, event) -> None:
@@ -152,11 +154,13 @@ class ChatScreen(Screen):
 
     def action_next_tab(self) -> None:
         members = self._group_members()
-        if not members or not self.active_peer:
+        all_tabs = [OWN_INBOX_ID] + members
+        if not all_tabs or not self.active_peer:
             return
-        idx = members.index(self.active_peer) if self.active_peer in members else -1
-        self.active_peer = members[(idx + 1) % len(members)]
-        state.set_last_active_peer(self.active_peer)
+        idx = all_tabs.index(self.active_peer) if self.active_peer in all_tabs else -1
+        self.active_peer = all_tabs[(idx + 1) % len(all_tabs)]
+        if self.active_peer != OWN_INBOX_ID:
+            state.set_last_active_peer(self.active_peer)
         # Reflect on Tabs widget (active is a reactive, not an await)
         tabs = self.query_one("#peer-tabs", PeerTabs)
         tabs.active = f"tab-{tabs._safe_id(self.active_peer)}"
@@ -164,11 +168,13 @@ class ChatScreen(Screen):
 
     def action_prev_tab(self) -> None:
         members = self._group_members()
-        if not members or not self.active_peer:
+        all_tabs = [OWN_INBOX_ID] + members
+        if not all_tabs or not self.active_peer:
             return
-        idx = members.index(self.active_peer) if self.active_peer in members else 1
-        self.active_peer = members[(idx - 1) % len(members)]
-        state.set_last_active_peer(self.active_peer)
+        idx = all_tabs.index(self.active_peer) if self.active_peer in all_tabs else 1
+        self.active_peer = all_tabs[(idx - 1) % len(all_tabs)]
+        if self.active_peer != OWN_INBOX_ID:
+            state.set_last_active_peer(self.active_peer)
         tabs = self.query_one("#peer-tabs", PeerTabs)
         tabs.active = f"tab-{tabs._safe_id(self.active_peer)}"
         self._refresh_thread()

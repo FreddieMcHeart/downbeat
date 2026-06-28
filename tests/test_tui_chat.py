@@ -1,6 +1,7 @@
 import pytest
 
 from claude_relay.tui.app import RelayApp
+from claude_relay.tui.widgets.peer_tabs import OWN_INBOX_ID
 
 
 @pytest.mark.asyncio
@@ -182,9 +183,9 @@ async def test_left_right_cycles_peer_tabs(relay_dir):
     async with app.run_test(headless=True) as pilot:
         await pilot.pause()
         screen = app.screen
-        # active_peer should be one of the two children
+        # active_peer defaults to OWN_INBOX_ID (first tab); pressing right advances it
         start = screen.active_peer
-        assert start in {"PLAT-3113-child", "PLAT-3113-slave"}
+        assert start == OWN_INBOX_ID
         await pilot.press("right")
         await pilot.pause()
         assert screen.active_peer != start
@@ -296,11 +297,17 @@ async def test_refresh_thread_uses_differential_update(relay_dir):
     async with app.run_test(headless=True) as pilot:
         await pilot.pause()
         stream = app.screen.query_one("#chat-stream")
-        # Capture widget identities after first mount
-        before_ids = [id(c) for c in stream.children]
-        # Second refresh (same data)
+        # Prime _peer on the stream so the first refresh_thread call is NOT a
+        # peer-change (peer_changed=False → differential update path runs from
+        # the start, no full rebuild).  This is valid because refresh_thread
+        # only does full_rebuild when peer_changed is True.
+        stream._peer = "c"
+        # First refresh: same peer pair → differential (no rebuild)
         stream.refresh_thread("p", "c")
-        await pilot.pause()
+        before_ids = [id(c) for c in stream.children]
+        assert before_ids, "thread should have bubbles after first refresh"
+        # Second refresh (same data, same peer pair) — must also be differential
+        stream.refresh_thread("p", "c")
         after_ids = [id(c) for c in stream.children]
         # No widget was removed-and-readded — identities should be unchanged
         assert before_ids == after_ids, (
@@ -322,11 +329,15 @@ async def test_refresh_thread_appends_new_message_without_full_rebuild(relay_dir
     async with app.run_test(headless=True) as pilot:
         await pilot.pause()
         stream = app.screen.query_one("#chat-stream")
+        # Prime _peer so both refresh_thread calls use the differential path
+        # (no peer-change → no full rebuild → synchronous mount scheduling).
+        stream._peer = "c"
+        stream.refresh_thread("p", "c")
         before_ids = [id(c) for c in stream.children]
-        # Add a third message and refresh
+        assert before_ids, "thread should have bubbles after first refresh"
+        # Add a third message and refresh (same peer pair — must be differential)
         store.send_message(from_peer="c", to_peer="p", subject="c", body="z")
         stream.refresh_thread("p", "c")
-        await pilot.pause()
         after_ids = [id(c) for c in stream.children]
         # The two original widgets should still be present in after_ids
         assert all(b in after_ids for b in before_ids), (
@@ -428,3 +439,103 @@ async def test_body_with_brackets_renders_via_text_renderable(relay_dir):
         stream = app.screen.query_one("#chat-stream")
         # If we got here, every bubble rendered without MarkupError.
         assert len(list(stream.children)) >= len(bodies)
+
+
+# ---------------------------------------------------------------------------
+# Own-inbox tab tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_own_inbox_tab_always_present_as_first_tab(relay_dir):
+    """OWN_INBOX_ID must be the first entry in _members for both grouped and
+    standalone peers — tested via PeerTabs.populate directly (no full TUI mount
+    needed since tab rendering is the unit under test)."""
+    from claude_relay.core import store
+    from claude_relay.tui.widgets.peer_tabs import OWN_INBOX_ID, PeerTabs
+
+    store.register_peer(name="grp-master", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="grp-child",  session_id="s2", cwd="/tmp", role="child")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        tabs = screen.query_one("#peer-tabs", PeerTabs)
+        # After populate, _members[0] must be the sentinel
+        assert tabs._members[0] == OWN_INBOX_ID, (
+            "OWN_INBOX_ID must be the first entry in _members"
+        )
+        # And the member is still present after the sentinel
+        assert "grp-child" in tabs._members
+
+
+@pytest.mark.asyncio
+async def test_no_member_peer_renders_own_inbox(relay_dir):
+    """A standalone peer (no prefix-mates) must open on its own inbox tab and
+    render bubbles for messages addressed to it — tested via ChatStream directly
+    to avoid Textual render-timing sensitivity."""
+    from claude_relay.core import store
+    from claude_relay.tui.widgets.chat_stream import ChatStream
+
+    # Register a sink peer with no group members
+    store.register_peer(name="content-inbox", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="sender",        session_id="s2", cwd="/tmp", role="child")
+
+    # Send 2 messages to content-inbox
+    store.send_message(from_peer="sender", to_peer="content-inbox",
+                       subject="m1", body="body one")
+    store.send_message(from_peer="sender", to_peer="content-inbox",
+                       subject="m2", body="body two")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        # Confirm _group_members returns [] (no prefix-mates besides self)
+        assert screen._group_members() == [], (
+            "content-inbox should have no group members"
+        )
+        # active_peer defaults to OWN_INBOX_ID when there are no members
+        assert screen.active_peer == OWN_INBOX_ID, (
+            "active_peer must default to OWN_INBOX_ID for a no-member peer"
+        )
+        # ChatStream in OWN_INBOX_ID mode loads all inbox messages
+        stream = screen.query_one("#chat-stream", ChatStream)
+        stream.refresh_thread("content-inbox", OWN_INBOX_ID)
+        await pilot.pause()
+        bubble_subjects = [
+            getattr(c, "_msg").subject
+            for c in stream.children
+            if getattr(c, "_msg", None) is not None
+        ]
+        assert "m1" in bubble_subjects, "own-inbox must render message m1"
+        assert "m2" in bubble_subjects, "own-inbox must render message m2"
+
+
+@pytest.mark.asyncio
+async def test_own_inbox_shows_messages_from_multiple_senders(relay_dir):
+    """The own-inbox tab must aggregate messages from all senders, not just one."""
+    from claude_relay.core import store
+    from claude_relay.tui.widgets.chat_stream import ChatStream
+
+    store.register_peer(name="hub",     session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="alice",   session_id="s2", cwd="/tmp", role="child")
+    store.register_peer(name="bob",     session_id="s3", cwd="/tmp", role="child")
+
+    store.send_message(from_peer="alice", to_peer="hub", subject="from-alice", body="hi from alice")
+    store.send_message(from_peer="bob",   to_peer="hub", subject="from-bob",   body="hi from bob")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        stream = app.screen.query_one("#chat-stream", ChatStream)
+        stream.refresh_thread("hub", OWN_INBOX_ID)
+        await pilot.pause()
+        senders = {
+            getattr(c, "_msg").from_peer
+            for c in stream.children
+            if getattr(c, "_msg", None) is not None
+        }
+        assert "alice" in senders, "own-inbox must include alice's message"
+        assert "bob" in senders, "own-inbox must include bob's message"

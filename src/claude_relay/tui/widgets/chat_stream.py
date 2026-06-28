@@ -9,6 +9,7 @@ from textual.widgets import Static
 
 from ...core import store
 from ...core.models import Message, MessageState
+from .peer_tabs import OWN_INBOX_ID
 
 
 class ChatStream(VerticalScroll):
@@ -67,7 +68,15 @@ class ChatStream(VerticalScroll):
 
         new_me = me
         new_peer = peer
-        new_messages = store.list_thread(me, peer) if me and peer else []
+        if me and peer:
+            if peer == OWN_INBOX_ID:
+                # Own-inbox tab: all messages addressed to me, any sender,
+                # sorted oldest→newest (list_inbox returns newest-first, so reverse).
+                new_messages = list(reversed(store.list_inbox(me)))
+            else:
+                new_messages = store.list_thread(me, peer)
+        else:
+            new_messages = []
 
         # --- Full rebuild when the thread itself changes (different peer pair) ---
         full_rebuild = peer_changed
