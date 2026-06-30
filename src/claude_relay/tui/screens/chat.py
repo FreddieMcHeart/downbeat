@@ -24,6 +24,7 @@ class ChatScreen(Screen):
         ("f", "find_message", "Find"),
         ("ctrl+p", "open_peers", "Peers"),
         ("a", "toggle_archived", "Archived"),
+        ("c", "clear_inbox", "Clear inbox"),
         ("s", "switch_acting_as", "Switch acting-as"),
         Binding("left,h", "prev_tab", "Prev member", key_display="←"),
         Binding("right,l", "next_tab", "Next member", key_display="→"),
@@ -247,6 +248,43 @@ class ChatScreen(Screen):
             else "📥 inbox: showing pending only",
             timeout=3,
         )
+
+    def action_clear_inbox(self) -> None:
+        # Archive the current peer's absorbed report-backlog (everything pending
+        # in its inbox+delivered) → processed/. Recoverable, not deleted. Only on
+        # the own-inbox tab. Role-aware: a CHILD inbox holds parent→child TASKS,
+        # so clearing it is the dangerous direction — warn loudly.
+        from ..widgets.confirm import ConfirmDelete
+        if self.active_peer != OWN_INBOX_ID:
+            self.notify("Clear-inbox applies to your 📥 inbox tab (←/→ to it)",
+                        severity="warning", timeout=3)
+            return
+        if not self.acting_as:
+            return
+        ids = [m.id for m in store.list_inbox(self.acting_as)]  # inbox + delivered
+        if not ids:
+            self.notify("Inbox already clear — nothing to archive", timeout=3)
+            return
+        peers = {p.name: p for p in store.list_peers()}
+        role = peers[self.acting_as].role if self.acting_as in peers else "parent"
+        if role == "child":
+            prompt = (f"⚠ {self.acting_as} is a CHILD — its inbox holds parent→child "
+                      f"TASKS, not reports. Archiving {len(ids)} message(s) marks them "
+                      f"consumed (may lose unstarted work). Continue?")
+        else:
+            prompt = (f"Archive {len(ids)} absorbed message(s) for {self.acting_as} "
+                      f"→ processed/? Recoverable, not deleted.")
+
+        def after(confirmed: bool) -> None:
+            if not confirmed:
+                return
+            res = store.archive_messages(ids)
+            ok = sum(1 for v in res.values() if v)
+            self.notify(f"Archived {ok}/{len(ids)} → processed/", timeout=4)
+            self._populate_acting_as()
+            self.call_after_refresh(self._populate_tabs_and_refresh)
+
+        self.app.push_screen(ConfirmDelete(prompt), after)
 
     def action_switch_acting_as(self) -> None:
         from ..widgets.switch_acting_as import SwitchActingAsModal

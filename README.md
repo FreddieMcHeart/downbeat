@@ -117,6 +117,8 @@ Both tools are complementary and can be run simultaneously.
 |---------------|------------------------------------------------------|
 | Tab/Shift+Tab | Cycle focus: Messages → Composer                     |
 | s             | Switch acting-as parent                              |
+| a             | Toggle archived history (chat view, 📥 inbox tab)    |
+| c             | Clear inbox — archive this peer's backlog → processed/ (chat view, 📥 inbox tab) |
 | Left/Right    | Prev / next group member                             |
 | Up/Down       | Within focused region (messages, composer)           |
 | Enter         | Send (in composer) / Open message detail (in message list) |

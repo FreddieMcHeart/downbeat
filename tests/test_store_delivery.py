@@ -42,6 +42,36 @@ def test_reply_auto_acks_delivered_original(relay_dir):
     assert reply.in_reply_to == msg.id
 
 
+def test_archive_messages_clears_new_inbox_to_processed(relay_dir):
+    """archive_messages must drain a NEW (never-delivered) inbox message to
+    processed/ — the dead-peer report-backlog case the TUI clear button hits."""
+    _peers("p", "c")
+    msg = store.send_message(from_peer="p", to_peer="c", subject="report", body="done")
+    # NEW, never delivered (dead peer scenario)
+    assert store.get_message(msg.id).state == MessageState.NEW
+    results = store.archive_messages([msg.id])
+    assert results[msg.id] is True
+    fetched = store.get_message(msg.id)
+    assert fetched.archived is True
+    assert fetched.state == MessageState.ARCHIVED
+    # No longer counted as pending NEW in the badge set
+    pending = [m for m in store.list_inbox("c") if m.state == MessageState.NEW]
+    assert msg.id not in {m.id for m in pending}
+
+
+def test_archive_messages_auto_acks_delivered(relay_dir):
+    """A delivered-but-unacked message archived via the clear button gets its
+    delivery_ack_at stamped (closes the delivery loop, not just hides it)."""
+    _peers("p", "c")
+    msg = store.send_message(from_peer="p", to_peer="c", subject="x", body="y")
+    store.deliver_messages(peer_name="c", session_id="sess-1")
+    assert store.get_message(msg.id).state == MessageState.DELIVERED
+    store.archive_messages([msg.id])
+    fetched = store.get_message(msg.id)
+    assert fetched.archived is True
+    assert fetched.delivery_ack_at is not None
+
+
 def test_reconcile_requeues_stale_delivered(relay_dir, monkeypatch):
     from datetime import datetime, timedelta
     _peers("p", "c")

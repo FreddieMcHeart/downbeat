@@ -599,6 +599,62 @@ async def test_own_inbox_archived_toggle_reveals_processed_history(relay_dir):
 
 
 @pytest.mark.asyncio
+async def test_clear_inbox_archives_backlog_for_acting_peer(relay_dir):
+    """The `c` clear-inbox action archives the acting peer's pending backlog
+    (inbox+delivered) → processed/, clearing the badge. Confirmed via the modal."""
+    from claude_relay.core import store
+    from claude_relay.core.models import MessageState
+
+    store.register_peer(name="hub",  session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="kid",  session_id="s2", cwd="/tmp", role="child")
+    # Two NEW reports kid→hub (dead-peer backlog: never delivered)
+    store.send_message(from_peer="kid", to_peer="hub", subject="r1", body="done 1")
+    store.send_message(from_peer="kid", to_peer="hub", subject="r2", body="done 2")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        assert screen.acting_as == "hub"
+        assert screen.active_peer == OWN_INBOX_ID
+        # Two pending (inbox+delivered) before — count regardless of read state,
+        # since mounting the own-inbox marks the focused bubble READ.
+        assert len(store.list_inbox("hub")) == 2
+        # Press c → confirm modal → y
+        await pilot.press("c")
+        await pilot.pause()
+        await pilot.press("y")
+        await pilot.pause()
+        # Backlog drained → nothing pending
+        assert store.list_inbox("hub") == [], "clear-inbox must archive the backlog"
+        # still recoverable in processed/
+        arch = [m for m in store.list_inbox("hub", include_archived=True)
+                if m.state == MessageState.ARCHIVED]
+        assert len(arch) == 2
+
+
+@pytest.mark.asyncio
+async def test_clear_inbox_is_noop_off_own_inbox_tab(relay_dir):
+    from claude_relay.core import store
+    from claude_relay.core.models import MessageState
+
+    store.register_peer(name="grp-parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="grp-child",  session_id="s2", cwd="/tmp", role="child")
+    store.send_message(from_peer="grp-child", to_peer="grp-parent",
+                       subject="r", body="x")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        screen.active_peer = "grp-child"  # a member tab, not own-inbox
+        screen.action_clear_inbox()
+        await pilot.pause()
+        # nothing archived — message still pending (not moved to processed/)
+        assert len(store.list_inbox("grp-parent")) == 1
+
+
+@pytest.mark.asyncio
 async def test_archived_toggle_action_only_acts_on_own_inbox_tab(relay_dir):
     """The screen-level `a` action toggles archived only when the own-inbox tab
     is active; on a member-peer thread it is a no-op (no flag flip)."""

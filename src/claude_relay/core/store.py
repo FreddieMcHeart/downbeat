@@ -237,6 +237,33 @@ def ack_messages(ids: list[str]) -> dict[str, bool]:
     return result
 
 
+def archive_messages(ids: list[str]) -> dict[str, bool]:
+    """Move each message (in any of inbox/ delivered/) to processed/ with
+    archived=True, auto-acking it if it was delivered-but-unacked. Used by the
+    TUI "clear inbox" action to drain a peer's absorbed report-backlog without
+    deleting anything (recoverable from processed/). Returns id→success."""
+    result: dict[str, bool] = {}
+    for mid in ids:
+        try:
+            old = _find_message_path(mid)
+            msg = _read_message_at(old)
+            d = msg.to_dict()
+            d["archived"] = True
+            if d.get("delivered_at") is not None and d.get("delivery_ack_at") is None:
+                d["delivery_ack_at"] = now_iso()
+            updated = Message.from_dict(d)
+            old.unlink()
+            _write_message(updated)  # _message_path routes archived → processed/
+            _log.info("archive msg=%s peer=%s", mid, updated.to_peer)
+            _append_delivery_log({"event": "archive", "msg_id": mid,
+                                  "peer": updated.to_peer})
+            result[mid] = True
+        except Exception:
+            _log.exception("archive failed for %s", mid)
+            result[mid] = False
+    return result
+
+
 def mark_read(msg_id: str) -> Message:
     msg = get_message(msg_id)
     if msg.state != MessageState.NEW:
