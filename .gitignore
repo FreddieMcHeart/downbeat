@@ -8,3 +8,4 @@ build/
 *.egg-info/
 .coverage
 .textual_dev/
+.DS_Store
