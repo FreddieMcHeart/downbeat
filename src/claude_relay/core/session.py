@@ -43,7 +43,12 @@ def _process_is_claude(pid: int) -> bool:
         ).decode().strip().lower()
     except Exception:
         return False
-    return "claude" in comm
+    # `ps -o comm=` sometimes reports the full resolved binary path (e.g. a
+    # process invoked via `uv run`) rather than just the short process name.
+    # Matching against the whole string false-positives on any process
+    # running from a checkout directory whose path happens to contain
+    # "claude" — check only the basename (the actual binary name).
+    return "claude" in os.path.basename(comm)
 
 
 def detect_session_id() -> str | None:
