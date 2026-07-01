@@ -306,8 +306,9 @@ def run_init(force: bool = False, backup_suffix: str | None = None) -> int:
               f"Backed up → {bak}. Hooks NOT registered — fix the file and re-run init.")
         return 1
     if res["added"]:
-        print(f"settings: registered {', '.join(res['added'])}"
-              + (f" (backup {res['backup'].name})" if res["backup"] else " (created settings.json)"))
+        suffix = (f" (backup {res['backup'].name})" if res["backup"]
+                  else " (created settings.json)")
+        print(f"settings: registered {', '.join(res['added'])}" + suffix)
     if res["skipped"]:
         print(f"settings: already registered {', '.join(res['skipped'])} (no change)")
 

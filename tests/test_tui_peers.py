@@ -58,7 +58,7 @@ async def test_dropdown_lists_only_parents(relay_dir):
     store.register_peer(name="P2", session_id="s2", cwd="/tmp", role="parent")
     store.register_peer(name="C1", session_id="s3", cwd="/tmp", role="child")
     app = RelayApp()
-    async with app.run_test(headless=True) as pilot:
+    async with app.run_test(headless=True):
         peer_widget = app.screen.query_one("PeerList")
         peer_widget.refresh_from_store()
         # acting_as must be one of the parents, not the child
@@ -74,7 +74,7 @@ async def test_list_shows_all_related_peers_including_parent(relay_dir):
     store.register_peer(name="PLAT-3113-slave", session_id="s3", cwd="/tmp", role="child")
     store.register_peer(name="other-child", session_id="s4", cwd="/tmp", role="child")
     app = RelayApp()
-    async with app.run_test(headless=True) as pilot:
+    async with app.run_test(headless=True):
         peer_widget = app.screen.query_one("PeerList")
         peer_widget.refresh_from_store()
         names = [item.peer_name for item in peer_widget.items]

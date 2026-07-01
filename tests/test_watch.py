@@ -1,10 +1,7 @@
 """Unit tests for poll_new (pure, no sleeping) and cmd_watch --once."""
 from __future__ import annotations
 
-import argparse
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from claude_relay.cli.__main__ import main
 from claude_relay.cli.commands.relay_cmds import _watch_emit
@@ -140,7 +137,7 @@ def test_watch_emit_first_call_prints_all_new(relay_dir, capsys):
 # 7. _watch_emit second call (same seen): prints nothing, seen unchanged
 def test_watch_emit_second_call_prints_nothing(relay_dir, capsys):
     _peers("p", "c")
-    m1 = store.send_message(from_peer="p", to_peer="c", subject="msg1", body="b1")
+    store.send_message(from_peer="p", to_peer="c", subject="msg1", body="b1")
 
     seen1 = _watch_emit("c", set())
     capsys.readouterr()  # flush
