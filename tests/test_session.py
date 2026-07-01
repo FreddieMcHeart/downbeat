@@ -34,11 +34,12 @@ def test_marker_for_register(relay_dir):
 def test_process_is_claude_ignores_claude_substring_in_directory_path(monkeypatch):
     """`ps -o comm=` sometimes reports the FULL resolved binary path (e.g. when
     invoked via `uv run`), not just the short process name. If the checkout
-    directory happens to contain "claude" (as `claude-relay` does), a plain
-    substring match on the whole comm string false-positives on *any* process
-    running from that directory — pytest, uv, a stray shell — none of which
-    are actually Claude Code. Only the basename (the actual binary name)
-    should be checked."""
+    directory happens to contain "claude" as a SUBSTRING of an unrelated
+    directory name (as `claude-relay` does), it must not match — pytest, uv,
+    a stray shell running from that checkout are none of them Claude Code.
+    Exact path-SEGMENT matching (not basename-only, not substring-anywhere)
+    is what correctly rejects this case — see the sibling test for why
+    basename-only is also wrong."""
     import subprocess as sp
 
     fake_path = "/Users/dev/mama/claude-relay/.venv/bin/python3"
@@ -55,6 +56,23 @@ def test_process_is_claude_matches_real_claude_binary_name(monkeypatch):
 
     def fake_check_output(cmd, **kw):
         return b"claude\n"
+
+    monkeypatch.setattr(sp, "check_output", fake_check_output)
+    assert session._process_is_claude(12345) is True
+
+
+def test_process_is_claude_matches_versioned_install_path(monkeypatch):
+    """Real-world regression: the actual Claude Code install resolves via
+    `ps -o comm=` to `.../local/share/claude/versions/<version>` — "claude"
+    is a middle PATH SEGMENT, while the basename is just the version number
+    (e.g. "2.1.197"). A basename-only check (the previous fix) false-negatives
+    here and breaks detection of a genuinely live Claude Code process."""
+    import subprocess as sp
+
+    fake_path = "/Users/dev/.local/share/claude/versions/2.1.197"
+
+    def fake_check_output(cmd, **kw):
+        return fake_path.encode()
 
     monkeypatch.setattr(sp, "check_output", fake_check_output)
     assert session._process_is_claude(12345) is True

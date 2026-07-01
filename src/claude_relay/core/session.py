@@ -43,12 +43,22 @@ def _process_is_claude(pid: int) -> bool:
         ).decode().strip().lower()
     except Exception:
         return False
-    # `ps -o comm=` sometimes reports the full resolved binary path (e.g. a
-    # process invoked via `uv run`) rather than just the short process name.
-    # Matching against the whole string false-positives on any process
-    # running from a checkout directory whose path happens to contain
-    # "claude" — check only the basename (the actual binary name).
-    return "claude" in os.path.basename(comm)
+    # `ps -o comm=` sometimes reports the full resolved binary path rather
+    # than just the short process name — and where "claude" lands in that
+    # path varies:
+    #   - the real Claude Code install resolves to
+    #     .../local/share/claude/versions/<version> — "claude" is a middle
+    #     PATH SEGMENT, while the basename is just the version number
+    #     (e.g. "2.1.197"). Basename-only matching false-negatives here.
+    #   - a process invoked via `uv run` from a checkout directory named
+    #     "claude-relay" resolves to .../claude-relay/.venv/bin/python3 —
+    #     "claude" is a substring of an unrelated directory NAME
+    #     ("claude-relay"), not an exact segment. Whole-string substring
+    #     matching false-positives here.
+    # Matching an EXACT path segment (split on "/") handles both: it accepts
+    # "claude" as a full segment anywhere in the path, but rejects a
+    # look-alike segment like "claude-relay".
+    return "claude" in comm.split("/")
 
 
 def detect_session_id() -> str | None:
