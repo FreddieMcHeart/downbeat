@@ -14,7 +14,7 @@ import json
 import re
 import sys
 import traceback
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 STATE_FILE = Path.home() / ".claude" / "relay" / "loop_offer_state.json"
@@ -97,7 +97,7 @@ def main() -> None:
         # Already fired in this session — silent.
         return
 
-    entry["hinted_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    entry["hinted_at"] = datetime.now(UTC).isoformat(timespec="seconds")
     state[session_id] = entry
     try:
         _save_state(state)

@@ -128,7 +128,7 @@ def test_send_without_kind_defaults_to_task(relay_dir, capsys, monkeypatch):
 # --- whoami tests ---
 
 def test_whoami_prints_name_and_role(relay_dir, capsys, monkeypatch):
-    from claude_relay.core import store, session
+    from claude_relay.core import session, store
     store.register_peer(name="my-child", session_id="sid-abc", cwd="/tmp", role="child")
     monkeypatch.setattr(session, "detect_session_id", lambda: "sid-abc")
     monkeypatch.setattr(sys, "argv", ["claude-relay", "whoami"])
@@ -144,7 +144,7 @@ def test_whoami_prints_name_and_role(relay_dir, capsys, monkeypatch):
 
 
 def test_whoami_json_flag(relay_dir, capsys, monkeypatch):
-    from claude_relay.core import store, session
+    from claude_relay.core import session, store
     store.register_peer(name="par", session_id="sid-xyz", cwd="/tmp", role="parent")
     monkeypatch.setattr(session, "detect_session_id", lambda: "sid-xyz")
     monkeypatch.setattr(sys, "argv", ["claude-relay", "whoami", "--json"])

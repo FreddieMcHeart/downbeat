@@ -505,7 +505,7 @@ async def test_no_member_peer_renders_own_inbox(relay_dir):
         stream.refresh_thread("content-inbox", OWN_INBOX_ID)
         await pilot.pause()
         bubble_subjects = [
-            getattr(c, "_msg").subject
+            c._msg.subject
             for c in stream.children
             if getattr(c, "_msg", None) is not None
         ]
@@ -533,7 +533,7 @@ async def test_own_inbox_shows_messages_from_multiple_senders(relay_dir):
         stream.refresh_thread("hub", OWN_INBOX_ID)
         await pilot.pause()
         senders = {
-            getattr(c, "_msg").from_peer
+            c._msg.from_peer
             for c in stream.children
             if getattr(c, "_msg", None) is not None
         }
@@ -543,7 +543,7 @@ async def test_own_inbox_shows_messages_from_multiple_senders(relay_dir):
 
 def _subjects(stream):
     return [
-        getattr(c, "_msg").subject
+        c._msg.subject
         for c in stream.children
         if getattr(c, "_msg", None) is not None
     ]
@@ -636,7 +636,6 @@ async def test_clear_inbox_archives_backlog_for_acting_peer(relay_dir):
 @pytest.mark.asyncio
 async def test_clear_inbox_is_noop_off_own_inbox_tab(relay_dir):
     from claude_relay.core import store
-    from claude_relay.core.models import MessageState
 
     store.register_peer(name="grp-parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="grp-child",  session_id="s2", cwd="/tmp", role="child")

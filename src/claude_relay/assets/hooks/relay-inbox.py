@@ -25,7 +25,7 @@ import re
 import sys
 import tempfile
 import traceback
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 RELAY_DIR = Path.home() / ".claude" / "relay"
@@ -67,7 +67,7 @@ def parse_backflow(body):
 
 
 def _now_iso():
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def name_for_session(session_id, sessions):
