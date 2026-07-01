@@ -1,15 +1,40 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [project]
 name = "claude-relay"
 version = "0.1.0"
-description = "TUI + CLI + library + skill for the local Claude Code relay"
+description = "Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Nazarii Ahapevych" }]
+keywords = [
+  "cli",
+  "tui",
+  "claude-code",
+  "ai-agents",
+  "orchestration",
+  "multi-agent",
+  "message-queue",
+  "developer-tools",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Terminals",
+  "Topic :: Utilities",
+]
 dependencies = [
   "textual>=0.60",
   "watchdog>=4.0",
@@ -23,6 +48,11 @@ dev = [
   "textual-dev>=1.5",
   "ruff>=0.4",
 ]
+
+[project.urls]
+Homepage = "https://github.com/FreddieMcHeart/claude-relay"
+Repository = "https://github.com/FreddieMcHeart/claude-relay"
+Issues = "https://github.com/FreddieMcHeart/claude-relay/issues"
 
 [project.scripts]
 claude-relay = "claude_relay.cli.__main__:main"
