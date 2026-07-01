@@ -3,13 +3,23 @@ from __future__ import annotations
 
 import argparse
 import sys
+from importlib.metadata import PackageNotFoundError, version
 
 from ..core import logging as relay_logging
+from ..core.errors import RelayError
 from .commands import relay_cmds
+
+
+def _version_string() -> str:
+    try:
+        return f"claude-relay {version('claude-relay')}"
+    except PackageNotFoundError:
+        return "claude-relay (unknown version — not installed as a package)"
 
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="claude-relay")
+    p.add_argument("--version", action="version", version=_version_string())
     p.add_argument("--debug", action="store_true",
                    help="enable DEBUG-level logging")
 
@@ -161,7 +171,19 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     relay_logging.setup(level="DEBUG" if args.debug else "INFO")
-    return args.func(args)
+    try:
+        return args.func(args)
+    except (SystemExit, KeyboardInterrupt):
+        raise
+    except RelayError as e:
+        # Any RelayError subclass a subcommand forgot to catch locally still
+        # lands here — defense in depth so a bug never surfaces as a raw
+        # traceback to an end user.
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+    except OSError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
