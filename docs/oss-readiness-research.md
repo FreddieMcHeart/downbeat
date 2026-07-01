@@ -204,6 +204,31 @@ Pre-launch with zero GTM assets. The biggest strategic risk is the **name**: `cl
 
 ---
 
+## Claude Code integration story
+
+`downbeat` already ships a genuinely first-class Claude Code bundle (skill + two hooks + five slash-commands), but it currently delivers that bundle via a `downbeat init` script that copies files into `~/.claude/` and hand-mutates `~/.claude/settings.json` to register hooks — the exact pattern Anthropic now steers projects *away* from. As of 2025-2026, Anthropic's canonical answer is to package this as a proper **plugin** (`.claude-plugin/plugin.json` + `hooks/hooks.json` + `skills/`), which auto-merges hooks on enable and cleanly removes them on disable, sidestepping settings.json surgery entirely. The core being agent-neutral maps cleanly onto the emerging "one source of truth, N harnesses" framing (wshobson/agents), where Claude Code is badged "native" and other agents "supported." The current init-script approach isn't wrong, but it's the higher-maintenance path and will require explicit disclosure if listed on `awesome-claude-code`, whose rules mandate flagging any tool that "modifies shared system files."
+
+| Option | Summary | Effort | Pros (top 2) | Cons (top 2) | Recommended? |
+|---|---|---|---|---|---|
+| A. Ship as a proper Claude Code **plugin** (`.claude-plugin/plugin.json` + `hooks/hooks.json` + `skills/`), install via `/plugin marketplace add` | Repackage the existing bundle into plugin layout; hooks auto-merge/auto-clean, no settings.json editing | med | Clean install/uninstall with zero settings.json surgery; native `/plugin` discovery + marketplace-eligible | Requires a hosting repo with `marketplace.json`; plugin hooks less flexible than raw settings.json for edge cases | ✅ |
+| B. Harden the `downbeat init` script | Retain current installer, add exact-command dedup + `uninstall`/`repair`, never overwrite | low | Preserves single-command UX + standalone-core story; no marketplace dependency | Must hand-merge settings.json (no official tooling); awesome-claude-code requires disclosing system-file modification | |
+| C. Dual-track (plugin + init) | Offer both, wshobson/agents "harness-native artifacts, one source of truth" model | high | Widest reach; expresses "agent-neutral core, first-class Claude Code"; future-proofs Cursor/Codex | Two install paths to document + keep in sync; more maintenance for a solo maintainer | |
+| D. List-only | Keep current install; focus on `awesome-claude-code` listing + "Works with Claude Code" README + badge | low | Fast visibility, near-zero code; forces writing the integration README section | Doesn't fix the settings.json risk; listing not guaranteed + needs modification disclosure | |
+
+**Recommendation:** **Option A** — repackage skill+hooks+commands as a real Claude Code plugin. Highest-leverage: eliminates fragile `settings.json` hand-editing (biggest correctness + uninstall liability), gives clean `/plugin` install/removal, makes downbeat marketplace-eligible. Keep `downbeat init` only as a thin fallback for genuinely standalone (non-plugin) users, and if retained, adopt the claude-mem idempotency pattern (dedup by exact command string + explicit `uninstall`). Frame README with "agent-neutral core, first-class Claude Code" tiering (native vs supported). Defer the full dual-track matrix (C) until a second live harness exists.
+
+**Sources:**
+- https://code.claude.com/docs/en/plugins
+- https://code.claude.com/docs/en/plugin-marketplaces
+- https://code.claude.com/docs/en/plugins-reference
+- https://code.claude.com/docs/en/hooks
+- https://github.com/anthropics/claude-plugins-community/blob/main/.claude-plugin/marketplace.json
+- https://github.com/hesreallyhim/awesome-claude-code
+- https://github.com/wshobson/agents
+- https://github.com/obra/superpowers
+
+---
+
 ## Phased adoption roadmap
 
 ### Phase 1 — Launch-blockers (before repo goes public / first PyPI release)
