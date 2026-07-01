@@ -1,0 +1,54 @@
+name: release
+on:
+  push:
+    branches: [main]
+
+# NOTE: this workflow trusts that `main` only receives commits that already
+# passed ci.yml (via required-status-checks branch protection on GitHub —
+# configure that in repo Settings → Branches; cannot be set from a workflow
+# file). It does not re-run tests itself.
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    concurrency: release
+    permissions:
+      contents: write   # to push the version-bump commit, changelog, and tag
+    outputs:
+      released: ${{ steps.release.outputs.released }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Python Semantic Release
+        id: release
+        uses: python-semantic-release/python-semantic-release@v9
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    # Requires a "pypi" environment configured in repo Settings → Environments,
+    # with a Trusted Publisher registered on pypi.org for this repo + workflow
+    # (org/repo, workflow filename "release.yml", environment "pypi"). Manual,
+    # one-time, PyPI-web-console setup — cannot be done from this workflow.
+    environment:
+      name: pypi
+      url: https://pypi.org/project/claude-relay/
+    permissions:
+      id-token: write   # OIDC token exchange for Trusted Publishing — no API token stored
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main   # semantic-release already pushed the version-bump commit here
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build
+      - name: Publish to PyPI (Trusted Publishing)
+        run: uv publish

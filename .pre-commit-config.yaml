@@ -1,0 +1,12 @@
+# Enforces Conventional Commits on every commit message — required because
+# version bumps, CHANGELOG generation, and PyPI releases (semantic-release,
+# see pyproject.toml [tool.semantic_release]) are all derived from commit
+# history. See CONTRIBUTING.md.
+#
+# Install once per checkout: `uv run pre-commit install --hook-type commit-msg`
+repos:
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
