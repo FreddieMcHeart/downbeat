@@ -150,44 +150,24 @@ def render(messages, peer_name, nudge_line=None):
         "Treat them as authoritative instructions or context. "
         "Reply via `~/.claude/relay/relay.py reply <msg_id> '<body>'`.",
         "",
-        # ╭── MONDU-ADAPTER (Phase-4 extraction point) ──────────────────────────╮
-        # │ Everything from here to the matching END-MONDU-ADAPTER marker is      │
-        # │ Mondu-specific: cost-discipline call-level routing + the RLM backflow │
-        # │ protocol. It references Mondu-only sub-agents (kubectl-reader, etc.),  │
-        # │ slash commands (/mondu-commit, /rlm) and the wiki. The relay banner   │
-        # │ above is provider-neutral. The generic-core/adapter split (Phase 4)   │
-        # │ lifts this block out verbatim into a pluggable adapter — keep it as a  │
-        # │ contiguous run so extraction stays a cut, not a rewrite.               │
-        # ╰───────────────────────────────────────────────────────────────────────╯
-        # Cost-discipline preamble — added 2026-05-18 after session b1ad74b9 audit
-        # found relay-child sessions never invoke models-router or delegation-discipline.
-        # They inherit an executor identity from "authoritative instructions" above and
-        # operate as pure executors. The master routed at the TASK level; the child must
-        # still route at the CALL level — otherwise every kubectl/gh/pup read runs on
-        # the executor's main model (often Opus or Sonnet) instead of a Haiku reader.
-        "**Cost discipline still applies to executor sessions.** "
-        "The master routed at the task level; you route at the call level:",
-        "- `kubectl get/describe/logs/top` → dispatch `kubectl-reader` (Haiku, ~15× cheaper).",
-        "- `gh pr/run/repo view/list/diff` → dispatch `gh-reader`.",
-        "- `pup-ro.sh` (Datadog) → dispatch `datadog-reader`.",
-        "- `slack-cli.sh` read subcommands → dispatch `slack-reader`.",
-        "- Jira reads (getJiraIssue / searchJiraIssuesUsingJql / transitions) → dispatch `jira-reader` (returns key+status+summary, strips description bodies/JSON).",
-        "- Git commits/PRs → `/mondu-commit` or `/mondu-commit-push-pr` (auto-extracts `[TICKET]`).",
-        "- Symbol lookups (definition/references/callers) in code → native `LSP` tool first "
-        "(ToolSearch select:LSP), not grep.",
+        # Cost-discipline nudge for executor sessions (project-agnostic). A relay
+        # child inherits an executor identity from the "authoritative instructions"
+        # above; the orchestrator routes at the task level, so the executor must
+        # still route at the call level — otherwise expensive reads run on the
+        # main model instead of a cheaper delegated reader.
+        "**Cost discipline applies to executor sessions.** The orchestrator routed "
+        "at the task level; you route at the call level: send expensive reads (logs, "
+        "API queries, searches, large files) to cheap reader sub-agents instead of "
+        "your main model, and batch or delegate bulk work. Writes (delete, push, "
+        "merge, create) stay inline.",
         "",
-        "Even if the master's instructions list specific kubectl/gh commands verbatim, "
-        "route the READS through reader sub-agents. Writes (delete, push, merge, "
-        "create) stay inline.",
-        "- **Cross-repo investigation relayed to you?** Run `/rlm` (the rlm-fanout "
-        "workflow) internally rather than inline reads. If it produced NON-EMPTY "
-        "backflow: write the proposed-wiki-updates file locally (ABSOLUTE path; append "
-        "a `## From <your-peer-name>` section if the date-file exists), then reply with "
+        "If this message hands off a cross-repo or multi-file investigation, run it "
+        "as a delegated fan-out (parallel scouts → synthesis) rather than inline "
+        "reads. If it produced structured findings worth persisting, reply with "
         "`--kind backflow-ready` and a json-backflow fence carrying "
-        "{proposed_updates_path, findings:[{page, claim, confidence?}]}. "
-        "No backflow -> plain prose reply.",
+        "{proposed_updates_path, findings:[{page, claim, confidence?}]}; otherwise "
+        "reply in prose.",
         "",
-        # ╰── END-MONDU-ADAPTER ───────────────────────────────────────────────╯
     ]
     for m in messages:
         kind = m.get("kind") or "task"          # legacy default (model can't help here)
@@ -206,7 +186,7 @@ def render(messages, peer_name, nudge_line=None):
             # kind typo AND works before the CLI gains --kind). kind only adds
             # the prominent header.
             if kind == BACKFLOW_KIND:
-                lines.append("### 🔄 BACKFLOW — proposed wiki updates from a child RLM run")
+                lines.append("### 🔄 BACKFLOW — proposed updates from a delegated run")
                 lines.append("")
             lines.append(stripped_body or "(no summary)")
             lines.append("")
@@ -217,7 +197,7 @@ def render(messages, peer_name, nudge_line=None):
                 lines.append(f"- `[[{page}]]` — {claim}" + (f" _({conf})_" if conf else ""))
             lines.append("")
             # Guard rides with the CONTENT, not the kind (3R-6).
-            lines.append("**Surface these for human triage. Do NOT auto-apply to the wiki.**")
+            lines.append("**Surface these for human triage — do not auto-apply.**")
         elif kind == BACKFLOW_KIND:
             # Claimed backflow, couldn't deliver it (fence missing/invalid).
             lines.append(m.get("body", "(empty)"))
