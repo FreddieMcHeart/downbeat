@@ -28,15 +28,48 @@ plus PyPI `baton` (iRODS wrapper). `downbeat` verdict:
 parallel coding agents from one place, locally, where you're the conductor. Nothing
 happens without you."*
 
-## Rename migration: `claude-relay` → `downbeat` (future work — its own phase)
+## Rename migration: `claude-relay` → `downbeat`
 
-Big, mechanical, test-guarded. NOT a launch blocker for identity; do as a dedicated phase.
+Big, mechanical, test-guarded. Executed as a coordinated pass (parent pinged
+before/after — it touches the live relay channel).
 
-- [ ] Repo rename + update `origin` remote
-- [ ] Python package/module rename `claude_relay` → `downbeat` (entry point, imports, 26 test files, shim, `init` paths, hook/command filenames + settings.json regs)
-- [ ] Re-point editable install (`uv tool install --editable`) + rebuild `.venv` (both bindings — see the relocation lesson)
-- [ ] PyPI first publish under `downbeat`
-- [ ] Update README / docs / skill references / banner strings
+**Scoped IN** (source/package identity — the actual launch-blocker):
+- [ ] Repo rename (`gh repo rename`) + update `origin` remote + local checkout dir
+- [ ] Python package/module rename `claude_relay` → `downbeat` (entry point, imports,
+  all test files)
+- [ ] pyproject.toml: `name`, `[project.scripts]` binary, `[tool.hatch...packages]`, `[project.urls]`
+- [ ] `SHIM_TEMPLATE` content in `init_cmd.py` + the already-installed live shim file
+  (same path `~/.claude/relay/relay.py`, new content pointing at the `downbeat` binary)
+- [ ] Re-point editable install (`uv tool install --editable`) + rebuild `.venv` (both
+  bindings — see the mama/mondu relocation lesson)
+- [ ] Update README / CONTRIBUTING / docs referencing the `claude-relay` CLI command
+- [ ] PyPI first publish under `downbeat` (blocked on release-setup.md's manual steps)
+
+**Also IN scope** (correctness — these describe a fact about the CLI binary that's
+changing, so leaving them stale would be a bug, not a style choice):
+- [ ] Every `claude-relay <verb>` CLI-invocation example inside asset file CONTENT
+  (SKILL.md, `assets/commands/relay-*.md`, `assets/hooks_manifest.json`'s comment) →
+  `downbeat <verb>`.
+- [ ] The packaged skill's own identity (`SKILL.md`'s `name:` frontmatter) → `downbeat`,
+  and `_skill_install_dir()` in `init_cmd.py` → `skills/downbeat` (low-risk, avoids a
+  confusing mismatch between "the skill named downbeat" living in a folder called
+  "claude-relay"). The now-orphaned `~/.claude/skills/claude-relay/` gets removed as
+  part of the live-sync step.
+
+**Deliberately scoped OUT** (deferred to Phase 2's Claude Code plugin repackaging —
+decisions.md #15 — since these get restructured there anyway; renaming twice is wasted
+work):
+- `~/.claude/relay/` runtime data directory path (`RELAY_DIR`) — stays as-is. Renaming
+  it now would orphan every live peer's `sessions.json`/inbox mid-conversation for zero
+  Phase-1 benefit.
+- Hook script FILENAMES (`relay-inbox.py`, `relay-poll-offer.py`) — filenames stay;
+  their content is still updated per the "also in scope" note above.
+- Slash-command FILENAMES (`relay-register.md` etc., invoked as `/relay-send` etc.) —
+  filenames stay (still `/relay-send`); Phase 2's plugin packaging will likely
+  re-namespace these anyway (`/downbeat:send` or similar), so renaming the .md files
+  now would be redone.
+- Peer names / `sessions.json` content — entirely unrelated to the package name, not
+  touched by this migration at all.
 
 ## GTM / launch channels (Phase 3 — after OSS-hygiene + docs land)
 

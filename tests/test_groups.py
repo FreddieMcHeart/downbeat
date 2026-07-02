@@ -1,4 +1,4 @@
-from claude_relay.core import groups
+from downbeat.core import groups
 
 
 def test_save_and_load_group(relay_dir):

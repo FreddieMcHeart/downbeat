@@ -1,7 +1,7 @@
 from datetime import UTC
 
-from claude_relay.core import store
-from claude_relay.core.models import MessageState
+from downbeat.core import store
+from downbeat.core.models import MessageState
 
 
 def _peers(*names):

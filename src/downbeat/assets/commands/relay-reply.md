@@ -10,7 +10,7 @@ Reply to a previously received relay message. Arguments: $ARGUMENTS
 A bare `/relay-reply` (no `<msg_id>`) is the user's inbox-check shortcut. Do this:
 
 1. Look at the CURRENT turn's context for a `### Relay inbox — N new message(s)` banner (the hook drains the inbox into context on each prompt). That block IS your pending mail.
-2. If none is in context, verify directly: `claude-relay whoami` for your peer name, then check `~/.claude/relay/inbox/<me>/` and `~/.claude/relay/delivered/<me>/` for `.json` files.
+2. If none is in context, verify directly: `downbeat whoami` for your peer name, then check `~/.claude/relay/inbox/<me>/` and `~/.claude/relay/delivered/<me>/` for `.json` files.
 3. **If there ARE pending messages** (especially from the parent) → surface them and reply/handle as appropriate (fall through to the reply flow below with the real `<msg_id>`).
 4. **If there are NONE → SKIP. Take no action.** Do not fabricate a reply, do not invent a `<msg_id>`, and do NOT send proactive/unsolicited messages to the parent. Just report "inbox empty, nothing to reply to" and stop.
 

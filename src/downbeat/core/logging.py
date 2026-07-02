@@ -1,7 +1,7 @@
-"""Centralized logging config for claude_relay.
+"""Centralized logging config for downbeat.
 
-Three loggers — claude_relay.core, claude_relay.tui, claude_relay.watcher —
-all attach to a single rotating handler on ~/.claude/relay/logs/claude-relay.log."""
+Three loggers — downbeat.core, downbeat.tui, downbeat.watcher —
+all attach to a single rotating handler on ~/.claude/relay/logs/downbeat.log."""
 from __future__ import annotations
 
 import logging
@@ -11,7 +11,7 @@ from . import paths
 
 _FORMAT = "%(asctime)sZ [%(levelname)-5s] %(name)-22s %(message)s"
 _DATEFMT = "%Y-%m-%dT%H:%M:%S"
-_ROOT_LOGGER = "claude_relay"
+_ROOT_LOGGER = "downbeat"
 
 
 def setup(level: str = "INFO") -> None:

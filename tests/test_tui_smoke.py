@@ -1,6 +1,6 @@
 import pytest
 
-from claude_relay.tui.app import RelayApp
+from downbeat.tui.app import RelayApp
 
 
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
@@ -47,8 +47,8 @@ async def test_uppercase_b_triggers_broadcast_status_action(relay_dir):
     MessageDetailScreen in the detail-screen refactor.
     Pressing B on MessageDetailScreen with a non-broadcast message posts
     a 'Not part of a broadcast' warning notification."""
-    from claude_relay.core import store
-    from claude_relay.tui.screens.message_detail import MessageDetailScreen
+    from downbeat.core import store
+    from downbeat.tui.screens.message_detail import MessageDetailScreen
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     msg = store.send_message(from_peer="c", to_peer="p", subject="t", body="b")

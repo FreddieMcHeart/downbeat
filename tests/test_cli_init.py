@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 
-from claude_relay.cli.commands.init_cmd import run_init, run_uninstall
+from downbeat.cli.commands.init_cmd import run_init, run_uninstall
 
 
 def _relay_reg_count(settings_path: Path) -> int:
@@ -60,8 +60,8 @@ def test_init_installs_skill(tmp_path, monkeypatch, relay_dir):
     assert rc == 0
     # Skill installation tested indirectly: file content matches package skill
     # Locate the packaged skill source
-    import claude_relay
-    pkg_skill = Path(claude_relay.__file__).parent / "skill" / "SKILL.md"
+    import downbeat
+    pkg_skill = Path(downbeat.__file__).parent / "skill" / "SKILL.md"
     assert pkg_skill.exists()
 
 
@@ -70,8 +70,8 @@ def test_skill_md_uses_context_aware_offer(relay_dir):
     it conditions the offer on whether the user is about to idle waiting."""
     from pathlib import Path
 
-    import claude_relay
-    skill = (Path(claude_relay.__file__).parent / "skill" / "SKILL.md").read_text()
+    import downbeat
+    skill = (Path(downbeat.__file__).parent / "skill" / "SKILL.md").read_text()
     # The old chronological wording is gone:
     assert "First-invocation offer" not in skill
     # The new context-aware wording is present:
@@ -84,7 +84,7 @@ def test_uninstall_removes_skill(tmp_path, monkeypatch, relay_dir):
     run_init()
     rc = run_uninstall()
     assert rc == 0
-    assert not (tmp_path / ".claude" / "skills" / "claude-relay").exists()
+    assert not (tmp_path / ".claude" / "skills" / "downbeat").exists()
 
 
 # --------------- consolidation: hooks + commands + settings ----------------

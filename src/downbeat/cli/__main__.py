@@ -1,4 +1,4 @@
-"""claude-relay command-line entry point."""
+"""downbeat command-line entry point."""
 from __future__ import annotations
 
 import argparse
@@ -12,13 +12,13 @@ from .commands import relay_cmds
 
 def _version_string() -> str:
     try:
-        return f"claude-relay {version('claude-relay')}"
+        return f"downbeat {version('downbeat')}"
     except PackageNotFoundError:
-        return "claude-relay (unknown version — not installed as a package)"
+        return "downbeat (unknown version — not installed as a package)"
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="claude-relay")
+    p = argparse.ArgumentParser(prog="downbeat")
     p.add_argument("--version", action="version", version=_version_string())
     p.add_argument("--debug", action="store_true",
                    help="enable DEBUG-level logging")

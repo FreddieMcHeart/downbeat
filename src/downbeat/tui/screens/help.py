@@ -6,7 +6,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Label
 
 HELP_TEXT = """\
-[b]claude-relay TUI — Chat view[/b]
+[b]downbeat TUI — Chat view[/b]
 
 [b]Navigation[/b]
   Tab / Shift+Tab   cycle focus: Messages → Composer

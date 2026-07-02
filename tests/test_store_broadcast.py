@@ -1,4 +1,4 @@
-from claude_relay.core import store
+from downbeat.core import store
 
 
 def _peers(*names):

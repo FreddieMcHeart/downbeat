@@ -31,7 +31,7 @@ def _quarantine_msg(relay_dir, store, peer="c", from_peer="p"):
 # ── list_quarantined ─────────────────────────────────────────────────────────
 
 def test_list_quarantined_returns_quarantined_messages(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     _peers(store, "p", "c")
     msg = _quarantine_msg(relay_dir, store)
     found = store.list_quarantined("c")
@@ -41,13 +41,13 @@ def test_list_quarantined_returns_quarantined_messages(relay_dir):
 
 
 def test_list_quarantined_empty_for_clean_peer(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     _peers(store, "p", "c")
     assert store.list_quarantined("c") == []
 
 
 def test_list_quarantined_multiple_newest_first(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     _peers(store, "p", "c")
     msg1 = _quarantine_msg(relay_dir, store)
     msg2 = _quarantine_msg(relay_dir, store)
@@ -61,8 +61,8 @@ def test_list_quarantined_multiple_newest_first(relay_dir):
 # ── requeue_quarantined ──────────────────────────────────────────────────────
 
 def test_requeue_quarantined_moves_to_inbox(relay_dir):
-    from claude_relay.core import store
-    from claude_relay.core.models import MessageState
+    from downbeat.core import store
+    from downbeat.core.models import MessageState
     _peers(store, "p", "c")
     msg = _quarantine_msg(relay_dir, store)
     count = store.requeue_quarantined("c")
@@ -80,7 +80,7 @@ def test_requeue_quarantined_moves_to_inbox(relay_dir):
 
 
 def test_requeue_quarantined_all_when_ids_none(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     _peers(store, "p", "c")
     _quarantine_msg(relay_dir, store)
     _quarantine_msg(relay_dir, store)
@@ -90,7 +90,7 @@ def test_requeue_quarantined_all_when_ids_none(relay_dir):
 
 
 def test_requeue_quarantined_selective_by_id(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     _peers(store, "p", "c")
     msg1 = _quarantine_msg(relay_dir, store)
     msg2 = _quarantine_msg(relay_dir, store)
@@ -103,15 +103,15 @@ def test_requeue_quarantined_selective_by_id(relay_dir):
 
 
 def test_requeue_quarantined_nonexistent_peer_returns_zero(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     assert store.requeue_quarantined("no-such-peer") == 0
 
 
 # ── purge_quarantined ────────────────────────────────────────────────────────
 
 def test_purge_quarantined_deletes_message(relay_dir):
-    from claude_relay.core import store
-    from claude_relay.core.errors import MessageNotFound
+    from downbeat.core import store
+    from downbeat.core.errors import MessageNotFound
     _peers(store, "p", "c")
     msg = _quarantine_msg(relay_dir, store)
     count = store.purge_quarantined("c")
@@ -122,7 +122,7 @@ def test_purge_quarantined_deletes_message(relay_dir):
 
 
 def test_purge_quarantined_selective_by_id(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     _peers(store, "p", "c")
     msg1 = _quarantine_msg(relay_dir, store)
     msg2 = _quarantine_msg(relay_dir, store)
@@ -134,19 +134,19 @@ def test_purge_quarantined_selective_by_id(relay_dir):
 
 
 def test_purge_quarantined_nonexistent_peer_returns_zero(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     assert store.purge_quarantined("no-such-peer") == 0
 
 
 # ── CLI integration ──────────────────────────────────────────────────────────
 
 def test_cli_quarantine_list_exits_zero(relay_dir, capsys, monkeypatch):
-    from claude_relay.cli.__main__ import main
-    from claude_relay.core import store
+    from downbeat.cli.__main__ import main
+    from downbeat.core import store
     _peers(store, "p", "c")
     _quarantine_msg(relay_dir, store)
     monkeypatch.setattr(sys, "argv",
-                        ["claude-relay", "quarantine", "--peer", "c", "list"])
+                        ["downbeat", "quarantine", "--peer", "c", "list"])
     rc = main()
     assert rc == 0
     out = capsys.readouterr().out
@@ -154,23 +154,23 @@ def test_cli_quarantine_list_exits_zero(relay_dir, capsys, monkeypatch):
 
 
 def test_cli_quarantine_list_empty_exits_zero(relay_dir, capsys, monkeypatch):
-    from claude_relay.cli.__main__ import main
-    from claude_relay.core import store
+    from downbeat.cli.__main__ import main
+    from downbeat.core import store
     _peers(store, "p", "c")
     monkeypatch.setattr(sys, "argv",
-                        ["claude-relay", "quarantine", "--peer", "c", "list"])
+                        ["downbeat", "quarantine", "--peer", "c", "list"])
     rc = main()
     assert rc == 0
     assert "no quarantined" in capsys.readouterr().out
 
 
 def test_cli_quarantine_purge_empties_quarantine(relay_dir, capsys, monkeypatch):
-    from claude_relay.cli.__main__ import main
-    from claude_relay.core import store
+    from downbeat.cli.__main__ import main
+    from downbeat.core import store
     _peers(store, "p", "c")
     _quarantine_msg(relay_dir, store)
     monkeypatch.setattr(sys, "argv",
-                        ["claude-relay", "quarantine", "--peer", "c", "purge"])
+                        ["downbeat", "quarantine", "--peer", "c", "purge"])
     rc = main()
     assert rc == 0
     assert store.list_quarantined("c") == []
@@ -178,12 +178,12 @@ def test_cli_quarantine_purge_empties_quarantine(relay_dir, capsys, monkeypatch)
 
 
 def test_cli_quarantine_requeue_moves_to_inbox(relay_dir, capsys, monkeypatch):
-    from claude_relay.cli.__main__ import main
-    from claude_relay.core import store
+    from downbeat.cli.__main__ import main
+    from downbeat.core import store
     _peers(store, "p", "c")
     msg = _quarantine_msg(relay_dir, store)
     monkeypatch.setattr(sys, "argv",
-                        ["claude-relay", "quarantine", "--peer", "c", "requeue"])
+                        ["downbeat", "quarantine", "--peer", "c", "requeue"])
     rc = main()
     assert rc == 0
     assert store.list_quarantined("c") == []

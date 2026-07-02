@@ -1,4 +1,4 @@
-"""Implementation of every `claude-relay <subcommand>`."""
+"""Implementation of every `downbeat <subcommand>`."""
 from __future__ import annotations
 
 import argparse
@@ -28,7 +28,7 @@ def _detect_peer_or_error(name: str | None) -> str:
     claude_pid = session.detect_live_claude_pid()
     if claude_pid is None:
         print(f"error: session {sid} is not registered; run "
-              "`claude-relay register`", file=sys.stderr)
+              "`downbeat register`", file=sys.stderr)
         raise SystemExit(2)
     claude_pid_start = session.process_start_time(claude_pid)
     candidates = store.find_peer_by_claude_pid(claude_pid, claude_pid_start)
@@ -46,7 +46,7 @@ def _detect_peer_or_error(name: str | None) -> str:
               "pass --from explicitly to disambiguate", file=sys.stderr)
         raise SystemExit(2)
     print(f"error: session {sid} is not registered; run "
-          "`claude-relay register`", file=sys.stderr)
+          "`downbeat register`", file=sys.stderr)
     raise SystemExit(2)
 
 

@@ -21,7 +21,7 @@ STATE_FILE = Path.home() / ".claude" / "relay" / "loop_offer_state.json"
 
 # Match either path-based shim or the global CLI binary.
 SEND_REPLY_RE = re.compile(
-    r"(?:relay\.py|claude-relay)\s+(?:send|reply)\b"
+    r"(?:relay\.py|downbeat)\s+(?:send|reply)\b"
 )
 
 HINT = (

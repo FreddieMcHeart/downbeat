@@ -1,4 +1,4 @@
-from claude_relay.core import state
+from downbeat.core import state
 
 
 def test_set_and_get_last_acting_as(relay_dir):

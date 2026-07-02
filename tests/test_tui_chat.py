@@ -1,12 +1,12 @@
 import pytest
 
-from claude_relay.tui.app import RelayApp
-from claude_relay.tui.widgets.peer_tabs import OWN_INBOX_ID
+from downbeat.tui.app import RelayApp
+from downbeat.tui.widgets.peer_tabs import OWN_INBOX_ID
 
 
 @pytest.mark.asyncio
 async def test_chat_screen_mounts_with_acting_as_chip_and_tabs(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="PLAT-3113-master", session_id="s1",
                         cwd="/tmp", role="parent")
     store.register_peer(name="PLAT-3113-child", session_id="s2",
@@ -26,8 +26,8 @@ async def test_chat_screen_mounts_with_acting_as_chip_and_tabs(relay_dir):
 
 @pytest.mark.asyncio
 async def test_sending_via_composer_adds_message_to_thread(relay_dir):
-    from claude_relay.core import store
-    from claude_relay.tui.widgets.chat_composer import ChatComposer
+    from downbeat.core import store
+    from downbeat.tui.widgets.chat_composer import ChatComposer
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
     app = RelayApp()
@@ -47,7 +47,7 @@ async def test_sending_via_composer_adds_message_to_thread(relay_dir):
 
 @pytest.mark.asyncio
 async def test_chat_screen_auto_picks_first_parent_as_acting_as(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="P", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="C", session_id="s2", cwd="/tmp", role="child")
     app = RelayApp()
@@ -65,8 +65,8 @@ async def test_composer_shift_enter_inserts_newline_enter_sends(relay_dir):
     """
     from textual.events import Key
 
-    from claude_relay.core import store
-    from claude_relay.tui.widgets.chat_composer import ChatComposer
+    from downbeat.core import store
+    from downbeat.tui.widgets.chat_composer import ChatComposer
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
     app = RelayApp()
@@ -100,8 +100,8 @@ async def test_composer_shift_enter_inserts_newline_enter_sends(relay_dir):
 @pytest.mark.asyncio
 async def test_broadcast_sends_to_all_group_children(relay_dir):
     """Ctrl+B broadcast should reach all group children, not the sender."""
-    from claude_relay.core import store
-    from claude_relay.tui.widgets.chat_composer import ChatComposer
+    from downbeat.core import store
+    from downbeat.tui.widgets.chat_composer import ChatComposer
     store.register_peer(name="grp-master", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="grp-a", session_id="s2", cwd="/tmp", role="child")
     store.register_peer(name="grp-b", session_id="s3", cwd="/tmp", role="child")
@@ -123,8 +123,8 @@ async def test_broadcast_sends_to_all_group_children(relay_dir):
 async def test_auto_mark_read_on_cursor_move(relay_dir):
     """Moving cursor to a NEW message addressed to me marks it read.
     Opening a thread for the first time (peer change) marks the most-recent message read."""
-    from claude_relay.core import store
-    from claude_relay.core.models import MessageState
+    from downbeat.core import store
+    from downbeat.core.models import MessageState
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
     store.register_peer(name="other", session_id="s3", cwd="/tmp", role="child")
@@ -157,7 +157,7 @@ async def test_auto_mark_read_on_cursor_move(relay_dir):
 async def test_acting_as_peer_not_in_own_tabs(relay_dir):
     """The parent we're acting as should NOT appear as a tab — you can't
     talk to yourself."""
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="PLAT-3113-master", session_id="s1",
                         cwd="/tmp", role="parent")
     store.register_peer(name="PLAT-3113-child", session_id="s2",
@@ -175,7 +175,7 @@ async def test_acting_as_peer_not_in_own_tabs(relay_dir):
 
 @pytest.mark.asyncio
 async def test_left_right_cycles_peer_tabs(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="PLAT-3113-master", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="PLAT-3113-child",  session_id="s2", cwd="/tmp", role="child")
     store.register_peer(name="PLAT-3113-slave",  session_id="s3", cwd="/tmp", role="child")
@@ -193,7 +193,7 @@ async def test_left_right_cycles_peer_tabs(relay_dir):
 
 @pytest.mark.asyncio
 async def test_tab_does_not_land_focus_on_peer_tabs(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child",  session_id="s2", cwd="/tmp", role="child")
     app = RelayApp()
@@ -214,8 +214,8 @@ async def test_tab_does_not_land_focus_on_peer_tabs(relay_dir):
 
 @pytest.mark.asyncio
 async def test_enter_on_message_opens_detail_screen(relay_dir):
-    from claude_relay.core import store
-    from claude_relay.tui.widgets.chat_stream import ChatStream
+    from downbeat.core import store
+    from downbeat.tui.widgets.chat_stream import ChatStream
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
     msg = store.send_message(from_peer="child", to_peer="parent",
@@ -245,7 +245,7 @@ async def test_enter_on_message_opens_detail_screen(relay_dir):
 
 @pytest.mark.asyncio
 async def test_acting_as_restored_from_persisted_state(relay_dir):
-    from claude_relay.core import state, store
+    from downbeat.core import state, store
     store.register_peer(name="P1", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="P2", session_id="s2", cwd="/tmp", role="parent")
     state.set_last_acting_as("P2")
@@ -260,7 +260,7 @@ async def test_acting_as_restored_from_persisted_state(relay_dir):
 async def test_yank_body_copies_to_clipboard(relay_dir, monkeypatch):
     """Pressing y on a focused bubble should call copy_to_clipboard with
     the message body."""
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     store.send_message(from_peer="c", to_peer="p", subject="hi", body="THE_BODY")
@@ -269,7 +269,7 @@ async def test_yank_body_copies_to_clipboard(relay_dir, monkeypatch):
     def fake_copy(text):
         captured["text"] = text
         return True
-    from claude_relay.tui.widgets import clipboard
+    from downbeat.tui.widgets import clipboard
     monkeypatch.setattr(clipboard, "copy_to_clipboard", fake_copy)
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
@@ -287,7 +287,7 @@ async def test_yank_body_copies_to_clipboard(relay_dir, monkeypatch):
 async def test_refresh_thread_uses_differential_update(relay_dir):
     """A second refresh with the same messages should NOT remove and re-mount
     every bubble — the same widget instances should still be present."""
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     for i in range(5):
@@ -320,7 +320,7 @@ async def test_refresh_thread_uses_differential_update(relay_dir):
 async def test_refresh_thread_appends_new_message_without_full_rebuild(relay_dir):
     """When a new message arrives, only that bubble should be mounted; existing
     bubbles keep their widget identity."""
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     store.send_message(from_peer="c", to_peer="p", subject="a", body="x")
@@ -351,7 +351,7 @@ async def test_refresh_thread_appends_new_message_without_full_rebuild(relay_dir
 async def test_bubble_renders_body_with_brackets_without_crashing(relay_dir):
     """Message bodies containing '[' characters (terraform errors, JIRA tags,
     Python type hints) must not crash the bubble renderer."""
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     body = (
@@ -374,8 +374,8 @@ async def test_bubble_renders_body_with_brackets_without_crashing(relay_dir):
 
 @pytest.mark.asyncio
 async def test_switch_acting_as_modal_lists_parents(relay_dir):
-    from claude_relay.core import store
-    from claude_relay.tui.widgets.switch_acting_as import SwitchActingAsModal
+    from downbeat.core import store
+    from downbeat.tui.widgets.switch_acting_as import SwitchActingAsModal
     store.register_peer(name="P1", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="P2", session_id="s2", cwd="/tmp", role="parent")
     store.register_peer(name="C",  session_id="s3", cwd="/tmp", role="child")
@@ -396,7 +396,7 @@ async def test_long_body_with_brackets_renders_truncation_suffix_without_crashin
     contain literal '[…]' that Rich would parse as a tag.
 
     Specifically reproduces the [type='CNAME'] crash when body > 600 chars."""
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     body = (
@@ -421,7 +421,7 @@ async def test_long_body_with_brackets_renders_truncation_suffix_without_crashin
 async def test_body_with_brackets_renders_via_text_renderable(relay_dir):
     """Bodies containing '[type=value]'-style content must render as literal
     text — never get re-parsed by Textual's visualize markup tokeniser."""
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     bodies = [
@@ -451,8 +451,8 @@ async def test_own_inbox_tab_always_present_as_first_tab(relay_dir):
     """OWN_INBOX_ID must be the first entry in _members for both grouped and
     standalone peers — tested via PeerTabs.populate directly (no full TUI mount
     needed since tab rendering is the unit under test)."""
-    from claude_relay.core import store
-    from claude_relay.tui.widgets.peer_tabs import OWN_INBOX_ID, PeerTabs
+    from downbeat.core import store
+    from downbeat.tui.widgets.peer_tabs import OWN_INBOX_ID, PeerTabs
 
     store.register_peer(name="grp-master", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="grp-child",  session_id="s2", cwd="/tmp", role="child")
@@ -475,8 +475,8 @@ async def test_no_member_peer_renders_own_inbox(relay_dir):
     """A standalone peer (no prefix-mates) must open on its own inbox tab and
     render bubbles for messages addressed to it — tested via ChatStream directly
     to avoid Textual render-timing sensitivity."""
-    from claude_relay.core import store
-    from claude_relay.tui.widgets.chat_stream import ChatStream
+    from downbeat.core import store
+    from downbeat.tui.widgets.chat_stream import ChatStream
 
     # Register a sink peer with no group members
     store.register_peer(name="content-inbox", session_id="s1", cwd="/tmp", role="parent")
@@ -516,8 +516,8 @@ async def test_no_member_peer_renders_own_inbox(relay_dir):
 @pytest.mark.asyncio
 async def test_own_inbox_shows_messages_from_multiple_senders(relay_dir):
     """The own-inbox tab must aggregate messages from all senders, not just one."""
-    from claude_relay.core import store
-    from claude_relay.tui.widgets.chat_stream import ChatStream
+    from downbeat.core import store
+    from downbeat.tui.widgets.chat_stream import ChatStream
 
     store.register_peer(name="hub",     session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="alice",   session_id="s2", cwd="/tmp", role="child")
@@ -554,8 +554,8 @@ async def test_own_inbox_archived_toggle_reveals_processed_history(relay_dir):
     """A sink peer must be able to toggle archived/processed messages into view
     on its own-inbox tab. Pending-only is the default; toggling `a` adds the
     full received history, toggling again hides it."""
-    from claude_relay.core import store
-    from claude_relay.tui.widgets.chat_stream import ChatStream
+    from downbeat.core import store
+    from downbeat.tui.widgets.chat_stream import ChatStream
 
     store.register_peer(name="content-inbox", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="sender",        session_id="s2", cwd="/tmp", role="child")
@@ -602,8 +602,8 @@ async def test_own_inbox_archived_toggle_reveals_processed_history(relay_dir):
 async def test_clear_inbox_archives_backlog_for_acting_peer(relay_dir):
     """The `c` clear-inbox action archives the acting peer's pending backlog
     (inbox+delivered) → processed/, clearing the badge. Confirmed via the modal."""
-    from claude_relay.core import store
-    from claude_relay.core.models import MessageState
+    from downbeat.core import store
+    from downbeat.core.models import MessageState
 
     store.register_peer(name="hub",  session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="kid",  session_id="s2", cwd="/tmp", role="child")
@@ -635,7 +635,7 @@ async def test_clear_inbox_archives_backlog_for_acting_peer(relay_dir):
 
 @pytest.mark.asyncio
 async def test_clear_inbox_is_noop_off_own_inbox_tab(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
 
     store.register_peer(name="grp-parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="grp-child",  session_id="s2", cwd="/tmp", role="child")
@@ -657,8 +657,8 @@ async def test_clear_inbox_is_noop_off_own_inbox_tab(relay_dir):
 async def test_archived_toggle_action_only_acts_on_own_inbox_tab(relay_dir):
     """The screen-level `a` action toggles archived only when the own-inbox tab
     is active; on a member-peer thread it is a no-op (no flag flip)."""
-    from claude_relay.core import store
-    from claude_relay.tui.widgets.chat_stream import ChatStream
+    from downbeat.core import store
+    from downbeat.tui.widgets.chat_stream import ChatStream
 
     store.register_peer(name="grp-parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="grp-child",  session_id="s2", cwd="/tmp", role="child")

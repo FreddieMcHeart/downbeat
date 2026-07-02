@@ -1,13 +1,13 @@
 import pytest
 
-from claude_relay.tui.app import RelayApp
+from downbeat.tui.app import RelayApp
 
 
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_pressing_enter_on_inbox_opens_message(relay_dir):
-    from claude_relay.core import store
-    from claude_relay.core.models import MessageState
+    from downbeat.core import store
+    from downbeat.core.models import MessageState
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     # Send a message TO the parent so it appears in the parent's inbox
@@ -31,8 +31,8 @@ async def test_pressing_enter_on_inbox_opens_message(relay_dir):
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_opening_message_marks_it_read(relay_dir):
-    from claude_relay.core import store
-    from claude_relay.core.models import MessageState
+    from downbeat.core import store
+    from downbeat.core.models import MessageState
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     # Send a message TO the parent so it appears in the parent's inbox

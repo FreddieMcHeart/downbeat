@@ -1,6 +1,6 @@
 import json
 
-from claude_relay.core.models import Message, MessageState, Peer
+from downbeat.core.models import Message, MessageState, Peer
 
 
 def test_message_roundtrip_json():

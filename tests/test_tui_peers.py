@@ -1,12 +1,12 @@
 import pytest
 
-from claude_relay.tui.app import RelayApp
+from downbeat.tui.app import RelayApp
 
 
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_peer_list_shows_registered_peers(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
     app = RelayApp()
@@ -23,7 +23,7 @@ async def test_peer_list_shows_registered_peers(relay_dir):
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_peer_list_acting_as_default_first_parent(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
     app = RelayApp()
@@ -36,7 +36,7 @@ async def test_peer_list_acting_as_default_first_parent(relay_dir):
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_peer_list_unread_count(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
     store.send_message(from_peer="parent", to_peer="child", subject="x", body="y")
@@ -53,7 +53,7 @@ async def test_peer_list_unread_count(relay_dir):
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_dropdown_lists_only_parents(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="P1", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="P2", session_id="s2", cwd="/tmp", role="parent")
     store.register_peer(name="C1", session_id="s3", cwd="/tmp", role="child")
@@ -68,7 +68,7 @@ async def test_dropdown_lists_only_parents(relay_dir):
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_list_shows_all_related_peers_including_parent(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="PLAT-3113-master", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="PLAT-3113-child", session_id="s2", cwd="/tmp", role="child")
     store.register_peer(name="PLAT-3113-slave", session_id="s3", cwd="/tmp", role="child")
@@ -86,7 +86,7 @@ async def test_list_shows_all_related_peers_including_parent(relay_dir):
 async def test_list_falls_back_to_ungrouped_peers_when_prefix_empty(relay_dir):
     """When acting-as parent has no '-', tabs should show only other
     ungrouped peers (no '-' in name)."""
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="alpha",  session_id="s2", cwd="/tmp", role="child")
     store.register_peer(name="beta",   session_id="s3", cwd="/tmp", role="child")

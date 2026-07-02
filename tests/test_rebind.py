@@ -3,7 +3,7 @@ import argparse
 
 import pytest
 
-from claude_relay.core import session, store
+from downbeat.core import session, store
 
 
 def test_register_records_claude_pid_and_start(relay_dir, monkeypatch):
@@ -12,7 +12,7 @@ def test_register_records_claude_pid_and_start(relay_dir, monkeypatch):
     monkeypatch.setattr(session, "detect_session_id", lambda: "sid-A")
     monkeypatch.setattr(session, "write_marker_for_self", lambda sid: None)
     monkeypatch.setattr(session, "gc_stale_markers", lambda: {"tmp": 0, "relay": 0})
-    from claude_relay.cli.commands import relay_cmds
+    from downbeat.cli.commands import relay_cmds
     args = argparse.Namespace(name="parent", role="parent")
     rc = relay_cmds.cmd_register(args)
     assert rc == 0
@@ -51,7 +51,7 @@ def test_auto_rebind_on_session_mismatch(relay_dir, monkeypatch):
     monkeypatch.setattr(session, "detect_session_id", lambda: "new-sid")
     monkeypatch.setattr(session, "detect_live_claude_pid", lambda: 12345)
     monkeypatch.setattr(session, "process_start_time", lambda pid: "2026-05-27T09:11:11")
-    from claude_relay.cli.commands.relay_cmds import _detect_peer_or_error
+    from downbeat.cli.commands.relay_cmds import _detect_peer_or_error
     name = _detect_peer_or_error(None)
     assert name == "parent"
     # And the peer's stored session_id was rebound
@@ -68,7 +68,7 @@ def test_auto_rebind_ambiguous_multiple_candidates(relay_dir, monkeypatch):
     monkeypatch.setattr(session, "detect_session_id", lambda: "new-sid")
     monkeypatch.setattr(session, "detect_live_claude_pid", lambda: 12345)
     monkeypatch.setattr(session, "process_start_time", lambda pid: "2026-05-27T09:11:11")
-    from claude_relay.cli.commands.relay_cmds import _detect_peer_or_error
+    from downbeat.cli.commands.relay_cmds import _detect_peer_or_error
     with pytest.raises(SystemExit) as exc:
         _detect_peer_or_error(None)
     assert exc.value.code == 2
@@ -81,7 +81,7 @@ def test_no_rebind_when_pid_mismatch(relay_dir, monkeypatch):
     monkeypatch.setattr(session, "detect_session_id", lambda: "completely-new-sid")
     monkeypatch.setattr(session, "detect_live_claude_pid", lambda: 999)
     monkeypatch.setattr(session, "process_start_time", lambda pid: "2026-05-27T09:11:11")
-    from claude_relay.cli.commands.relay_cmds import _detect_peer_or_error
+    from downbeat.cli.commands.relay_cmds import _detect_peer_or_error
     with pytest.raises(SystemExit) as exc:
         _detect_peer_or_error(None)
     assert exc.value.code == 2

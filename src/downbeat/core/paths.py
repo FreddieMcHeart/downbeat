@@ -15,7 +15,7 @@ LOG_DIR = RELAY_DIR / "logs"
 SESSIONS_FILE = RELAY_DIR / "sessions.json"
 GROUPS_FILE = RELAY_DIR / "groups.json"
 CONFIG_FILE = RELAY_DIR / "config.toml"
-LOG_FILE = LOG_DIR / "claude-relay.log"
+LOG_FILE = LOG_DIR / "downbeat.log"
 DELIVERY_LOG = RELAY_DIR / "delivery_log.jsonl"
 REBIND_LOG = RELAY_DIR / "rebind_log.jsonl"
 

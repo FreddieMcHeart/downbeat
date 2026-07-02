@@ -36,7 +36,7 @@ DELIVERED_DIR = RELAY_DIR / "delivered"
 MAX_MESSAGES_PER_DRAIN = 20  # safety cap
 
 # Phase 2: backflow-relay rendering.
-# BACKFLOW_KIND must match the literal used in the claude-relay SKILL.md and
+# BACKFLOW_KIND must match the literal used in the downbeat SKILL.md and
 # command texts — defined ONCE here (the only Python consumer). NEVER the
 # underscore variant.
 BACKFLOW_KIND = "backflow-ready"

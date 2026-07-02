@@ -15,7 +15,7 @@ from . import paths
 from .errors import MessageLocked, MessageNotFound, PeerNotFound, StoreCorrupt
 from .models import Broadcast, Message, MessageState, Peer, new_id, now_iso
 
-_log = logging.getLogger("claude_relay.core")
+_log = logging.getLogger("downbeat.core")
 
 
 def _atomic_write_text(target: Path, text: str) -> None:

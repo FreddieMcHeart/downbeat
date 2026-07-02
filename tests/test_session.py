@@ -1,11 +1,11 @@
-from claude_relay.core import session
+from downbeat.core import session
 
 
 def test_detect_returns_none_when_no_markers(monkeypatch, tmp_path):
     monkeypatch.setenv("CLAUDE_RELAY_DIR", str(tmp_path))
     import importlib
 
-    from claude_relay.core import paths
+    from downbeat.core import paths
     importlib.reload(paths)
     importlib.reload(session)
     # Stop ancestor walking so no PID is checked against real markers
@@ -35,14 +35,14 @@ def test_process_is_claude_ignores_claude_substring_in_directory_path(monkeypatc
     """`ps -o comm=` sometimes reports the FULL resolved binary path (e.g. when
     invoked via `uv run`), not just the short process name. If the checkout
     directory happens to contain "claude" as a SUBSTRING of an unrelated
-    directory name (as `claude-relay` does), it must not match — pytest, uv,
+    directory name (as `downbeat` does), it must not match — pytest, uv,
     a stray shell running from that checkout are none of them Claude Code.
     Exact path-SEGMENT matching (not basename-only, not substring-anywhere)
     is what correctly rejects this case — see the sibling test for why
     basename-only is also wrong."""
     import subprocess as sp
 
-    fake_path = "/Users/dev/mama/claude-relay/.venv/bin/python3"
+    fake_path = "/Users/dev/mama/downbeat/.venv/bin/python3"
 
     def fake_check_output(cmd, **kw):
         return fake_path.encode()

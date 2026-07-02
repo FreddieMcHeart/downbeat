@@ -3,7 +3,7 @@ requires = ["hatchling>=1.26"]
 build-backend = "hatchling.build"
 
 [project]
-name = "claude-relay"
+name = "downbeat"
 version = "0.1.0"
 description = "Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine"
 readme = "README.md"
@@ -52,18 +52,18 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/FreddieMcHeart/claude-relay"
-Repository = "https://github.com/FreddieMcHeart/claude-relay"
-Issues = "https://github.com/FreddieMcHeart/claude-relay/issues"
+Homepage = "https://github.com/FreddieMcHeart/downbeat"
+Repository = "https://github.com/FreddieMcHeart/downbeat"
+Issues = "https://github.com/FreddieMcHeart/downbeat/issues"
 
 [project.scripts]
-claude-relay = "claude_relay.cli.__main__:main"
+downbeat = "downbeat.cli.__main__:main"
 
 [tool.hatch.build.targets.wheel]
-# packages includes the ENTIRE src/claude_relay tree in the wheel — Python
+# packages includes the ENTIRE src/downbeat tree in the wheel — Python
 # modules plus data dirs (skill/, assets/{hooks,commands,hooks_manifest.json}).
 # No force-include needed; a force-include entry double-adds the same paths.
-packages = ["src/claude_relay"]
+packages = ["src/downbeat"]
 
 [tool.ruff]
 line-length = 100

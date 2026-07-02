@@ -9,7 +9,7 @@ body:
       options:
         - TUI
         - CLI
-        - Library (importing claude_relay directly)
+        - Library (importing downbeat directly)
         - Claude Code skill / hooks / slash-commands
         - Packaging / install (init, uninstall)
         - Other / not sure
@@ -20,8 +20,8 @@ body:
     id: version
     attributes:
       label: Version
-      description: Output of `claude-relay --version`
-      placeholder: "claude-relay 0.1.0"
+      description: Output of `downbeat --version`
+      placeholder: "downbeat 0.1.0"
     validations:
       required: true
 
@@ -45,8 +45,8 @@ body:
     attributes:
       label: Steps to reproduce
       placeholder: |
-        1. `claude-relay register foo --role parent`
-        2. `claude-relay send bar hi hello`
+        1. `downbeat register foo --role parent`
+        2. `downbeat send bar hi hello`
         3. ...
     validations:
       required: false

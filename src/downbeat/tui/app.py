@@ -14,7 +14,7 @@ from .screens.chat import ChatScreen
 
 class RelayApp(App):
     CSS_PATH = "theme.tcss"
-    TITLE = "claude-relay"
+    TITLE = "downbeat"
     SUB_TITLE = "local relay TUI"
     ENABLE_COMMAND_PALETTE = False
     # Mouse / trackpad scroll is enabled by default; affirming here for clarity:
@@ -31,11 +31,11 @@ class RelayApp(App):
         try:
             counts = store.reconcile()
             if counts["quarantined"] > 0:
-                logging.getLogger("claude_relay.tui").warning(
+                logging.getLogger("downbeat.tui").warning(
                     "reconcile at startup: %s", counts
                 )
         except Exception:
-            logging.getLogger("claude_relay.tui").exception("reconcile failed at startup")
+            logging.getLogger("downbeat.tui").exception("reconcile failed at startup")
 
         # Check for unseen rebind events and surface as toasts
         try:
@@ -50,9 +50,9 @@ class RelayApp(App):
                     )
                 self._mark_rebinds_seen()
         except Exception:
-            logging.getLogger("claude_relay.tui").exception("rebind notification failed")
+            logging.getLogger("downbeat.tui").exception("rebind notification failed")
 
-        logging.getLogger("claude_relay.tui").info("app mounted")
+        logging.getLogger("downbeat.tui").info("app mounted")
         self.push_screen(ChatScreen())
         self._watcher = watcher.make_watcher(
             on_change=lambda: self.call_from_thread(self._on_change)

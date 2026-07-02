@@ -1,12 +1,12 @@
 import pytest
 
-from claude_relay.tui.app import RelayApp
+from downbeat.tui.app import RelayApp
 
 
 @pytest.mark.skip(reason="three-pane Composer modal replaced by chat-view inline composer")
 @pytest.mark.asyncio
 async def test_compose_new_message(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
     app = RelayApp()
@@ -14,7 +14,7 @@ async def test_compose_new_message(relay_dir):
         await pilot.press("n")
         await pilot.pause()
         # After pressing 'n', Composer is the current screen (modal)
-        from claude_relay.tui.widgets.composer import Composer
+        from downbeat.tui.widgets.composer import Composer
         assert isinstance(app.screen, Composer), f"Expected Composer, got {type(app.screen)}"
         comp = app.screen
         comp.to_field = "child"
@@ -29,7 +29,7 @@ async def test_compose_new_message(relay_dir):
 @pytest.mark.skip(reason="three-pane Composer modal replaced by chat-view inline composer")
 @pytest.mark.asyncio
 async def test_compose_broadcast(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="a", session_id="s2", cwd="/tmp", role="child")
     store.register_peer(name="b", session_id="s3", cwd="/tmp", role="child")
@@ -37,7 +37,7 @@ async def test_compose_broadcast(relay_dir):
     async with app.run_test(headless=True) as pilot:
         await pilot.press("n")
         await pilot.pause()
-        from claude_relay.tui.widgets.composer import Composer
+        from downbeat.tui.widgets.composer import Composer
         assert isinstance(app.screen, Composer), f"Expected Composer, got {type(app.screen)}"
         comp = app.screen
         comp.broadcast = True

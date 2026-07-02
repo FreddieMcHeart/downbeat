@@ -1,6 +1,6 @@
 import time
 
-from claude_relay.core import store, watcher
+from downbeat.core import store, watcher
 
 
 def test_poll_watcher_detects_new_message(relay_dir):

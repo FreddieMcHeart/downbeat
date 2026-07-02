@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from claude_relay.core import paths
+from downbeat.core import paths
 
 
 def test_default_relay_dir_under_home():

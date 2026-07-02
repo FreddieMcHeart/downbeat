@@ -1,8 +1,8 @@
 import pytest
 
-from claude_relay.core import store
-from claude_relay.core.errors import MessageLocked, MessageNotFound, PeerNotFound
-from claude_relay.core.models import MessageState
+from downbeat.core import store
+from downbeat.core.errors import MessageLocked, MessageNotFound, PeerNotFound
+from downbeat.core.models import MessageState
 
 
 def _peers(*names):

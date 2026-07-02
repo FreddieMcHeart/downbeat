@@ -41,7 +41,7 @@ jobs:
     # one-time, PyPI-web-console setup — cannot be done from this workflow.
     environment:
       name: pypi
-      url: https://pypi.org/project/claude-relay/
+      url: https://pypi.org/project/downbeat/
     permissions:
       id-token: write   # OIDC token exchange for Trusted Publishing — no API token stored
     steps:

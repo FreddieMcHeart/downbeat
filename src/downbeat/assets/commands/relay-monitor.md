@@ -15,7 +15,7 @@ This composes two existing primitives: the `/loop` skill (re-fires a prompt on a
 
 2. **Resolve this session's role:**
    ```
-   claude-relay whoami
+   downbeat whoami
    ```
    Output is `<name> <role>`. If it errors (exit 2), tell the user to `/relay-register <name> --role <parent|child>` first and stop.
 
@@ -33,5 +33,5 @@ This composes two existing primitives: the `/loop` skill (re-fires a prompt on a
 
 ## Notes
 
-- This is the **in-session self-driver**. For an **external pane observer** that only prints new mail (never acts), use `claude-relay watch [--peer X]` instead.
+- This is the **in-session self-driver**. For an **external pane observer** that only prints new mail (never acts), use `downbeat watch [--peer X]` instead.
 - The child autonomy here is **consent-at-startup**: you explicitly started the monitor on an executor session. It is scoped to executors, never auto-executes for a parent, and is stoppable. See `docs/platform/constitution.md` Art. 11.

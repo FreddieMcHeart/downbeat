@@ -1,12 +1,12 @@
 import pytest
 
-from claude_relay.tui.app import RelayApp
+from downbeat.tui.app import RelayApp
 
 
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_inbox_shows_messages_for_acting_as(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
     store.send_message(from_peer="parent", to_peer="child", subject="A", body="x")
@@ -29,7 +29,7 @@ async def test_inbox_shows_messages_for_acting_as(relay_dir):
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_inbox_empty_when_no_messages(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="p", session_id="s", cwd="/tmp", role="parent")
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
@@ -42,7 +42,7 @@ async def test_inbox_empty_when_no_messages(relay_dir):
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_inbox_does_not_include_archived_by_default(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     msg = store.send_message(from_peer="p", to_peer="c", subject="A", body="x")
@@ -62,7 +62,7 @@ async def test_inbox_does_not_include_archived_by_default(relay_dir):
 async def test_inbox_preserves_selection_across_refresh(relay_dir):
     """Refreshing the inbox (e.g. after a read mutation) must not reset
     the cursor to row 0 — selection should follow the same message id."""
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     msgs = [
@@ -90,7 +90,7 @@ async def test_inbox_preserves_selection_across_refresh(relay_dir):
 @pytest.mark.skip(reason="three-pane view replaced by chat view")
 @pytest.mark.asyncio
 async def test_inbox_shows_id_column(relay_dir):
-    from claude_relay.core import store
+    from downbeat.core import store
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     store.send_message(from_peer="p", to_peer="c", subject="hi", body="b")

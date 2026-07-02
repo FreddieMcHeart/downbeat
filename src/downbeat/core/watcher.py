@@ -13,7 +13,7 @@ from typing import Protocol
 
 from . import paths
 
-_log = logging.getLogger("claude_relay.watcher")
+_log = logging.getLogger("downbeat.watcher")
 
 
 class Watcher(Protocol):

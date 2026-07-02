@@ -1,6 +1,6 @@
 ---
-name: claude-relay
-description: Use when handing off work between parallel Claude Code sessions on this machine — Parent (planning/Opus) sending implementation prompts to a Child (executing) session, Child replying with results, or the user asking "did the other terminal receive/reply." Triggers on phrases like "send to other terminal", "hand off this phase", "ask the other Claude session", "send this to my child session", "relay message", and any /relay-* slash command. Invokes the local CLI `claude-relay`.
+name: downbeat
+description: Use when handing off work between parallel Claude Code sessions on this machine — Parent (planning/Opus) sending implementation prompts to a Child (executing) session, Child replying with results, or the user asking "did the other terminal receive/reply." Triggers on phrases like "send to other terminal", "hand off this phase", "ask the other Claude session", "send this to my child session", "relay message", and any /relay-* slash command. Invokes the local CLI `downbeat`.
 ---
 
 # Claude Relay
@@ -50,11 +50,11 @@ After the question is answered (Yes or No), remember the decision for the rest o
 
 ## Registration + always-on watch
 
-After a child registers (`claude-relay register <name>`), run `claude-relay watch` in the
+After a child registers (`downbeat register <name>`), run `downbeat watch` in the
 child terminal (or as a Monitor job) for always-on surfacing of new mail — notify-only; the
 human still drives action at the next prompt.
 
-`claude-relay watch` is event-driven (fswatch/FSEvents) with automatic poll fallback — it
+`downbeat watch` is event-driven (fswatch/FSEvents) with automatic poll fallback — it
 blocks on filesystem events and costs ~0 on an idle channel. For cheap notify-to-wake, run
 it as a Monitor; `/relay-monitor` is for in-session role-aware auto-acting and costs a model
 turn per tick.
@@ -72,7 +72,7 @@ interval — no external observer needed. Behaviour is role-asymmetric:
 Stop with `/relay-monitor stop`. Note: `/relay-monitor` is a Claude Code slash command, not a
 CLI subcommand.
 
-`claude-relay whoami` prints this session's `<name> <role>` (machine-parseable, one line).
+`downbeat whoami` prints this session's `<name> <role>` (machine-parseable, one line).
 Use `--json` for `{"name": ..., "role": ...}`.
 
 ## Three flows
@@ -82,7 +82,7 @@ Use `--json` for `{"name": ..., "role": ...}`.
 For multi-line bodies, always use heredoc — naive quoting breaks on backticks/quotes/`$`:
 
 ```bash
-claude-relay send <peer_name> "<short subject>" "$(cat <<'EOF'
+downbeat send <peer_name> "<short subject>" "$(cat <<'EOF'
 <full multi-line prompt>
 EOF
 )"
@@ -90,14 +90,14 @@ EOF
 
 After sending, tell the user the msg_id from the CLI output. The peer will see it on their next prompt. Do not poll.
 
-If `send` errors with "no peer named X", run `claude-relay peers` to show registered names.
+If `send` errors with "no peer named X", run `downbeat peers` to show registered names.
 
 ### 2. RECEIVE + REPLY (you are the Child)
 
 When the user's turn includes a system block titled `### Relay inbox — N new message(s)`, that block has `from:`, `id:`, `subject:` and the body. After completing the work:
 
 ```bash
-claude-relay reply <id> "$(cat <<'EOF'
+downbeat reply <id> "$(cat <<'EOF'
 <your report — what was done, files changed, blockers>
 EOF
 )"
@@ -105,9 +105,9 @@ EOF
 
 ### 3. CHECK / MANAGE
 
-- `claude-relay peers` — list registered peers
-- `claude-relay inbox` — your pending messages
-- `claude-relay tui` — full management TUI (read, edit, delete, broadcast)
+- `downbeat peers` — list registered peers
+- `downbeat inbox` — your pending messages
+- `downbeat tui` — full management TUI (read, edit, delete, broadcast)
 
 ## Delivery acknowledgement
 

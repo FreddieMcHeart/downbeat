@@ -1,7 +1,7 @@
 import pytest
 
-from claude_relay.core import store
-from claude_relay.core.errors import PeerNotFound
+from downbeat.core import store
+from downbeat.core.errors import PeerNotFound
 
 
 def test_register_creates_peer(relay_dir):
@@ -59,8 +59,8 @@ def test_rebind_unknown_peer_raises(relay_dir):
 
 
 def test_rebind_auto_detect_fails_when_no_marker(relay_dir, monkeypatch):
-    from claude_relay.core import session as session_mod
-    from claude_relay.core.errors import RelayError
+    from downbeat.core import session as session_mod
+    from downbeat.core.errors import RelayError
     store.register_peer(name="p", session_id="old", cwd="/tmp", role="parent")
     monkeypatch.setattr(session_mod, "detect_session_id", lambda: None)
     with pytest.raises(RelayError):
@@ -81,7 +81,7 @@ def test_load_legacy_sessions_without_name_field(relay_dir):
             "last_seen": "2026-05-08T14:11:11+00:00",
         }
     }
-    from claude_relay.core import paths
+    from downbeat.core import paths
     (paths.SESSIONS_FILE.parent).mkdir(parents=True, exist_ok=True)
     paths.SESSIONS_FILE.write_text(json.dumps(legacy))
     peers = store.list_peers()

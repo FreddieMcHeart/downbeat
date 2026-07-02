@@ -51,13 +51,13 @@ def _process_is_claude(pid: int) -> bool:
     #     PATH SEGMENT, while the basename is just the version number
     #     (e.g. "2.1.197"). Basename-only matching false-negatives here.
     #   - a process invoked via `uv run` from a checkout directory named
-    #     "claude-relay" resolves to .../claude-relay/.venv/bin/python3 —
+    #     "downbeat" resolves to .../downbeat/.venv/bin/python3 —
     #     "claude" is a substring of an unrelated directory NAME
-    #     ("claude-relay"), not an exact segment. Whole-string substring
+    #     ("downbeat"), not an exact segment. Whole-string substring
     #     matching false-positives here.
     # Matching an EXACT path segment (split on "/") handles both: it accepts
     # "claude" as a full segment anywhere in the path, but rejects a
-    # look-alike segment like "claude-relay".
+    # look-alike segment like "downbeat".
     return "claude" in comm.split("/")
 
 

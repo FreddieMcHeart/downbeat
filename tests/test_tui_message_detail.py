@@ -1,7 +1,7 @@
 import pytest
 
-from claude_relay.core import store
-from claude_relay.tui.screens.message_detail import MessageDetailScreen
+from downbeat.core import store
+from downbeat.tui.screens.message_detail import MessageDetailScreen
 
 
 @pytest.mark.asyncio
@@ -22,12 +22,12 @@ async def test_detail_screen_renders_message_body(relay_dir):
 
 @pytest.mark.asyncio
 async def test_detail_screen_delete_removes_message(relay_dir):
-    from claude_relay.core.errors import MessageNotFound
+    from downbeat.core.errors import MessageNotFound
     store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
     msg = store.send_message(from_peer="c", to_peer="p",
                              subject="rm", body="bye")
-    from claude_relay.tui.widgets.confirm import perform_delete
+    from downbeat.tui.widgets.confirm import perform_delete
     # Test the perform helper directly (modal interaction is tricky in pilot)
     perform_delete(msg.id)
     with pytest.raises(MessageNotFound):

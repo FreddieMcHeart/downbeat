@@ -2,9 +2,9 @@ from datetime import UTC
 
 import pytest
 
-from claude_relay.tui.app import RelayApp
-from claude_relay.tui.widgets.add_peer_modal import AddPeerModal
-from claude_relay.tui.widgets.peer_admin import (
+from downbeat.tui.app import RelayApp
+from downbeat.tui.widgets.add_peer_modal import AddPeerModal
+from downbeat.tui.widgets.peer_admin import (
     GcStaleModal,
     RemovePeerConfirm,
     perform_remove_peer,
@@ -13,8 +13,8 @@ from claude_relay.tui.widgets.peer_admin import (
 
 @pytest.mark.asyncio
 async def test_add_peer_programmatic(relay_dir):
-    from claude_relay.core import store
-    from claude_relay.tui.screens.peers import PeersScreen
+    from downbeat.core import store
+    from downbeat.tui.screens.peers import PeersScreen
     store.register_peer(name="existing", session_id="s0", cwd="/tmp", role="parent")
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
@@ -37,8 +37,8 @@ async def test_add_peer_programmatic(relay_dir):
 
 @pytest.mark.asyncio
 async def test_remove_peer_helper(relay_dir):
-    from claude_relay.core import store
-    from claude_relay.core.errors import PeerNotFound
+    from downbeat.core import store
+    from downbeat.core.errors import PeerNotFound
     store.register_peer(name="rm-me", session_id="s", cwd="/tmp", role="child")
     perform_remove_peer("rm-me")
     with pytest.raises(PeerNotFound):
@@ -50,14 +50,14 @@ async def test_gc_stale_prunes_only_old_peers(relay_dir):
     import json
     from datetime import datetime, timedelta
 
-    from claude_relay.core import store
+    from downbeat.core import store
 
     # Create two peers
     store.register_peer(name="old", session_id="s1", cwd="/tmp", role="child")
     store.register_peer(name="new", session_id="s2", cwd="/tmp", role="child")
 
     # Backdate "old" by 30 days by writing directly to sessions.json
-    from claude_relay.core import paths
+    from downbeat.core import paths
     sessions_file = paths.SESSIONS_FILE
     data = json.loads(sessions_file.read_text())
     data["old"]["last_seen"] = (
@@ -72,7 +72,7 @@ async def test_gc_stale_prunes_only_old_peers(relay_dir):
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
         # Open PeersScreen then press g to open GcStaleModal
-        from claude_relay.tui.screens.peers import PeersScreen
+        from downbeat.tui.screens.peers import PeersScreen
         app.push_screen(PeersScreen())
         await pilot.pause()
         await pilot.press("g")
@@ -91,8 +91,8 @@ async def test_gc_stale_prunes_only_old_peers(relay_dir):
 @pytest.mark.asyncio
 async def test_remove_peer_y_keybinding_triggers_removal(relay_dir):
     """Pressing 'y' in the RemovePeerConfirm modal must actually remove the peer."""
-    from claude_relay.core import store
-    from claude_relay.core.errors import PeerNotFound
+    from downbeat.core import store
+    from downbeat.core.errors import PeerNotFound
     store.register_peer(name="to-remove", session_id="s", cwd="/tmp", role="child")
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
@@ -107,8 +107,8 @@ async def test_remove_peer_y_keybinding_triggers_removal(relay_dir):
 
 @pytest.mark.asyncio
 async def test_peers_screen_lists_peers(relay_dir):
-    from claude_relay.core import store
-    from claude_relay.tui.screens.peers import PeersScreen
+    from downbeat.core import store
+    from downbeat.tui.screens.peers import PeersScreen
     store.register_peer(name="p1", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="p2", session_id="s2", cwd="/tmp", role="child")
     app = RelayApp()
@@ -123,8 +123,8 @@ async def test_peers_screen_lists_peers(relay_dir):
 @pytest.mark.asyncio
 async def test_peers_screen_groups_by_prefix(relay_dir):
     """Peers with shared prefix appear adjacent, parents before children."""
-    from claude_relay.core import store
-    from claude_relay.tui.screens.peers import PeersScreen
+    from downbeat.core import store
+    from downbeat.tui.screens.peers import PeersScreen
     # Register intentionally out-of-order
     store.register_peer(name="PLAT-3113-child", session_id="s1", cwd="/tmp", role="child")
     store.register_peer(name="PLAT-2972-master", session_id="s2", cwd="/tmp", role="parent")

@@ -3,10 +3,10 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from claude_relay.cli.__main__ import main
-from claude_relay.cli.commands.relay_cmds import _watch_emit
-from claude_relay.core import store
-from claude_relay.core.models import MessageState
+from downbeat.cli.__main__ import main
+from downbeat.cli.commands.relay_cmds import _watch_emit
+from downbeat.core import store
+from downbeat.core.models import MessageState
 
 
 def _peers(*names):
@@ -186,8 +186,8 @@ def test_cmd_watch_poll_flag_selects_poll_watcher(relay_dir):
     mock_event = MagicMock()
     mock_event.wait.side_effect = KeyboardInterrupt
 
-    with patch("claude_relay.cli.commands.relay_cmds.watcher_mod", mock_watcher_mod), \
-         patch("claude_relay.cli.commands.relay_cmds.threading") as mock_threading:
+    with patch("downbeat.cli.commands.relay_cmds.watcher_mod", mock_watcher_mod), \
+         patch("downbeat.cli.commands.relay_cmds.threading") as mock_threading:
         mock_threading.Event.return_value = mock_event
         rc = main(["watch", "--peer", "c", "--poll"])
 

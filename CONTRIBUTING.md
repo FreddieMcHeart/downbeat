@@ -8,7 +8,7 @@ please keep changes focused and open an issue first for anything non-trivial
 
 ```bash
 git clone <this-repo>
-cd claude-relay
+cd downbeat
 uv sync --extra dev      # installs the package (editable) + dev dependencies
 uv run pre-commit install --hook-type commit-msg   # enforces Conventional Commits (see below)
 ```
