@@ -51,6 +51,6 @@ Big, mechanical, test-guarded. NOT a launch blocker for identity; do as a dedica
 
 ## Sequencing (from the research roadmap)
 
-1. **Phase 1 — launch-blockers:** LICENSE file, PEP 639 SPDX + classifiers/urls, LICENSE/CONTRIBUTING/COC/SECURITY, `--version`, name decision ✅ (downbeat).
-2. **Phase 2 — polish:** docs site, VHS demo, examples/, README upgrade, UX fixes.
+1. **Phase 1 — launch-blockers:** LICENSE file ✅, PEP 639 SPDX + classifiers/urls ✅, CONTRIBUTING/COC/SECURITY ✅, `--version` + error-wrap ✅, CI (uv + macOS matrix) ✅, semantic-release + Trusted Publishing pipeline (code ✅, manual GitHub/PyPI setup pending — see [release-setup.md](./release-setup.md)), name decision ✅ (downbeat), rename execution (pending, coordinate with parent first), first PyPI release (blocked on rename + release-setup.md).
+2. **Phase 2 — polish:** docs site, VHS demo, examples/, README upgrade, UX fixes, Claude Code plugin repackaging.
 3. **Phase 3 — growth:** the GTM/launch-channels list above (incl. the awesome-list PR).

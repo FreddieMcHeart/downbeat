@@ -35,6 +35,7 @@
 - **semantic-release cluster (#4 + #7 + CHANGELOG):** pulls **Conventional Commits** in *now* (not deferred). Version, CHANGELOG, tags, and PyPI publish all derive from commit history (`fix:`→patch, `feat:`→minor, `feat!:`/`BREAKING CHANGE:`→major). Add **commitlint** to `.pre-commit-config.yaml` to enforce. Full-auto (7a) = a merge to `main` can publish to PyPI with no human gate — accepted trade; mitigate with strong CI as the gate (tests + pyright + coverage must pass before merge).
 - **#15 supersedes the installer:** the Claude Code plugin (Option A) replaces the `downbeat init` settings.json-merge approach shipped in `290fc9c`. The parent wired `mondu-harness` git-ignores around that installer — those become obsolete when the plugin lands (Phase 2). **Heads-up to the parent recommended.** `init` survives only as a standalone fallback.
 - **Name migration** (`claude-relay → downbeat`) is tracked separately in launch-plan.md; it must precede the first PyPI release (#12) and the plugin marketplace slug (#15).
+- **#4/#7 pipeline is code-complete but not yet LIVE:** `release.yml` + the semantic-release config landed in `8883258`, but three GitHub/PyPI web-console steps (Trusted Publisher registration, `pypi` environment, branch-protection status checks) can't be done from a CLI session — see [release-setup.md](./release-setup.md) for the exact runbook. Do those steps AFTER the rename (Step 1 registers the PyPI project name).
 
 ## Phase mapping (execution order)
 
