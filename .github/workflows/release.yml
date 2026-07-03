@@ -25,6 +25,14 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
+          # PAT, not the default GITHUB_TOKEN: main's branch ruleset requires
+          # all 6 ci.yml status checks and only bypasses RepositoryRole:Admin.
+          # The actual `git push` of the version-bump commit happens via the
+          # credentials persisted HERE (by actions/checkout), regardless of
+          # what token the semantic-release action below is given — the bot
+          # identity behind GITHUB_TOKEN isn't covered by the bypass and gets
+          # GH013-rejected. See docs/release-setup.md Step 4.
+          token: ${{ secrets.RELEASE_TOKEN }}
       # NOTE: no setup-uv step here — this action runs build_command inside
       # its OWN Docker container, isolated from the runner's PATH, so
       # installing uv on the host has no effect. See build_command in
@@ -34,7 +42,7 @@ jobs:
         id: release
         uses: python-semantic-release/python-semantic-release@v9
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.RELEASE_TOKEN }}
 
   publish:
     needs: release

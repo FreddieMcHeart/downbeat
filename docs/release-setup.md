@@ -1,6 +1,6 @@
 # Release pipeline — manual one-time setup
 
-> Three GitHub/PyPI web-console steps needed before `.github/workflows/release.yml`
+> Four GitHub/PyPI web-console steps needed before `.github/workflows/release.yml`
 > can actually publish. None of these can be done from a CLI/agent session — they
 > require a human with GitHub repo-admin access and a PyPI account. Do these **once**,
 > after the [rename to `downbeat`](./launch-plan.md) lands (see the timing note below).
@@ -95,7 +95,55 @@ merge button until `ci.yml` goes green.
 
 ---
 
-## After all three are done
+## Step 4 — Give `release.yml` a PAT that the branch ruleset actually trusts
+
+**Discovered on the first real release (2026-07-03), not anticipated in the original
+three steps.** `main`'s branch ruleset requires all 6 `ci.yml` status checks and
+allows only `RepositoryRole:Admin` to bypass. The `release` job pushes the
+version-bump/CHANGELOG commit as `github-actions[bot]` via the default
+`secrets.GITHUB_TOKEN` — that identity is **not** covered by the admin bypass, and
+the fresh commit has never had its own CI run to satisfy the check anyway. Result:
+`release` job fails with a GH013 ruleset rejection on every real release, right
+after successfully computing the version and building the changelog.
+
+**Fix:** push as a real admin-owned token instead of the bot's default token.
+
+1. Log in to **github.com** as the repo owner (the account with `RepositoryRole:Admin`
+   on `FreddieMcHeart/downbeat`).
+2. Go to **Settings → Developer settings → Personal access tokens → Fine-grained
+   tokens → Generate new token**.
+3. Configure:
+
+   | Field | Value |
+   |---|---|
+   | Resource owner | the account/org that owns `downbeat` |
+   | Repository access | Only select repositories → `downbeat` |
+   | Permissions | **Contents: Read and write** (this is the only scope `release.yml` needs — it just needs to push a commit + tag) |
+   | Expiration | your call — a long-lived token is lower-maintenance but review this periodically since it's effectively a standing admin credential |
+
+4. Generate, copy the token (shown once).
+5. Store it as a repo secret — **do not paste the token into chat/a Claude session**;
+   run this yourself in a terminal so it never touches conversation history:
+   ```
+   gh secret set RELEASE_TOKEN --repo FreddieMcHeart/downbeat
+   ```
+   (pastes/prompts for the value directly, or pipe it in — see `gh secret set --help`)
+6. Confirm `.github/workflows/release.yml`'s `release` job step uses
+   `github_token: ${{ secrets.RELEASE_TOKEN }}` (not the default `GITHUB_TOKEN`) —
+   this repo's copy was already updated to reference `RELEASE_TOKEN`.
+
+**Verify:** the entry appears under **Settings → Secrets and variables → Actions →
+Repository secrets** as `RELEASE_TOKEN`. The next `fix:`/`feat:` merge to `main`
+should let the `release` job's push through the ruleset instead of GH013-rejecting.
+
+**If this token is ever revoked/expires and the push starts failing again:** the
+alternative is finding a bypass-actor entry in the ruleset UI that covers the
+`github-actions` app identity directly (Settings → Rules → Rulesets → edit the
+bypass list) — untested, PAT is the confirmed-working path.
+
+---
+
+## After all four are done
 
 Push a commit with a `feat:`/`fix:` message to `main` (through a normal PR, once
 branch protection is on) and watch the **Actions** tab:
