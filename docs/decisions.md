@@ -91,8 +91,17 @@
 
 ## Phase mapping (execution order)
 
-**Phase 1 — launch-blockers**
+**Phase 1 — launch-blockers — ✅ DONE (2026-07-03)**
 LICENSE + PEP 639 metadata (#1), classifiers/urls, community-health core + Issue Forms (#2, #3), `--version` + error-wrapping (#11), macOS CI leg (#8), Conventional-Commits + commitlint, **semantic-release pipeline + Trusted Publishing** (#4, #7), verify wheel data assets, name migration, first PyPI release (#12).
+
+First real release confirmed live: **`downbeat v0.1.1`** on PyPI (sdist + wheel), released via the
+full automated pipeline (semantic-release → tag → build → OIDC Trusted Publishing) with zero
+manual publish steps. Getting there required chasing four separate bugs surfaced only by the
+first real (non-dry-run) run — see "Operational lessons" above for the watchdog/pytest-timeout
+one; the release-pipeline-specific ones (PSR's Docker container not seeing host `uv`, missing
+`contents:read` on the publish job, and the branch-ruleset bypass not covering `github-actions[bot]`
+— fixed via a `RELEASE_TOKEN` PAT, see release-setup.md Step 4) are captured in their own commit
+messages (`24fb3a7`, `ef5102c`, `8adb0de`) rather than duplicated here.
 
 **Phase 2 — polish**
 MkDocs Material docs site (#13), VHS demo (#10), rich-argparse (#11), `examples/` + troubleshooting + uninstall (#12), pyright + coverage-comment + pre-commit (#5, #6), Dependabot (#9), **Claude Code plugin repackaging (#15 Option A)**, README restructure.
