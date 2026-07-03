@@ -1,6 +1,32 @@
 # CHANGELOG
 
 
+## v0.1.3 (2026-07-03)
+
+### Bug Fixes
+
+- **release**: Hardcode package name in build_command, $PACKAGE_NAME unset on @v9
+  ([`a2dc364`](https://github.com/FreddieMcHeart/downbeat/commit/a2dc364a92623731f571caab77604fbaf9fda431))
+
+Confirmed via the actual job log for 8cf5384's release run: PSR's build_command runs with
+  $PACKAGE_NAME expanding to empty, since python-semantic-release/python-semantic-release@v9 (pinned
+  in release.yml) doesn't export that env var — apparently a v10+ action feature the uv-integration
+  docs assume. `uv lock --upgrade-package ""` hard-errored every time (PEP508 validation), but
+  build_command has no set -e, so git add + uv build kept running after the failure and the job
+  still reported success — silently shipping a stale uv.lock in both 0.1.1 and 0.1.2. Hardcoding the
+  literal package name sidesteps the missing env var entirely.
+
+### Chores
+
+- **ci**: Sync uv.lock with the 0.1.2 version bump
+  ([`6cf48b2`](https://github.com/FreddieMcHeart/downbeat/commit/6cf48b29e4094de9586a8667247c869cf7080cc7))
+
+Same lockfile-mismatch pattern as db95371, now on v0.1.2. chore: type deliberately, not fix: — the
+  actual pipeline fix (4739a92, hardcoded package name) already prevents this recurring on 0.1.3+;
+  this commit just repairs the currently-red main without triggering yet another release before that
+  fix has been verified end-to-end.
+
+
 ## v0.1.2 (2026-07-03)
 
 ### Bug Fixes
