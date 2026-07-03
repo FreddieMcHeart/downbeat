@@ -90,7 +90,12 @@ timeout_method = "thread"
 # PEP 621 `dynamic = ["version"]` field — hatchling still reads it as static
 # at build time; semantic-release just owns the edits.
 version_toml = ["pyproject.toml:project.version"]
-build_command = "uv build"
+# The python-semantic-release GitHub Action runs build_command INSIDE its own
+# Docker container (see action.yml: `runs: using: docker`), which is isolated
+# from the runner's PATH — `astral-sh/setup-uv` on the host has no effect
+# here. PSR's own docs prescribe installing uv inside build_command itself
+# for exactly this reason: https://python-semantic-release.readthedocs.io/en/latest/configuration/configuration-guides/uv_integration.html
+build_command = "pip install uv && uv build"
 major_on_zero = false  # pre-1.0: breaking changes bump MINOR, not straight to 1.0.0
 allow_zero_version = true  # PSR defaults to False, which forces the FIRST
 # release to 1.0.0 regardless of commit history — contradicts the

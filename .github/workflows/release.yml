@@ -25,7 +25,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
-      - uses: astral-sh/setup-uv@v5
+      # NOTE: no setup-uv step here — this action runs build_command inside
+      # its OWN Docker container, isolated from the runner's PATH, so
+      # installing uv on the host has no effect. See build_command in
+      # pyproject.toml's [tool.semantic_release] for how uv gets installed
+      # where it's actually needed (inside the container).
       - name: Python Semantic Release
         id: release
         uses: python-semantic-release/python-semantic-release@v9
