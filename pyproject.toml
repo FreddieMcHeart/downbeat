@@ -97,7 +97,19 @@ version_toml = ["pyproject.toml:project.version"]
 # from the runner's PATH — `astral-sh/setup-uv` on the host has no effect
 # here. PSR's own docs prescribe installing uv inside build_command itself
 # for exactly this reason: https://python-semantic-release.readthedocs.io/en/latest/configuration/configuration-guides/uv_integration.html
-build_command = "pip install uv && uv build"
+#
+# `uv lock --upgrade-package` + `git add uv.lock` is PSR's own documented fix
+# (same page) for a real failure hit on the first release (0.1.1, db95371):
+# PSR rewrites pyproject.toml's version but never touches uv.lock, so CI's
+# `uv sync --locked` correctly rejects the mismatch — all 6 matrix legs
+# failed on main until uv.lock was manually resynced. Staging it here means
+# PSR's own commit step picks it up alongside the version bump + changelog.
+build_command = """
+pip install uv
+uv lock --upgrade-package "$PACKAGE_NAME"
+git add uv.lock
+uv build
+"""
 major_on_zero = false  # pre-1.0: breaking changes bump MINOR, not straight to 1.0.0
 allow_zero_version = true  # PSR defaults to False, which forces the FIRST
 # release to 1.0.0 regardless of commit history — contradicts the
