@@ -45,6 +45,7 @@ dependencies = [
 dev = [
   "pytest>=8",
   "pytest-asyncio>=0.23",
+  "pytest-timeout>=2.3",
   "textual-dev>=1.5",
   "ruff>=0.4",
   "python-semantic-release>=9",
@@ -75,6 +76,12 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# Guards against silent CI hangs (seen on ubuntu runners, cause under
+# investigation): "thread" method dumps every thread's stack via
+# faulthandler before killing the run, so a hang fails loud with a
+# traceback instead of burning the whole Actions time budget in silence.
+timeout = 30
+timeout_method = "thread"
 
 [tool.semantic_release]
 # Version is Conventional-Commits-derived, not manually bumped — this field
