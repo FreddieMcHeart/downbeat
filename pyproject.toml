@@ -105,9 +105,18 @@ version_toml = ["pyproject.toml:project.version"]
 # `uv sync --locked` correctly rejects the mismatch — all 6 matrix legs
 # failed on main until uv.lock was manually resynced. Staging it here means
 # PSR's own commit step picks it up alongside the version bump + changelog.
+#
+# Hardcoded "downbeat", NOT "$PACKAGE_NAME": PSR's docs assume that env var
+# is set by the action, but python-semantic-release/python-semantic-release
+# @v9 (pinned in release.yml) doesn't export it — it's apparently a v10+
+# action feature. With the var unset it expanded to "", and
+# `uv lock --upgrade-package ""` hard-errored on every release (0.1.1,
+# 0.1.2) — silently, because build_command has no `set -e`, so `git add` +
+# `uv build` kept running after the failed line and the job still reported
+# success. Confirmed via the actual job log, not assumed from docs alone.
 build_command = """
 pip install uv
-uv lock --upgrade-package "$PACKAGE_NAME"
+uv lock --upgrade-package "downbeat"
 git add uv.lock
 uv build
 """
