@@ -48,6 +48,10 @@ jobs:
       name: pypi
       url: https://pypi.org/project/downbeat/
     permissions:
+      contents: read   # needed for actions/checkout — a job-level `permissions:`
+      # block zeroes every unlisted scope (repo is private, so checkout without
+      # this 404s as "Repository not found" rather than 403 — GitHub hides
+      # private-repo existence from tokens that can't read it)
       id-token: write   # OIDC token exchange for Trusted Publishing — no API token stored
     steps:
       - uses: actions/checkout@v4
