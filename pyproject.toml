@@ -60,6 +60,7 @@ Issues = "https://github.com/FreddieMcHeart/downbeat/issues"
 [project.scripts]
 downbeat = "downbeat.cli.__main__:main"
 
+
 [tool.hatch.build.targets.wheel]
 # packages includes the ENTIRE src/downbeat tree in the wheel — Python
 # modules plus data dirs (skill/, assets/{hooks,commands,hooks_manifest.json}).
