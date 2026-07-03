@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "downbeat"
-version = "0.1.1"
+version = "0.1.2"
 description = "Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -59,6 +59,7 @@ Issues = "https://github.com/FreddieMcHeart/downbeat/issues"
 
 [project.scripts]
 downbeat = "downbeat.cli.__main__:main"
+
 
 
 

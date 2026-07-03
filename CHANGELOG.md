@@ -1,6 +1,31 @@
 # CHANGELOG
 
 
+## v0.1.2 (2026-07-03)
+
+### Bug Fixes
+
+- **ci**: Sync uv.lock with the 0.1.1 version bump
+  ([`db95371`](https://github.com/FreddieMcHeart/downbeat/commit/db953717311e9b5d5ba28239011c122e43d769d1))
+
+Semantic-release bumped pyproject.toml's version but didn't touch uv.lock — CI's uv sync --locked
+  correctly rejected the mismatch, failing all 6 matrix legs on main (1f5354c). uv.lock's own
+  recorded version for the downbeat workspace member was still 0.1.0.
+
+- **release**: Keep uv.lock in sync on every future release
+  ([`8cf5384`](https://github.com/FreddieMcHeart/downbeat/commit/8cf5384e4af4735581debafb8800c30628eb08af))
+
+PSR's own uv-integration docs prescribe this exact fix: add uv lock --upgrade-package
+  "$PACKAGE_NAME" + git add uv.lock to build_command, so the regenerated lockfile gets staged and
+  picked up by PSR's own commit step alongside the version bump + changelog. Without this, every
+  future release repeats db95371's all-6-legs CI failure on main.
+
+### Documentation
+
+- Mark Phase 1 done — downbeat v0.1.1 live on PyPI
+  ([`9a24111`](https://github.com/FreddieMcHeart/downbeat/commit/9a241111ed6fbf8c465cdb72535833e49b134f80))
+
+
 ## v0.1.1 (2026-07-03)
 
 ### Bug Fixes
