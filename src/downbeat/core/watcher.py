@@ -98,7 +98,19 @@ class FsWatcher:
         _log.debug("FsWatcher started")
 
     def stop(self) -> None:
-        self._observer.stop()
+        # watchdog's inotify Observer.stop() has a known deadlock on Linux:
+        # it can block forever acquiring an internal lock still held by an
+        # emitter thread parked in a blocking inotify read. Bound it in a
+        # daemon thread so a deadlocked stop() can't hang the caller (a real
+        # user hitting Ctrl-C in `downbeat watch`, or a test's teardown)
+        # forever — the daemon thread leaking is harmless at process exit.
+        stopper = threading.Thread(target=self._observer.stop, daemon=True)
+        stopper.start()
+        stopper.join(timeout=2)
+        if stopper.is_alive():
+            _log.warning("FsWatcher.stop() timed out after 2s (likely the "
+                         "known watchdog/inotify deadlock); abandoning")
+            return
         self._observer.join(timeout=2)
         _log.debug("FsWatcher stopped")
 
