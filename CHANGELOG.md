@@ -1,6 +1,38 @@
 # CHANGELOG
 
 
+## v0.1.1 (2026-07-03)
+
+### Bug Fixes
+
+- **release**: Grant contents:read to the publish job
+  ([`ef5102c`](https://github.com/FreddieMcHeart/downbeat/commit/ef5102c1c3b0ae780d37e9ccf58c38cea81cc931))
+
+An explicit job-level permissions: block zeroes every unlisted scope — publish only had id-token:
+  write, so GITHUB_TOKEN had no repo-read access. actions/checkout@v4 failed with "Repository not
+  found" (a 404, not 403 — GitHub hides private-repo existence from tokens that can't see it) before
+  ever reaching the PyPI publish step.
+
+Confirmed on the first real release run: the release job itself now works end-to-end (version 0.1.0
+  committed, CHANGELOG.md generated, v0.1.0 tagged and pushed to origin/main) — this was the last
+  blocker before the publish job's own known gap (PyPI Trusted Publisher / pypi environment not yet
+  configured, tracked in docs/release-setup.md).
+
+- **release**: Push the version-bump commit via a PAT covered by the bypass
+  ([`8adb0de`](https://github.com/FreddieMcHeart/downbeat/commit/8adb0de503ce6b21b7a4b146cfdf9f958965d87a))
+
+github-actions[bot] (the default GITHUB_TOKEN identity) isn't covered by main's ruleset bypass
+  (RepositoryRole:Admin only), and the fresh version-bump commit has no CI run of its own to satisfy
+  the 6 required status checks — so `release` job's push GH013-rejected on the first real release
+  attempt (0.1.1, triggered by ef5102c).
+
+Both actions/checkout's `token:` (which persists the credentials git push actually uses) and
+  semantic-release's `github_token:` now read from a RELEASE_TOKEN repo secret — a fine-grained PAT
+  belonging to the human admin. Documented as Step 4 in release-setup.md; the secret itself has to
+  be created and stored by hand (PAT generation + `gh secret set`), same manual-step pattern as
+  Steps 1-3.
+
+
 ## v0.1.0 (2026-07-03)
 
 ### Bug Fixes
