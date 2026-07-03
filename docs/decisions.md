@@ -103,6 +103,22 @@ one; the release-pipeline-specific ones (PSR's Docker container not seeing host 
 — fixed via a `RELEASE_TOKEN` PAT, see release-setup.md Step 4) are captured in their own commit
 messages (`24fb3a7`, `ef5102c`, `8adb0de`) rather than duplicated here.
 
+**Two more releases (0.1.2, 0.1.3) were needed before the pipeline was actually self-healing** —
+both real bugs, not repeats of the above. (1) `uv.lock` doesn't get updated when PSR bumps
+`pyproject.toml`'s version; PSR's own uv-integration docs prescribe fixing this via
+`build_command = "uv lock --upgrade-package \"$PACKAGE_NAME\" && git add uv.lock && uv build"`
+(`8cf5384`) — except `$PACKAGE_NAME` is a **PSR v10+ feature that
+`python-semantic-release/python-semantic-release@v9`** (the pinned Action major version) doesn't
+export, so it silently expanded to `""`, `uv lock --upgrade-package ""` PEP508-errored, and
+because `build_command` runs via `bash -c` with no `set -e`, the failure was swallowed — `git add`
++ `uv build` kept going and the job still reported success. **Lesson: verify a fix against the
+job log, not just "the step didn't fail"** — a multi-line `build_command` needs an explicit
+`set -e` (or check each line's own success) to actually surface a mid-script failure; don't trust
+docs written against a newer version of a pinned Action/package without checking what the pinned
+version actually supports. Fixed by hardcoding the literal package name (`4739a92`/`a2dc364`).
+Confirmed genuinely self-healing only once the ci run triggered by the bot's OWN version-bump
+commit (not just the release job) went green on its own, unassisted.
+
 **Phase 2 — polish**
 MkDocs Material docs site (#13), VHS demo (#10), rich-argparse (#11), `examples/` + troubleshooting + uninstall (#12), pyright + coverage-comment + pre-commit (#5, #6), Dependabot (#9), **Claude Code plugin repackaging (#15 Option A)**, README restructure.
 
