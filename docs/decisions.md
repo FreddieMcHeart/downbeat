@@ -68,6 +68,27 @@
   editor/IDE run configs, systemd units, launchd plists, direnv caches) needs an explicit
   re-install step after a relocation; none of these self-heal from `uv sync` alone.
 
+- **`pytest -q`'s buffered dot output is not a reliable hang locator; add `pytest-timeout`
+  proactively, don't debug silent CI hangs by eye.** Discovered 2026-07-03: the first `main`
+  push after the rename hung an ubuntu CI job for 47+ minutes with zero output past a
+  partial `[ 39%]` progress line — no error, no traceback. Guessing the stuck test from the
+  visible dot count was unreliable (stdout is block-buffered, not line-buffered, when piped
+  to a CI log) and burned real debugging time chasing the wrong test. **Fix:** added
+  `pytest-timeout` (`timeout = 30`, `timeout_method = "thread"` in `[tool.pytest.ini_options]`)
+  — on the *next* hang it killed the run at 30s and dumped every thread's stack via
+  `faulthandler`, which immediately named the real culprit. **Root cause found this way:**
+  `watchdog`'s inotify `Observer.stop()` has a known Linux-only deadlock — the stopping
+  thread can block forever acquiring an internal lock still held by an emitter thread parked
+  in a blocking inotify read. Our `FsWatcher.stop()` only bounded the `.join()` *after*
+  `observer.stop()`, not the `stop()` call itself, so the deadlock passed straight through.
+  Macos jobs never hit it (FSEvents backend, no inotify). **Fix:** run `observer.stop()` in
+  a daemon thread with its own 2s join; if it doesn't return, log and abandon rather than
+  block the caller — a real user hitting Ctrl-C in `downbeat watch` on Linux would otherwise
+  hang the same way, not just CI. **General lesson:** any watcher/observer `.stop()` built on
+  a third-party library should be treated as untrusted-to-return; bound *every* blocking call
+  in a shutdown path, not just the final `.join()`. And: add `pytest-timeout` to any project
+  with background threads *before* the first mystery hang, not after burning an hour on one.
+
 ## Phase mapping (execution order)
 
 **Phase 1 — launch-blockers**
