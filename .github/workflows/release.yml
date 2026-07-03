@@ -25,6 +25,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
+      - uses: astral-sh/setup-uv@v5
       - name: Python Semantic Release
         id: release
         uses: python-semantic-release/python-semantic-release@v9

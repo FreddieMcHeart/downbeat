@@ -42,7 +42,6 @@ class PollWatcher:
         return snap
 
     def _run(self):
-        self._snapshot = self._scan()
         while not self._stop.wait(self._interval):
             current = self._scan()
             if current != self._snapshot:
@@ -53,6 +52,12 @@ class PollWatcher:
                     _log.exception("on_change callback raised")
 
     def start(self) -> None:
+        # Baseline must be taken synchronously, here, before the caller can
+        # act on `start()` returning. Taking it inside `_run()` instead races
+        # the caller: if thread scheduling delays the background thread's
+        # first tick past the caller's next write, that write lands in the
+        # baseline snapshot itself and is never seen as a change.
+        self._snapshot = self._scan()
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
         _log.debug("PollWatcher started interval=%s", self._interval)
