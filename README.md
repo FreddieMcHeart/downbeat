@@ -1,8 +1,20 @@
 # downbeat
 
+[![PyPI](https://img.shields.io/pypi/v/downbeat)](https://pypi.org/project/downbeat/)
+[![Python versions](https://img.shields.io/pypi/pyversions/downbeat)](https://pypi.org/project/downbeat/)
+[![CI](https://img.shields.io/github/actions/workflow/status/FreddieMcHeart/downbeat/ci.yml?branch=main&label=ci)](https://github.com/FreddieMcHeart/downbeat/actions/workflows/ci.yml)
 [![docs](https://img.shields.io/badge/docs-material-indigo)](https://freddiemcheart.github.io/downbeat/)
+[![License: MIT](https://img.shields.io/pypi/l/downbeat)](./LICENSE)
 
-Local filesystem-backed message broker + TUI + CLI + skill for handing off work between parallel Claude Code sessions on the same machine.
+Stop copy-pasting between AI terminals. downbeat is a local, human-in-the-loop
+message bus for coordinating parallel AI coding-agent sessions on one machine —
+register a few peers, hand off tasks, and read replies back, all through a
+filesystem-backed broker + TUI + CLI + skill. Nothing happens without you: every
+watcher notifies, nothing auto-executes on the parent side, and a child only acts
+because you told it to at registration time.
+
+Want to see it before installing? [`examples/parent-child-handoff/`](./examples/parent-child-handoff/)
+is a five-command walkthrough of the whole loop.
 
 ## Install
 
@@ -155,4 +167,6 @@ downbeat uninstall    # removes skill + shim + hooks + commands + relay
 - Source: `src/downbeat/{core,cli,tui,skill}`
 - Bundled runtime assets: `src/downbeat/assets/{hooks/,commands/,hooks_manifest.json}`
 - Tests: `tests/`
+- Examples: [`examples/`](./examples/)
+- Docs site: [freddiemcheart.github.io/downbeat](https://freddiemcheart.github.io/downbeat/) ([source](./docs/))
 - State: `~/.claude/relay/{sessions.json, inbox/, processed/, logs/, groups.json}`
