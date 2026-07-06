@@ -32,6 +32,17 @@ theme:
     - content.code.copy
     - content.action.edit
 
+validation:
+  links:
+    # index.md (this site's home) is `--8<--`-included from the repo-root
+    # README.md verbatim, so every relative link in it is written for
+    # GitHub's repo-root context, not this docs_dir. That mismatch is
+    # intentional (single source of truth over two-copies-to-drift) — see
+    # docs-site-setup.md — so a link mkdocs can't resolve here is expected,
+    # not a real broken link; downgrading `not_found` keeps strict mode
+    # useful for genuine mistakes without failing on this known pattern.
+    not_found: info
+
 markdown_extensions:
   - admonition
   - tables
@@ -47,6 +58,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Claude Code plugin: plugin.md
   - Maintainer docs:
       - Release process: release-setup.md
       - Docs site setup: docs-site-setup.md

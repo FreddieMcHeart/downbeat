@@ -1,0 +1,1 @@
+../src/downbeat/assets/hooks/relay-inbox.py

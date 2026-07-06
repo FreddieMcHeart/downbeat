@@ -1,0 +1,1 @@
+../src/downbeat/assets/commands/relay-register.md
