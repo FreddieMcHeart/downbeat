@@ -5,9 +5,26 @@ import argparse
 import sys
 from importlib.metadata import PackageNotFoundError, version
 
+from rich_argparse import RichHelpFormatter
+
 from ..core import logging as relay_logging
 from ..core.errors import RelayError
 from .commands import relay_cmds
+
+
+class _RichArgumentParser(argparse.ArgumentParser):
+    """ArgumentParser defaulting to RichHelpFormatter.
+
+    Passed as `parser_class` to every add_subparsers() call so every
+    subcommand (including nested ones, e.g. quarantine's list/requeue/purge)
+    gets the same colorized --help rendering as the top-level parser — a
+    functools.partial would work at runtime too, but doesn't satisfy
+    add_subparsers()'s `type[ArgumentParser]` parser_class annotation.
+    """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("formatter_class", RichHelpFormatter)
+        super().__init__(*args, **kwargs)
 
 
 def _version_string() -> str:
@@ -18,17 +35,20 @@ def _version_string() -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="downbeat")
+    p = argparse.ArgumentParser(prog="downbeat", formatter_class=RichHelpFormatter)
     p.add_argument("--version", action="version", version=_version_string())
     p.add_argument("--debug", action="store_true",
                    help="enable DEBUG-level logging")
 
     # Shared parent so every subparser also accepts --debug after the verb.
-    debug_parent = argparse.ArgumentParser(add_help=False)
+    # Built as _RichArgumentParser (not plain ArgumentParser) so its type
+    # matches what add_subparsers(parser_class=_RichArgumentParser) expects
+    # for the `parents=` argument on every add_parser() call below.
+    debug_parent = _RichArgumentParser(add_help=False)
     debug_parent.add_argument("--debug", action="store_true",
                               help="enable DEBUG-level logging")
 
-    sub = p.add_subparsers(dest="cmd", required=True)
+    sub = p.add_subparsers(dest="cmd", required=True, parser_class=_RichArgumentParser)
 
     sp_reg = sub.add_parser("register", help="register this session as a peer",
                             parents=[debug_parent])
@@ -93,7 +113,8 @@ def build_parser() -> argparse.ArgumentParser:
                              parents=[debug_parent])
     sp_quar.add_argument("--peer", default=None,
                          help="peer name; auto-detected if omitted")
-    sp_quar_sub = sp_quar.add_subparsers(dest="quarantine_action", required=True)
+    sp_quar_sub = sp_quar.add_subparsers(dest="quarantine_action", required=True,
+                                         parser_class=_RichArgumentParser)
 
     sp_qlist = sp_quar_sub.add_parser("list", help="list quarantined messages",
                                       parents=[debug_parent])

@@ -1,6 +1,55 @@
 name: ci
 on: [push, pull_request]
 jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked --extra dev
+      # --hook-stage pre-commit (the default) deliberately excludes the
+      # commit-msg hook (conventional-pre-commit) — that one needs an actual
+      # commit-msg file, not a pass over the working tree, and is already
+      # enforced locally via the commit-msg git hook (see .pre-commit-config.yaml).
+      - run: uv run pre-commit run --all-files
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked --extra dev
+      # Scoped to cli/+core/ via [tool.pyright].include in pyproject.toml —
+      # tui/ has 64 pre-existing errors (Textual query_one() -> X | None
+      # narrowing), a separate cleanup from this type-checking-in-CI change.
+      - run: uv run pyright
+
+  coverage:
+    runs-on: ubuntu-latest
+    # Needs write, not just read: on a push to main this action commits the
+    # baseline coverage data to the (unprotected) python-coverage-comment-action-data
+    # branch; on a PR it only needs pull-requests:write to post/update the comment.
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked --extra dev
+      - run: uv run pytest --cov=downbeat
+      - name: Coverage comment
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+
   test:
     runs-on: ${{ matrix.os }}
     strategy:

@@ -1,12 +1,36 @@
-# Enforces Conventional Commits on every commit message — required because
-# version bumps, CHANGELOG generation, and PyPI releases (semantic-release,
-# see pyproject.toml [tool.semantic_release]) are all derived from commit
-# history. See CONTRIBUTING.md.
+# commit-msg hook enforces Conventional Commits — required because version
+# bumps, CHANGELOG generation, and PyPI releases (semantic-release, see
+# pyproject.toml [tool.semantic_release]) are all derived from commit history.
+# The rest run at the default "pre-commit" stage (also what CI's
+# `pre-commit run --all-files` exercises, see .github/workflows/ci.yml) and
+# are plain hygiene, complementary to `ruff check .` which CI already runs
+# separately. See CONTRIBUTING.md.
 #
-# Install once per checkout: `uv run pre-commit install --hook-type commit-msg`
+# Install once per checkout: `uv run pre-commit install --hook-type commit-msg --hook-type pre-commit`
 repos:
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v3.4.0
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.16
+    hooks:
+      - id: ruff
+        args: [--fix]
+      # ruff-format deliberately NOT wired in yet: the codebase (62 files,
+      # mostly tests/) doesn't conform to ruff's formatter today, and
+      # reformatting all of them is a separate, visible, one-time decision —
+      # not something to bundle silently into a pre-commit/CI wiring change.

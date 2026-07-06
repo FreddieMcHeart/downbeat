@@ -7,6 +7,7 @@ Two implementations:
 from __future__ import annotations
 
 import logging
+import os
 import threading
 from collections.abc import Callable
 from typing import Protocol
@@ -79,8 +80,14 @@ class FsWatcher:
         self._handler_class = FileSystemEventHandler
 
         class _Handler(FileSystemEventHandler):
-            def on_any_event(handler_self, event):
-                if event.src_path.endswith(".json"):
+            def on_any_event(self, event):
+                # src_path is `bytes | str` per watchdog's own typing (some
+                # backends/platforms can hand back bytes for non-UTF8 paths);
+                # decode before comparing so this doesn't TypeError on those.
+                src_path = event.src_path
+                if isinstance(src_path, bytes):
+                    src_path = os.fsdecode(src_path)
+                if src_path.endswith(".json"):
                     try:
                         on_change()
                     except Exception:
