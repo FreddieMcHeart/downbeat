@@ -1,0 +1,56 @@
+site_name: downbeat
+site_description: Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine
+site_url: https://freddiemcheart.github.io/downbeat/
+repo_url: https://github.com/FreddieMcHeart/downbeat
+repo_name: FreddieMcHeart/downbeat
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+
+nav:
+  - Home: index.md
+  - Maintainer docs:
+      - Release process: release-setup.md
+      - Docs site setup: docs-site-setup.md
+      - Decisions log: decisions.md
+  - Contributing: contributing.md
+  - Code of Conduct: CODE_OF_CONDUCT.md
+  - Security: security.md

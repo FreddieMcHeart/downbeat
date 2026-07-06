@@ -1,5 +1,7 @@
 # downbeat
 
+[![docs](https://img.shields.io/badge/docs-material-indigo)](https://freddiemcheart.github.io/downbeat/)
+
 Local filesystem-backed message broker + TUI + CLI + skill for handing off work between parallel Claude Code sessions on the same machine.
 
 ## Install
