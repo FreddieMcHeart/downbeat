@@ -13,8 +13,11 @@ filesystem-backed broker + TUI + CLI + skill. Nothing happens without you: every
 watcher notifies, nothing auto-executes on the parent side, and a child only acts
 because you told it to at registration time.
 
+![downbeat demo: register two peers, hand off a task, reply, read it back](./examples/parent-child-handoff/demo.gif)
+
 Want to see it before installing? [`examples/parent-child-handoff/`](./examples/parent-child-handoff/)
-is a five-command walkthrough of the whole loop.
+is a five-command walkthrough of the whole loop (this GIF is `demo.sh` from that
+directory, recorded verbatim with [VHS](https://github.com/charmbracelet/vhs)).
 
 ## Install
 
