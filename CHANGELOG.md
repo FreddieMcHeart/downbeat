@@ -1,6 +1,24 @@
 # CHANGELOG
 
 
+## v0.2.0 (2026-07-06)
+
+### Documentation
+
+- Durable lesson — PSR@v9 lacks $PACKAGE_NAME, build_command swallows errors
+  ([`217f30a`](https://github.com/FreddieMcHeart/downbeat/commit/217f30a64568c851ce6fea8f8582170618b20668))
+
+### Features
+
+- **docs**: Add MkDocs Material docs site
+  ([`0549e2d`](https://github.com/FreddieMcHeart/downbeat/commit/0549e2df085d5934c78d40a46a59185dc28946c8))
+
+mkdocs.yml + Material theme, pymdownx.snippets reuse root README/
+  CONTRIBUTING/CODE_OF_CONDUCT/SECURITY without duplicating content, docs.yml GH Pages deploy
+  workflow (gh-deploy on push to main), docs extra in pyproject.toml. One remaining manual step:
+  enable GitHub Pages source, see docs/docs-site-setup.md.
+
+
 ## v0.1.3 (2026-07-03)
 
 ### Bug Fixes
