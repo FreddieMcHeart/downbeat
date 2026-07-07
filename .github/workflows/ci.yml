@@ -1,7 +1,32 @@
 name: ci
 on: [push, pull_request]
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # "true" unless every changed file is docs-only. Gates
+          # pre-commit/typecheck/coverage/test below; see ci-required's
+          # comment for why the required check points there, not at these
+          # jobs (or their matrix legs) directly.
+          filters: |
+            code:
+              - "**"
+              - "!docs/**"
+              - "!mkdocs.yml"
+              - "!README.md"
+              - "!CONTRIBUTING.md"
+              - "!CODE_OF_CONDUCT.md"
+              - "!SECURITY.md"
+
   pre-commit:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -16,6 +41,8 @@ jobs:
       - run: uv run pre-commit run --all-files
 
   typecheck:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -29,6 +56,8 @@ jobs:
       - run: uv run pyright
 
   coverage:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     # Needs write, not just read: on a push to main this action commits the
     # baseline coverage data to the (unprotected) python-coverage-comment-action-data
@@ -51,6 +80,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   test:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -65,3 +96,21 @@ jobs:
       - run: uv sync --locked --extra dev
       - run: uv run ruff check .
       - run: uv run pytest -q
+
+  # Single required-check target instead of the 6 expanded "test (os, python)"
+  # contexts. A job-level `if:` on `test` above means a skipped run never
+  # creates those per-matrix contexts at all, which would leave doc-only PRs
+  # stuck on "Expected — Waiting for status to be reported" forever if the
+  # ruleset required them by name. This job is itself skipped (= reports
+  # success) whenever everything upstream passed or was skipped, and only
+  # runs — to deliberately fail — if something upstream actually failed or
+  # was cancelled. Point main-protection's required_status_checks at this
+  # job's name, not at the matrix legs.
+  ci-required:
+    runs-on: ubuntu-latest
+    needs: [pre-commit, typecheck, coverage, test]
+    if: ${{ always() && (cancelled() || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'failure')) }}
+    steps:
+      - run: |
+          echo "::error::A required CI job failed or was cancelled."
+          exit 1
