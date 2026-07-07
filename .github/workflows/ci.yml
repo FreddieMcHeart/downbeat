@@ -10,10 +10,10 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
-          # "true" unless every changed file is docs-only — keeps the required
-          # `test` matrix checks reporting (as skipped, not missing) on
-          # doc-only PRs instead of leaving them stuck "Expected" per the
-          # main-protection ruleset's required_status_checks.
+          # "true" unless every changed file is docs-only. Gates
+          # pre-commit/typecheck/coverage/test below; see ci-required's
+          # comment for why the required check points there, not at these
+          # jobs (or their matrix legs) directly.
           filters: |
             code:
               - "**"
@@ -81,6 +81,7 @@ jobs:
 
   test:
     needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -88,22 +89,28 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         python: ["3.11", "3.12", "3.13"]
     steps:
-      # Step-level (not job-level) `if:` deliberately: the main-protection
-      # ruleset requires each expanded "test (os, python)" context by exact
-      # name. A job-level `if:` skips matrix expansion entirely and those
-      # named contexts never get created, leaving doc-only PRs stuck on
-      # "Expected — Waiting for status to be reported" forever. Skipping
-      # every step instead still runs (and reports success for) each
-      # matrix leg, just near-instantly.
       - uses: actions/checkout@v7
-        if: needs.changes.outputs.code == 'true'
       - uses: astral-sh/setup-uv@v7
-        if: needs.changes.outputs.code == 'true'
         with:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked --extra dev
-        if: needs.changes.outputs.code == 'true'
       - run: uv run ruff check .
-        if: needs.changes.outputs.code == 'true'
       - run: uv run pytest -q
-        if: needs.changes.outputs.code == 'true'
+
+  # Single required-check target instead of the 6 expanded "test (os, python)"
+  # contexts. A job-level `if:` on `test` above means a skipped run never
+  # creates those per-matrix contexts at all, which would leave doc-only PRs
+  # stuck on "Expected — Waiting for status to be reported" forever if the
+  # ruleset required them by name. This job is itself skipped (= reports
+  # success) whenever everything upstream passed or was skipped, and only
+  # runs — to deliberately fail — if something upstream actually failed or
+  # was cancelled. Point main-protection's required_status_checks at this
+  # job's name, not at the matrix legs.
+  ci-required:
+    runs-on: ubuntu-latest
+    needs: [pre-commit, typecheck, coverage, test]
+    if: ${{ always() && (cancelled() || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'failure')) }}
+    steps:
+      - run: |
+          echo "::error::A required CI job failed or was cancelled."
+          exit 1
