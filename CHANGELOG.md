@@ -1,6 +1,44 @@
 # CHANGELOG
 
 
+## v0.3.0 (2026-07-06)
+
+### Documentation
+
+- Add VHS demo GIF to README
+  ([`1c6c610`](https://github.com/FreddieMcHeart/downbeat/commit/1c6c610d942a01785481620662d46e20bc7401cb))
+
+examples/parent-child-handoff/demo.tape records demo.sh via VHS (charmbracelet/vhs) into demo.gif,
+  embedded at the top of README. docs/examples/parent-child-handoff/demo.gif is a symlink to the
+  real file (not a copy) so the MkDocs site resolves the same image without duplicating the asset;
+  only the .gif is symlinked, not the .md files, so their repo-root-relative links don't get
+  mis-resolved as docs-tree pages.
+
+- Upgrade README hook/badges, add parent-child-handoff example
+  ([`07b494f`](https://github.com/FreddieMcHeart/downbeat/commit/07b494f46a28680c1b347ab37675752851298465))
+
+README: PyPI/Python/CI/license badges, launch tagline as the opening hook, link to examples/. New
+  examples/parent-child-handoff/ walks the whole register->send->reply->inbox loop with a verified
+  demo.sh and real captured CLI output (not fabricated).
+
+### Features
+
+- **cli**: Colorized --help via rich-argparse; CI/quality wiring
+  ([`bcb732a`](https://github.com/FreddieMcHeart/downbeat/commit/bcb732a6f49434a601678231b0fe3c376f915afa))
+
+- rich-argparse: every parser/subparser (including nested quarantine actions) now renders --help
+  with RichHelpFormatter, via a _RichArgumentParser subclass passed as parser_class throughout. -
+  fix(watcher): event.src_path is bytes | str per watchdog's own typing; decode before
+  .endswith(".json") so a bytes path doesn't TypeError. Caught by wiring pyright in, not by an
+  existing test. - pyright wired into CI, scoped to cli/+core/ ([tool.pyright].include) — tui/ has
+  64 pre-existing errors (Textual query_one() -> X | None narrowing), left as a separate future
+  cleanup. - pre-commit run --all-files added to CI (new hygiene hooks: trailing whitespace, EOF,
+  yaml/toml validity, large-file, merge-conflict, plus ruff --fix); ruff-format deliberately NOT
+  enabled yet (62 files, mostly tests/, aren't formatter-conformant — a separate one-time reformat).
+  - coverage via pytest-cov + py-cov-action/python-coverage-comment-action (PR diff-coverage
+  comments); Dependabot for pip + github-actions.
+
+
 ## v0.2.0 (2026-07-06)
 
 ### Documentation
