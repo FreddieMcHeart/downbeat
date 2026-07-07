@@ -1,7 +1,9 @@
 import json
 import os
+import subprocess
 from pathlib import Path
 
+from downbeat.cli.commands import init_cmd
 from downbeat.cli.commands.init_cmd import run_init, run_uninstall
 
 
@@ -199,3 +201,77 @@ def test_init_on_malformed_settings_backs_up_and_errors(tmp_path, monkeypatch, r
     assert settings.read_text() == "{ this is not valid json "
     # a malformed-backup was made
     assert (tmp_path / ".claude" / "settings.json.bak-malformed-TEST").exists()
+
+
+# ------------------------- Claude Code plugin coexistence -------------------
+
+def _fake_run(stdout: str, returncode: int = 0):
+    def _run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, returncode, stdout=stdout, stderr="")
+    return _run
+
+
+def test_is_plugin_enabled_true_when_listed_and_enabled(monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _fake_run(
+        json.dumps([{"id": "downbeat@some-marketplace", "enabled": True}])))
+    assert init_cmd._is_plugin_enabled() is True
+
+
+def test_is_plugin_enabled_false_when_disabled(monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _fake_run(
+        json.dumps([{"id": "downbeat@some-marketplace", "enabled": False}])))
+    assert init_cmd._is_plugin_enabled() is False
+
+
+def test_is_plugin_enabled_false_when_not_listed(monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _fake_run(
+        json.dumps([{"id": "claude-core-hooks@some-marketplace", "enabled": True}])))
+    assert init_cmd._is_plugin_enabled() is False
+
+
+def test_is_plugin_enabled_fails_open_on_missing_claude_binary(monkeypatch):
+    def _raise(cmd, **kwargs):
+        raise FileNotFoundError("claude not found")
+    monkeypatch.setattr(subprocess, "run", _raise)
+    assert init_cmd._is_plugin_enabled() is False
+
+
+def test_is_plugin_enabled_fails_open_on_bad_json(monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _fake_run("not json"))
+    assert init_cmd._is_plugin_enabled() is False
+
+
+def test_is_plugin_enabled_fails_open_on_nonzero_exit(monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _fake_run("", returncode=1))
+    assert init_cmd._is_plugin_enabled() is False
+
+
+def test_init_skips_hand_merge_when_plugin_enabled(tmp_path, monkeypatch, relay_dir, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(init_cmd, "_is_plugin_enabled", lambda name="downbeat": True)
+    rc = run_init(backup_suffix="TEST")
+    assert rc == 0
+    settings = tmp_path / ".claude" / "settings.json"
+    # No hand-merge happened at all: settings.json was never created
+    assert not settings.exists()
+    assert "plugin detected" in capsys.readouterr().out
+
+
+def test_init_warns_on_double_fire_when_plugin_enabled_and_legacy_regs_exist(
+        tmp_path, monkeypatch, relay_dir, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    hp = str(tmp_path / ".claude" / "hooks")
+    settings.write_text(json.dumps({"hooks": {
+        "UserPromptSubmit": [{"hooks": [
+            {"type": "command", "command": f"{hp}/relay-inbox.py", "timeout": 3}]}],
+    }}, indent=2))
+    monkeypatch.setattr(init_cmd, "_is_plugin_enabled", lambda name="downbeat": True)
+    rc = run_init(backup_suffix="TEST")
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "WARNING" in out
+    assert "double-fire" in out
+    # Legacy registration left untouched (not migrated, not duplicated)
+    assert _relay_reg_count(settings) == 1

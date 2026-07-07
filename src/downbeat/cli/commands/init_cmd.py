@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import subprocess
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -135,6 +136,47 @@ def _entry_with_matcher(event_list: list, matcher):
         if entry.get("matcher") == matcher:
             return entry
     return None
+
+
+def _is_plugin_enabled(name: str = "downbeat") -> bool:
+    """True if the Claude Code plugin `name` is installed and enabled.
+
+    Fails open (False) on any error — missing `claude` binary, non-zero exit,
+    unparsable JSON, timeout — so a broken or absent Claude Code CLI never
+    blocks init's settings.json hand-merge fallback. Mirrors the equivalent
+    check in claude-core's doctor.sh (`claude plugin list --json`, entry
+    `id` is `"<name>@<marketplace>"`)."""
+    try:
+        result = subprocess.run(
+            ["claude", "plugin", "list", "--json"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode != 0:
+            return False
+        entries = json.loads(result.stdout)
+    except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
+        return False
+    for entry in entries:
+        entry_id = entry.get("id", "")
+        if entry_id.split("@", 1)[0] == name and entry.get("enabled"):
+            return True
+    return False
+
+
+def _any_hooks_registered(settings_path: Path, names) -> bool:
+    """True if settings.json already has any hand-merged relay hook entries.
+
+    Used only for the plugin-coexistence double-fire warning below — not to
+    decide idempotency, which _register_hooks already handles on its own."""
+    if not settings_path.exists():
+        return False
+    try:
+        settings = json.loads(settings_path.read_text())
+    except json.JSONDecodeError:
+        return False
+    hooks = settings.get("hooks", {})
+    return any(_hook_registered(event_list, name)
+               for event_list in hooks.values() for name in names)
 
 
 def _load_settings(settings_path: Path):
@@ -293,24 +335,41 @@ def run_init(force: bool = False, backup_suffix: str | None = None) -> int:
         status = _install_asset_file(src_cmd, cmds_dir / src_cmd.name, force)
         _print_asset_status("command", src_cmd.name, status)
 
-    # Register hooks in settings.json
+    # Register hooks in settings.json — but skip the hand-merge entirely if
+    # the downbeat Claude Code plugin is already installed+enabled: its own
+    # hooks/hooks.json is natively loaded by Claude Code, so hand-merging
+    # here would register the same hooks twice (double-fire on every event).
+    # This is an OR-with-legacy-detection check, not a replacement — if the
+    # plugin isn't detected (not installed, or `claude` isn't on PATH), init
+    # falls back to today's hand-merge unchanged.
     manifest = json.loads((assets / "hooks_manifest.json").read_text())
-    try:
-        res = _register_hooks(manifest, hooks_dir, _settings_path(), backup_suffix)
-    except SettingsParseError as e:
-        # Back up the malformed file; do not write a partial settings.json.
-        sp = _settings_path()
-        bak = sp.with_name(f"settings.json.bak-malformed-{backup_suffix}")
-        bak.write_text(sp.read_text())
-        print(f"ERROR: settings.json is not valid JSON ({e}). "
-              f"Backed up → {bak}. Hooks NOT registered — fix the file and re-run init.")
-        return 1
-    if res["added"]:
-        suffix = (f" (backup {res['backup'].name})" if res["backup"]
-                  else " (created settings.json)")
-        print(f"settings: registered {', '.join(res['added'])}" + suffix)
-    if res["skipped"]:
-        print(f"settings: already registered {', '.join(res['skipped'])} (no change)")
+    settings_path = _settings_path()
+    if _is_plugin_enabled():
+        if _any_hooks_registered(settings_path, HOOK_NAMES):
+            print("WARNING: downbeat Claude Code plugin is enabled AND legacy "
+                  "hand-merged relay hooks already exist in settings.json — "
+                  "these will double-fire on every event. Remove the old "
+                  "entries manually (see docs/plugin.md) until "
+                  "`downbeat init --migrate-to-plugin` is available.")
+        else:
+            print("downbeat Claude Code plugin detected — skipping settings.json "
+                  "hand-merge (plugin hooks are already active).")
+    else:
+        try:
+            res = _register_hooks(manifest, hooks_dir, settings_path, backup_suffix)
+        except SettingsParseError as e:
+            # Back up the malformed file; do not write a partial settings.json.
+            bak = settings_path.with_name(f"settings.json.bak-malformed-{backup_suffix}")
+            bak.write_text(settings_path.read_text())
+            print(f"ERROR: settings.json is not valid JSON ({e}). "
+                  f"Backed up → {bak}. Hooks NOT registered — fix the file and re-run init.")
+            return 1
+        if res["added"]:
+            suffix = (f" (backup {res['backup'].name})" if res["backup"]
+                      else " (created settings.json)")
+            print(f"settings: registered {', '.join(res['added'])}" + suffix)
+        if res["skipped"]:
+            print(f"settings: already registered {', '.join(res['skipped'])} (no change)")
 
     print("init complete. try: downbeat tui")
     return 0

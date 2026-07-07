@@ -138,10 +138,24 @@ version_toml = ["pyproject.toml:project.version"]
 # 0.1.2) — silently, because build_command has no `set -e`, so `git add` +
 # `uv build` kept running after the failed line and the job still reported
 # success. Confirmed via the actual job log, not assumed from docs alone.
+#
+# .claude-plugin/plugin.json's own `version` field is kept in sync with this
+# one via the same commit — stdlib re+json (not tomllib), verified working
+# locally on both an already-in-sync and a deliberately-mismatched value,
+# in case the PSR docker container's Python is older than 3.11.
 build_command = """
 pip install uv
 uv lock --upgrade-package "downbeat"
 git add uv.lock
+python3 -c '
+import json, re, pathlib
+version = re.search("version = \\"([^\\"]+)\\"", pathlib.Path("pyproject.toml").read_text()).group(1)
+p = pathlib.Path(".claude-plugin/plugin.json")
+d = json.loads(p.read_text())
+d["version"] = version
+p.write_text(json.dumps(d, indent=2) + "\\n")
+'
+git add .claude-plugin/plugin.json
 uv build
 """
 major_on_zero = false  # pre-1.0: breaking changes bump MINOR, not straight to 1.0.0

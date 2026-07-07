@@ -33,7 +33,22 @@
 ## Key interactions / consequences
 
 - **semantic-release cluster (#4 + #7 + CHANGELOG):** pulls **Conventional Commits** in *now* (not deferred). Version, CHANGELOG, tags, and PyPI publish all derive from commit history (`fix:`→patch, `feat:`→minor, `feat!:`/`BREAKING CHANGE:`→major). Add **commitlint** to `.pre-commit-config.yaml` to enforce. Full-auto (7a) = a merge to `main` can publish to PyPI with no human gate — accepted trade; mitigate with strong CI as the gate (tests + pyright + coverage must pass before merge).
-- **#15 supersedes the installer:** the Claude Code plugin (Option A) replaces the `downbeat init` settings.json-merge approach shipped in `290fc9c`. The parent wired `mondu-harness` git-ignores around that installer — those become obsolete when the plugin lands (Phase 2). **Heads-up to the parent recommended.** `init` survives only as a standalone fallback.
+- **#15 correction (2026-07-06, PR #4): the plugin does NOT supersede the installer** — this
+  row's original framing ("SUPERSEDES the settings.json-merge installer", "no settings.json
+  surgery") turned out wrong once actually scoped with the sibling `claude-core-hooks` plugin
+  session over relay. downbeat is a general-purpose PyPI tool (`uv tool install downbeat`),
+  not Claude-Code-only, so `init`'s hand-merge into `settings.json` has to keep working
+  permanently for non-plugin installs — it is a **co-equal baseline path**, not a fallback
+  being phased out. What actually shipped: `_is_plugin_enabled()` (`claude plugin list --json`,
+  fails open) gates `init`'s hand-merge — skip it if the plugin's already active, but if
+  hand-merged entries from a *prior* `init` run already exist alongside a newly-installed
+  plugin, print an explicit double-fire **WARNING** (caught in peer review — `HOOK_NAMES`
+  substring detection isn't safe enough to auto-remove entries) rather than silently doing
+  nothing. `hooks/`, `commands/`, `skills/downbeat/` are symlinks into the existing
+  `src/downbeat/assets/`-packaged files — one source of truth for both distribution channels.
+  No marketplace registration yet (local-path/git install only). `--migrate-to-plugin` (exact
+  command-string match + drop-empty-groups, not substring) is an explicit fast-follow, not in
+  this PR. See [plugin.md](./plugin.md) and PR #4.
 - **Name migration** (`claude-relay → downbeat`) is tracked separately in launch-plan.md; it must precede the first PyPI release (#12) and the plugin marketplace slug (#15).
 - **#4/#7 pipeline is code-complete but not yet LIVE:** `release.yml` + the semantic-release config landed in `8883258`, but three GitHub/PyPI web-console steps (Trusted Publisher registration, `pypi` environment, branch-protection status checks) can't be done from a CLI session — see [release-setup.md](./release-setup.md) for the exact runbook. Do those steps AFTER the rename (Step 1 registers the PyPI project name).
 
@@ -119,8 +134,36 @@ version actually supports. Fixed by hardcoding the literal package name (`4739a9
 Confirmed genuinely self-healing only once the ci run triggered by the bot's OWN version-bump
 commit (not just the release job) went green on its own, unassisted.
 
-**Phase 2 — polish**
-MkDocs Material docs site (#13), VHS demo (#10), rich-argparse (#11), `examples/` + troubleshooting + uninstall (#12), pyright + coverage-comment + pre-commit (#5, #6), Dependabot (#9), **Claude Code plugin repackaging (#15 Option A)**, README restructure.
+**Phase 2 — polish — mostly DONE (2026-07-06), plugin PR pending merge**
+MkDocs Material docs site (#13, `0549e2d` — a `feat:` commit, released **v0.2.0**), VHS demo
+(#10, `1c6c610`, `docs:` — no release), `examples/` + README restructure (#12, `07b494f`,
+`docs:` — no release),
+rich-argparse + pyright + pre-commit-in-CI + coverage-comment + Dependabot (#5, #6, #9, #11,
+`bcb732a` — a `feat:` commit, released **v0.3.0**), **Claude Code plugin repackaging (#15,
+PR #4, open — not yet merged, see correction above)**.
+
+Deliberate scope calls made landing these, worth keeping as precedent: (1) `pyright` is scoped
+to `cli/`+`core/` only (`[tool.pyright].include` in pyproject.toml) — `tui/` has 64
+pre-existing errors, almost all Textual's `query_one() -> Widget | None` narrowing; fixing
+those is a separate, larger pass, not something to fold silently into a CI-wiring change. (2)
+`ruff-format` is **not** wired into pre-commit/CI yet — `ruff format --check .` found 62 files
+(mostly `tests/`) non-conformant; reformatting all of them is its own visible decision, not a
+side effect of adding hygiene hooks. (3) The MkDocs site reuses root `.md` files via
+`pymdownx.snippets` (`--8<-- "README.md"` etc.) instead of copying content — one file, two
+render contexts; a same-named-file's relative links can't resolve identically from repo-root
+(GitHub) and from `docs/` (the site), so `mkdocs.yml`'s `validation.links.not_found` is
+deliberately downgraded to `info` rather than fighting each link with a symlink.
+
+**Gotcha hit mid-Phase-2, worth flagging for the next relocation-adjacent change:** the
+globally-installed `downbeat` (`uv tool install --editable`, used by the live `~/.claude/relay/
+relay.py` shim) is a **separate environment from the repo's dev `.venv`**. Adding
+`rich-argparse` to `pyproject.toml` and running `uv sync` only updated the dev venv — the
+global tool install broke (`ModuleNotFoundError: rich_argparse`) the moment the peer-relay
+`send`/`reply` commands were invoked through it, since those route through the same installed
+binary. Fix: `uv tool upgrade downbeat` after any dependency change, not just `uv sync`. Same
+lesson as the earlier IAM-migration finding (memory: `project_iam_migration.md`) generalized —
+an editable/dev environment and its "live", separately-materialized install are not the same
+thing and don't sync automatically.
 
 **Phase 3 — growth**
 Comparison-table + launch package (#14): badges, social-preview, `awesome-cli-coding-agents` + `awesome-claude-code` PRs, Show HN + Reddit (see launch-plan.md).

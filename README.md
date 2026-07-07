@@ -40,6 +40,11 @@ skipped, and a hook that differs from the bundled copy is **kept** (your local e
 wins) unless you pass `--force`. settings.json edits never clobber non-relay hooks
 sharing the same event/matcher.
 
+downbeat also ships as a native **Claude Code plugin** (`claude plugin install
+downbeat`) — an optional, Claude-Code-only fast path alongside `init`'s hand-merge,
+not a replacement for it. See [docs/plugin.md](./docs/plugin.md) for how the two
+coexist (and what to do if you ran `init` before installing the plugin).
+
 ## Use
 
 ```bash
