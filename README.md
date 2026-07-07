@@ -8,7 +8,7 @@
 | src/downbeat/cli/\_\_init\_\_.py               |        0 |        0 |    100% |           |
 | src/downbeat/cli/\_\_main\_\_.py               |      112 |        3 |     97% |33-34, 211 |
 | src/downbeat/cli/commands/\_\_init\_\_.py      |        0 |        0 |    100% |           |
-| src/downbeat/cli/commands/init\_cmd.py         |      228 |       15 |     93% |96, 113-118, 196, 200-201, 220, 238-239, 258, 269 |
+| src/downbeat/cli/commands/init\_cmd.py         |      255 |       17 |     93% |97, 114-119, 175-176, 238, 242-243, 262, 280-281, 300, 311 |
 | src/downbeat/cli/commands/relay\_cmds.py       |      215 |       59 |     73% |20-22, 54-56, 66, 87-89, 95-103, 110-111, 122-123, 131-148, 155-160, 163, 188-195, 232-234, 271, 282, 298-299, 303-304 |
 | src/downbeat/core/\_\_init\_\_.py              |        0 |        0 |    100% |           |
 | src/downbeat/core/errors.py                    |        5 |        0 |    100% |           |
@@ -49,7 +49,7 @@
 | src/downbeat/tui/widgets/peer\_tabs.py         |       51 |        2 |     96% |    39, 84 |
 | src/downbeat/tui/widgets/rebind\_modal.py      |       33 |       33 |      0% |      2-52 |
 | src/downbeat/tui/widgets/switch\_acting\_as.py |       33 |        6 |     82% | 39-43, 46 |
-| **TOTAL**                                      | **3006** | **1078** | **64%** |           |
+| **TOTAL**                                      | **3033** | **1080** | **64%** |           |
 
 
 ## Setup coverage badge
