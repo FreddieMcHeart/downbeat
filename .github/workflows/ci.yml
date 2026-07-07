@@ -1,7 +1,32 @@
 name: ci
 on: [push, pull_request]
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # "true" unless every changed file is docs-only — keeps the required
+          # `test` matrix checks reporting (as skipped, not missing) on
+          # doc-only PRs instead of leaving them stuck "Expected" per the
+          # main-protection ruleset's required_status_checks.
+          filters: |
+            code:
+              - "**"
+              - "!docs/**"
+              - "!mkdocs.yml"
+              - "!README.md"
+              - "!CONTRIBUTING.md"
+              - "!CODE_OF_CONDUCT.md"
+              - "!SECURITY.md"
+
   pre-commit:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -16,6 +41,8 @@ jobs:
       - run: uv run pre-commit run --all-files
 
   typecheck:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -29,6 +56,8 @@ jobs:
       - run: uv run pyright
 
   coverage:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     # Needs write, not just read: on a push to main this action commits the
     # baseline coverage data to the (unprotected) python-coverage-comment-action-data
@@ -51,6 +80,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   test:
+    needs: changes
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -58,10 +88,22 @@ jobs:
         os: [ubuntu-latest, macos-latest]
         python: ["3.11", "3.12", "3.13"]
     steps:
+      # Step-level (not job-level) `if:` deliberately: the main-protection
+      # ruleset requires each expanded "test (os, python)" context by exact
+      # name. A job-level `if:` skips matrix expansion entirely and those
+      # named contexts never get created, leaving doc-only PRs stuck on
+      # "Expected — Waiting for status to be reported" forever. Skipping
+      # every step instead still runs (and reports success for) each
+      # matrix leg, just near-instantly.
       - uses: actions/checkout@v7
+        if: needs.changes.outputs.code == 'true'
       - uses: astral-sh/setup-uv@v7
+        if: needs.changes.outputs.code == 'true'
         with:
           python-version: ${{ matrix.python }}
       - run: uv sync --locked --extra dev
+        if: needs.changes.outputs.code == 'true'
       - run: uv run ruff check .
+        if: needs.changes.outputs.code == 'true'
       - run: uv run pytest -q
+        if: needs.changes.outputs.code == 'true'
