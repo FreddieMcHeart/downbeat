@@ -178,4 +178,3 @@ downbeat uninstall    # removes skill + shim + hooks + commands + relay
 - Examples: [`examples/`](./examples/)
 - Docs site: [freddiemcheart.github.io/downbeat](https://freddiemcheart.github.io/downbeat/) ([source](./docs/))
 - State: `~/.claude/relay/{sessions.json, inbox/, processed/, logs/, groups.json}`
-
