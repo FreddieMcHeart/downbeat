@@ -72,3 +72,12 @@ PRs with unsigned commits will be asked to amend before merge.
 ## Code of Conduct
 
 This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
+
+## Maintainer-only references
+
+Not needed to make a PR — these are internal notes for whoever is running
+releases or the docs site, not user-facing documentation:
+
+- [Release process](docs/release-setup.md) — one-time PyPI/GitHub setup steps
+- [Docs site setup](docs/docs-site-setup.md) — how the GitHub Pages site itself is built/deployed
+- [Decisions log](docs/decisions.md) — internal design-decision + bug history, not a changelog

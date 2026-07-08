@@ -42,6 +42,15 @@ validation:
     # not a real broken link; downgrading `not_found` keeps strict mode
     # useful for genuine mistakes without failing on this known pattern.
     not_found: info
+  nav:
+    # release-setup.md/docs-site-setup.md/decisions.md are intentionally not
+    # in `nav:` below (see CONTRIBUTING.md's "Maintainer-only references") —
+    # internal maintainer notes, not user-facing docs, following the uv/hatch
+    # convention of keeping that content out of the public docs nav. They
+    # still build as orphan pages (reachable by direct URL for maintainers
+    # who need them, still versioned/linkable from GitHub), so the expected
+    # "not included in nav" warning is downgraded rather than fought.
+    omitted_files: info
 
 markdown_extensions:
   - admonition
@@ -59,10 +68,6 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Claude Code plugin: plugin.md
-  - Maintainer docs:
-      - Release process: release-setup.md
-      - Docs site setup: docs-site-setup.md
-      - Decisions log: decisions.md
   - Contributing: contributing.md
   - Code of Conduct: CODE_OF_CONDUCT.md
   - Security: security.md
