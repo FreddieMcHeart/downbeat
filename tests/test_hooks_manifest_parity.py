@@ -15,7 +15,11 @@ import downbeat
 def _manifest_bindings() -> set[tuple[str, str | None, str]]:
     manifest_path = Path(downbeat.__file__).parent / "assets" / "hooks_manifest.json"
     manifest = json.loads(manifest_path.read_text())
-    return {(e["event"], e["matcher"], e["command"]) for e in manifest["events"]}
+    # Path(...).name here (not just e["command"] as-is) keeps this symmetric
+    # with _plugin_hooks_json_bindings() rather than relying on the
+    # documented-but-unenforced invariant that manifest "command" is always
+    # already a bare basename.
+    return {(e["event"], e["matcher"], Path(e["command"]).name) for e in manifest["events"]}
 
 
 def _plugin_hooks_json_bindings() -> set[tuple[str, str | None, str]]:
