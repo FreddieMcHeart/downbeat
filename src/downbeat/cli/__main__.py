@@ -180,6 +180,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp_init = sub.add_parser("init", help="bootstrap relay dir, skill, shim",
                              parents=[debug_parent])
     sp_init.add_argument("--force", action="store_true")
+    sp_init.add_argument("--migrate-to-plugin", action="store_true",
+                         dest="migrate_to_plugin",
+                         help="remove legacy hand-merged relay hooks now that the "
+                              "Claude Code plugin owns hook registration; standalone "
+                              "mode, does not also run the rest of init")
     sp_init.set_defaults(func=relay_cmds.cmd_init)
 
     sp_uninst = sub.add_parser("uninstall", help="remove skill + restore shim",

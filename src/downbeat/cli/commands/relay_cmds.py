@@ -295,7 +295,9 @@ def cmd_watch(args: argparse.Namespace) -> int:
 
 
 def cmd_init(args: argparse.Namespace) -> int:
-    from .init_cmd import run_init
+    from .init_cmd import run_init, run_migrate_to_plugin
+    if args.migrate_to_plugin:
+        return run_migrate_to_plugin()
     return run_init(force=args.force)
 
 
