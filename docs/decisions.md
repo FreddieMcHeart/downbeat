@@ -191,5 +191,51 @@ actually interact with skipped/conditional jobs:**
    fired and failed when an unrelated `end-of-file-fixer` regression broke `pre-commit`, and
    correctly stayed skipped (= passing) once fixed.
 
+**CI follow-up part 2 (2026-07-07/08, PR #7): the paths-filter exclusions were a silent no-op
+until fixed.** PR #5's `changes` job filter (`"**"` plus `!docs/**` etc.) evaluated `code=true`
+on a genuine docs-only PR (#6) even after the file reached `main` — the negation never applied.
+Root cause: `dorny/paths-filter`'s `predicate-quantifier` input defaults to `"some"` (a file
+counts as matching if it hits *any one* pattern in the list), so the bare `"**"` alone always
+satisfied the filter regardless of what `!`-exclusions came after it — gitignore-style negation
+only actually applies with `predicate-quantifier: every`. Confirmed via the action's own log
+(`Filter code = true`, matching file `docs/decisions.md`) before and after the fix. **Lesson:**
+don't assume a `!`-prefixed pattern list gives gitignore semantics by default in a third-party
+action just because the syntax looks like `.gitignore` — check the action's own quantifier
+default, and verify empirically with a real PR against the real target branch, not just a
+syntax read of the YAML.
+
+**Dependabot sibling-PR merge conflicts on adjacent version-bump lines.** Merging PR #2
+(`actions/checkout@v4→v7`) and PR #3 (`astral-sh/setup-uv@v5→v7`) back-to-back produced a real
+git conflict in `ci.yml`/`docs.yml` — both PRs touch the same `steps:` blocks, one line apart,
+so PR #3's branch (opened before PR #2 merged) couldn't fast-forward-update cleanly once PR #2
+landed. Dependabot doesn't rebase sibling PRs against each other. Not a config bug, just an
+expected outcome of independent action-bump PRs sharing files — resolved by hand (keep both new
+versions) rather than tooled. Worth remembering next time multiple Dependabot PRs are open
+simultaneously in a file with multiple `uses:` lines close together.
+
+**Public docs nav should not carry maintainer-only content (2026-07-08, PR #9).** The site's
+"Maintainer docs" nav section (`release-setup.md`, `docs-site-setup.md`, `decisions.md` — this
+very file) was removed from `mkdocs.yml`'s `nav:` after checking how comparable OSS CLI tools
+(`uv`, `hatch`, `ruff`) structure their published docs sites: none surface a release-runbook or
+raw decisions/bug journal in the main public nav. `ruff`'s closest analog is one curated
+`CONTRIBUTING.md`-style page, not a split-out internal log. Moved discoverability to a new
+"Maintainer-only references" section in `CONTRIBUTING.md` instead — the pages themselves stay
+on disk and still build as **orphan pages** (MkDocs still builds+deploys a `docs_dir` file even
+if it's absent from `nav:`, just reachable only by direct URL, not the sidebar); added
+`validation.nav.omitted_files: info` to `mkdocs.yml` to downgrade the resulting expected warning
+in strict builds, mirroring the existing `validation.links.not_found: info` pattern.
+
+**`--migrate-to-plugin` design drafted and peer-reviewed, not yet implemented (2026-07-08).**
+See [2026-07-08-migrate-to-plugin-design.md](./superpowers/specs/2026-07-08-migrate-to-plugin-design.md)
+(PR #8) — reviewed with the `claude-core-hooks` maintainer session over relay. Key shape: reuses
+`hooks_manifest.json` as the single source of truth for both registration (`_register_hooks`)
+and migration, exact-command-string match instead of `_unregister_hooks`'s substring match,
+drop-empty-groups logic extracted into one shared `_remove_matching_hooks` helper instead of a
+second implementation. Peer review's main catch: nothing enforces parity between
+`hooks_manifest.json` (hand-merge) and `hooks/hooks.json` (plugin) — they agree today but could
+silently drift if a third hook binding is ever added to one and not the other; a parity test is
+scoped as a required companion, not optional polish. Implementation deliberately on hold — user
+said "hold off" 2026-07-08, scoping only for now.
+
 **Phase 3 — growth**
 Comparison-table + launch package (#14): badges, social-preview, `awesome-cli-coding-agents` + `awesome-claude-code` PRs, Show HN + Reddit (see launch-plan.md).
