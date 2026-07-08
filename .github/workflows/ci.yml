@@ -14,6 +14,14 @@ jobs:
           # pre-commit/typecheck/coverage/test below; see ci-required's
           # comment for why the required check points there, not at these
           # jobs (or their matrix legs) directly.
+          #
+          # predicate-quantifier MUST be "every" here, not the tool's default
+          # "some": with "some", a file only needs to match ONE pattern in the
+          # list to count as matching the filter, so "**" alone always matches
+          # every file regardless of the "!"-exclusions below it — negation is
+          # silently a no-op. Confirmed empirically on PR #6: a docs/-only diff
+          # still evaluated code=true until this was added.
+          predicate-quantifier: every
           filters: |
             code:
               - "**"
