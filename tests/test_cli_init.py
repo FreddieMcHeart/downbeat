@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 from downbeat.cli.commands import init_cmd
-from downbeat.cli.commands.init_cmd import run_init, run_uninstall
+from downbeat.cli.commands.init_cmd import run_init, run_migrate_to_plugin, run_uninstall
 
 
 def _relay_reg_count(settings_path: Path) -> int:
@@ -275,3 +275,99 @@ def test_init_warns_on_double_fire_when_plugin_enabled_and_legacy_regs_exist(
     assert "double-fire" in out
     # Legacy registration left untouched (not migrated, not duplicated)
     assert _relay_reg_count(settings) == 1
+
+
+# ------------------------------ migrate-to-plugin ---------------------------
+
+def test_migrate_refuses_when_plugin_not_enabled(tmp_path, monkeypatch, relay_dir, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(init_cmd, "_is_plugin_enabled", lambda name="downbeat": False)
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    hp = str(tmp_path / ".claude" / "hooks")
+    settings.write_text(json.dumps({"hooks": {
+        "UserPromptSubmit": [{"hooks": [
+            {"type": "command", "command": f"{hp}/relay-inbox.py", "timeout": 3}]}],
+    }}, indent=2))
+    rc = run_migrate_to_plugin(backup_suffix="TEST")
+    assert rc == 1
+    assert "not installed/enabled" in capsys.readouterr().out
+    # Nothing touched — legacy entry still there
+    assert _relay_reg_count(settings) == 1
+    assert not (tmp_path / ".claude" / "settings.json.bak-TEST").exists()
+
+
+def test_migrate_removes_exact_legacy_entries_keeps_others(
+        tmp_path, monkeypatch, relay_dir, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(init_cmd, "_is_plugin_enabled", lambda name="downbeat": True)
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    hp = str(tmp_path / ".claude" / "hooks")
+    # Full legacy hand-merge (as run_init would have written it) plus a
+    # non-relay neighbour sharing the same no-matcher UserPromptSubmit entry.
+    settings.write_text(json.dumps({"hooks": {
+        "UserPromptSubmit": [{"hooks": [
+            {"type": "command", "command": "/x/cost-discipline.py", "timeout": 5},
+            {"type": "command", "command": f"{hp}/relay-inbox.py", "timeout": 3},
+        ]}],
+        "SessionStart": [{"matcher": "startup|resume", "hooks": [
+            {"type": "command", "command": f"{hp}/relay-inbox.py", "timeout": 3}]}],
+        "PostToolUse": [{"matcher": "Bash", "hooks": [
+            {"type": "command", "command": f"{hp}/relay-poll-offer.py", "timeout": 3}]}],
+    }}, indent=2))
+    rc = run_migrate_to_plugin(backup_suffix="TEST")
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "removed legacy hand-merged relay hook regs" in out
+    assert "downbeat uninstall" in out  # discoverability hint line
+    assert _relay_reg_count(settings) == 0
+    assert any("cost-discipline.py" in c for c in _all_commands(settings))
+    assert (tmp_path / ".claude" / "settings.json.bak-TEST").exists()
+
+
+def test_migrate_reports_nothing_to_migrate_when_no_legacy_entries(
+        tmp_path, monkeypatch, relay_dir, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(init_cmd, "_is_plugin_enabled", lambda name="downbeat": True)
+    rc = run_migrate_to_plugin(backup_suffix="TEST")
+    assert rc == 0
+    assert "nothing to migrate" in capsys.readouterr().out
+    assert not (tmp_path / ".claude" / "settings.json").exists()
+
+
+def test_migrate_is_precision_not_recall_on_nonmatching_command_string(
+        tmp_path, monkeypatch, relay_dir, capsys):
+    """A legacy entry whose command string doesn't byte-match today's
+    derivation (e.g. HOME changed) is left in place, and the CLI points at
+    `uninstall` as the substring-based fallback."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(init_cmd, "_is_plugin_enabled", lambda name="downbeat": True)
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    settings.write_text(json.dumps({"hooks": {
+        "UserPromptSubmit": [{"hooks": [
+            {"type": "command", "command": "/some/other/home/.claude/hooks/relay-inbox.py",
+             "timeout": 3}]}],
+    }}, indent=2))
+    rc = run_migrate_to_plugin(backup_suffix="TEST")
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "don't exactly match" in out
+    assert "downbeat uninstall" in out
+    # Left untouched — exact-match found nothing to remove
+    assert _relay_reg_count(settings) == 1
+    assert not (tmp_path / ".claude" / "settings.json.bak-TEST").exists()
+
+
+def test_migrate_on_malformed_settings_backs_up_and_errors(
+        tmp_path, monkeypatch, relay_dir):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(init_cmd, "_is_plugin_enabled", lambda name="downbeat": True)
+    settings = tmp_path / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    settings.write_text("{ this is not valid json ")
+    rc = run_migrate_to_plugin(backup_suffix="TEST")
+    assert rc == 1
+    assert settings.read_text() == "{ this is not valid json "
+    assert (tmp_path / ".claude" / "settings.json.bak-malformed-TEST").exists()

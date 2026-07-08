@@ -22,6 +22,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -231,28 +232,17 @@ def _register_hooks(manifest: dict, hooks_dir: Path, settings_path: Path,
     return {"added": added, "skipped": skipped, "backup": backup, "created": created}
 
 
-def _unregister_hooks(settings_path: Path, names, backup_suffix: str) -> dict:
-    """Remove relay hooks from settings.json, dropping now-empty entries but
-    preserving non-relay neighbours. Returns {removed, backup}."""
-    if not settings_path.exists():
-        return {"removed": [], "backup": None}
-    raw = settings_path.read_text()
-    try:
-        settings = json.loads(raw)
-    except json.JSONDecodeError:
-        return {"removed": [], "backup": None}  # never touch malformed on uninstall
-    hooks = settings.get("hooks", {})
+def _remove_matching_hooks(hooks: dict, match: Callable[[dict], bool]) -> list[str]:
+    """Remove every hook object for which match(hook_obj) is True, dropping
+    now-empty entries and now-empty event keys. Mutates `hooks` in place.
+    Returns event labels for the removed hooks (dupes = one removal each)."""
     removed: list[str] = []
-    changed = False
     for event in list(hooks.keys()):
         new_list = []
         for entry in hooks[event]:
             ehooks = entry.get("hooks", [])
-            kept = [h for h in ehooks
-                    if not any(n in (h.get("command") or "") for n in names)]
-            if len(kept) != len(ehooks):
-                changed = True
-                removed.append(event)
+            kept = [h for h in ehooks if not match(h)]
+            removed.extend([event] * (len(ehooks) - len(kept)))
             if "hooks" in entry:
                 if kept:
                     entry["hooks"] = kept
@@ -264,8 +254,48 @@ def _unregister_hooks(settings_path: Path, names, backup_suffix: str) -> dict:
             hooks[event] = new_list
         else:
             del hooks[event]
+    return removed
+
+
+def _unregister_hooks(settings_path: Path, names, backup_suffix: str) -> dict:
+    """Remove relay hooks from settings.json, dropping now-empty entries but
+    preserving non-relay neighbours. Returns {removed, backup}."""
+    if not settings_path.exists():
+        return {"removed": [], "backup": None}
+    raw = settings_path.read_text()
+    try:
+        settings = json.loads(raw)
+    except json.JSONDecodeError:
+        return {"removed": [], "backup": None}  # never touch malformed on uninstall
+    hooks = settings.get("hooks", {})
+    removed = _remove_matching_hooks(
+        hooks, match=lambda h: any(n in (h.get("command") or "") for n in names))
     backup = None
-    if changed:
+    if removed:
+        backup = settings_path.with_name(f"settings.json.bak-{backup_suffix}")
+        backup.write_text(raw)
+        _atomic_write_json(settings_path, settings)
+    return {"removed": removed, "backup": backup}
+
+
+def _migrate_to_plugin(manifest: dict, hooks_dir: Path, settings_path: Path,
+                       backup_suffix: str) -> dict:
+    """Remove exactly the hand-merged entries `_register_hooks` would have
+    written for this manifest+hooks_dir, via _remove_matching_hooks. Returns
+    {removed, backup}. Raises SettingsParseError on malformed JSON — caller
+    must catch it (mirrors run_init's handling of the same error)."""
+    settings, raw = _load_settings(settings_path)
+    if raw is None:  # file-not-found only; bad JSON raises SettingsParseError above
+        return {"removed": [], "backup": None}
+    expected = {
+        (e["event"], e["matcher"]): str(hooks_dir / e["command"])
+        for e in manifest["events"]
+    }
+    hooks = settings.get("hooks", {})
+    removed = _remove_matching_hooks(
+        hooks, match=lambda h: h.get("command") in expected.values())
+    backup = None
+    if removed:
         backup = settings_path.with_name(f"settings.json.bak-{backup_suffix}")
         backup.write_text(raw)
         _atomic_write_json(settings_path, settings)
@@ -372,6 +402,48 @@ def run_init(force: bool = False, backup_suffix: str | None = None) -> int:
             print(f"settings: already registered {', '.join(res['skipped'])} (no change)")
 
     print("init complete. try: downbeat tui")
+    return 0
+
+
+def run_migrate_to_plugin(backup_suffix: str | None = None) -> int:
+    """Remove the legacy hand-merged relay hook entries `init` wrote, now
+    that the Claude Code plugin owns hook registration instead. Standalone
+    mode of `init` — does not also run the asset-install steps, since those
+    are plugin-irrelevant once the plugin is active."""
+    backup_suffix = backup_suffix or datetime.now().strftime("%Y%m%d-%H%M%S")
+    if not _is_plugin_enabled():
+        print("ERROR: downbeat Claude Code plugin is not installed/enabled — "
+              "refusing to remove the hand-merged hooks (that would leave you "
+              "with no working relay hooks at all). Install/enable the plugin "
+              "first, then re-run `downbeat init --migrate-to-plugin`.")
+        return 1
+
+    assets = _packaged_assets_dir()
+    manifest = json.loads((assets / "hooks_manifest.json").read_text())
+    hooks_dir = _hooks_install_dir()
+    settings_path = _settings_path()
+
+    try:
+        res = _migrate_to_plugin(manifest, hooks_dir, settings_path, backup_suffix)
+    except SettingsParseError as e:
+        bak = settings_path.with_name(f"settings.json.bak-malformed-{backup_suffix}")
+        bak.write_text(settings_path.read_text())
+        print(f"ERROR: settings.json is not valid JSON ({e}). "
+              f"Backed up → {bak}. Nothing migrated — fix the file and re-run.")
+        return 1
+
+    if res["removed"]:
+        suffix = f" (backup {res['backup'].name})" if res["backup"] else ""
+        print(f"settings: removed legacy hand-merged relay hook regs from "
+              f"{', '.join(sorted(set(res['removed'])))}" + suffix)
+        print("stale hook/command files can be removed with `downbeat uninstall`")
+    elif _any_hooks_registered(settings_path, HOOK_NAMES):
+        print("nothing migrated — relay hook entries exist in settings.json but "
+              "don't exactly match today's expected command strings (e.g. HOME "
+              "changed since the original `init` run). Run `downbeat uninstall` "
+              "to remove them by name instead.")
+    else:
+        print("nothing to migrate — no legacy hand-merged relay hooks found.")
     return 0
 
 

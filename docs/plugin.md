@@ -38,20 +38,26 @@ a broken or absent Claude Code CLI never blocks `init`'s fallback path.
 
 ## If you get the double-fire warning
 
-There's no automated migration yet (`downbeat init --migrate-to-plugin` is
-planned but not built — see the project's decisions log). Until then, fix it
-manually:
+Run:
 
-1. Open `~/.claude/settings.json`.
-2. Under `hooks`, find the `UserPromptSubmit`, `SessionStart`
-   (`startup|resume`), and `PostToolUse` (`Bash`) entries whose `command`
-   points at `<home>/.claude/hooks/relay-inbox.py` or
-   `relay-poll-offer.py`.
-3. Remove those specific hook objects (leave any other hooks in the same
-   entry — e.g. a `cost-discipline.py` entry sharing the same event/matcher
-   — untouched).
-4. If removing them empties out an entry's `hooks` list, delete the whole
-   entry.
+```
+downbeat init --migrate-to-plugin
+```
 
+This removes exactly the hand-merged entries the original `init` run wrote —
+matched by exact command string against `hooks_manifest.json`, so any other
+hook sharing the same event/matcher (e.g. `cost-discipline.py`) is left
+untouched — and backs up `settings.json` first. It refuses to run unless the
+plugin is actually installed and enabled, so it can never leave you with no
+working relay hooks.
+
+If a legacy entry doesn't get removed (e.g. its command string no longer
+byte-matches today's derivation — `$HOME` changed, a symlink resolved
+differently), the command tells you and points at `downbeat uninstall` as
+the substring-based fallback.
+
+`--migrate-to-plugin` is a standalone mode of `init` — it does not also
+re-run the rest of `init` (skill/shim/hooks/commands installation), since
+those are plugin-irrelevant once the plugin owns hook registration.
 `downbeat init --force` does **not** do this for you — it only re-verifies
 the hand-merge path, which is exactly what you're trying to stop using.

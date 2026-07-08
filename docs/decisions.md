@@ -237,5 +237,21 @@ silently drift if a third hook binding is ever added to one and not the other; a
 scoped as a required companion, not optional polish. Implementation deliberately on hold — user
 said "hold off" 2026-07-08, scoping only for now.
 
+**`--migrate-to-plugin` implemented (2026-07-08).** `init_cmd.py` gained `_remove_matching_hooks`
+(the shared drop-empty-groups helper the design called for — `_unregister_hooks` now calls it
+with its existing substring predicate instead of doing its own loop), `_migrate_to_plugin`
+(exact-command-string predicate built from `hooks_manifest.json`), and `run_migrate_to_plugin`
+(CLI wiring: hard-fails if the plugin isn't enabled, catches `SettingsParseError` explicitly,
+prints a `downbeat uninstall` hint when legacy entries plausibly exist under a non-matching
+command string). Wired up as `downbeat init --migrate-to-plugin` — a standalone mode of `init`,
+not a modifier. Also landed the parity test the design flagged as a required companion:
+`tests/test_hooks_manifest_parity.py` asserts `hooks_manifest.json` and `hooks/hooks.json`
+enumerate the same `(event, matcher, command-basename)` set. `docs/plugin.md`'s "double-fire
+warning" section rewritten to point at the new command instead of the old manual JSON-surgery
+steps. 6 new tests, full suite green, `ruff`/`pyright` clean. Cross-validated with
+`claude-core-hooks` maintainer session over relay before starting (msg `9756567e1983`) — they're
+building the symmetric `lib/migrate_to_plugin.py` independently, same exact-match/drop-empty-
+groups/backup-on-write shape.
+
 **Phase 3 — growth**
 Comparison-table + launch package (#14): badges, social-preview, `awesome-cli-coding-agents` + `awesome-claude-code` PRs, Show HN + Reddit (see launch-plan.md).
