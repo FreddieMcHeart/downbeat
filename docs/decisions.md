@@ -134,13 +134,14 @@ version actually supports. Fixed by hardcoding the literal package name (`4739a9
 Confirmed genuinely self-healing only once the ci run triggered by the bot's OWN version-bump
 commit (not just the release job) went green on its own, unassisted.
 
-**Phase 2 — polish — mostly DONE (2026-07-06), plugin PR pending merge**
+**Phase 2 — polish — ✅ DONE (2026-07-07)**
 MkDocs Material docs site (#13, `0549e2d` — a `feat:` commit, released **v0.2.0**), VHS demo
 (#10, `1c6c610`, `docs:` — no release), `examples/` + README restructure (#12, `07b494f`,
 `docs:` — no release),
 rich-argparse + pyright + pre-commit-in-CI + coverage-comment + Dependabot (#5, #6, #9, #11,
 `bcb732a` — a `feat:` commit, released **v0.3.0**), **Claude Code plugin repackaging (#15,
-PR #4, open — not yet merged, see correction above)**.
+PR #4, merged `f12da1d` — a `feat(plugin):` commit, released **v0.4.0**, see correction
+above)**.
 
 Deliberate scope calls made landing these, worth keeping as precedent: (1) `pyright` is scoped
 to `cli/`+`core/` only (`[tool.pyright].include` in pyproject.toml) — `tui/` has 64
@@ -164,6 +165,31 @@ binary. Fix: `uv tool upgrade downbeat` after any dependency change, not just `u
 lesson as the earlier IAM-migration finding (memory: `project_iam_migration.md`) generalized —
 an editable/dev environment and its "live", separately-materialized install are not the same
 thing and don't sync automatically.
+
+**CI follow-up (2026-07-07, PR #5): docs-only diffs no longer run the python matrix.**
+`ci.yml` gained a `changes` job (`dorny/paths-filter`, `code` output true unless every changed
+file is README/CONTRIBUTING/CODE_OF_CONDUCT/SECURITY/`docs/**`/`mkdocs.yml`) gating
+`pre-commit`/`typecheck`/`coverage`/`test` behind `if: needs.changes.outputs.code == 'true'`.
+**Two real gotchas surfaced getting this right, both about how GitHub's required-status-checks
+actually interact with skipped/conditional jobs:**
+1. `paths-filter` with no explicit `base:` diffs the **whole branch against `main`**, not just
+   the latest push's incremental commit — confirmed from the action's own log ("Changes will be
+   detected between main and \<branch\>"). This is correct for how this repo merges (squash),
+   but means you can't test the "skip" path on a branch that itself modifies `ci.yml` — that
+   file's own diff always makes `code=true` on that branch, by construction. Verification of the
+   skip path required a real doc-only PR opened *after* the new `ci.yml` reached `main`.
+2. The `main-protection` ruleset requires **exact expanded matrix context names**
+   (`test (ubuntu-latest, 3.11)`, etc.). A **job-level** `if:` on a matrix job skips matrix
+   expansion entirely — those named contexts never get created, and GitHub leaves the PR stuck
+   on "Expected — Waiting for status to be reported" forever, not merged and not failed. Fix:
+   added a single fan-in `ci-required` job (`needs: [pre-commit, typecheck, coverage, test]`,
+   `if: always() && (cancelled() || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'failure'))`)
+   that is itself **skipped** (GitHub reports a skipped job as "Success") on the happy path and
+   only runs — to deliberately fail loudly — if something upstream genuinely failed. Repointed
+   the ruleset's `required_status_checks` at this one job instead of the 6 matrix contexts.
+   Confirmed both directions empirically in CI logs before merging: `ci-required` correctly
+   fired and failed when an unrelated `end-of-file-fixer` regression broke `pre-commit`, and
+   correctly stayed skipped (= passing) once fixed.
 
 **Phase 3 — growth**
 Comparison-table + launch package (#14): badges, social-preview, `awesome-cli-coding-agents` + `awesome-claude-code` PRs, Show HN + Reddit (see launch-plan.md).
