@@ -9,12 +9,16 @@ settings.json hand-merge remains the baseline path that works everywhere.
 
 ## Install
 
+The repo ships its own marketplace manifest (`.claude-plugin/marketplace.json`),
+so installing from a clone or a local path is one pair of commands:
+
 ```
-claude plugin install downbeat
+claude plugin marketplace add /path/to/downbeat   # or a git URL to this repo
+claude plugin install downbeat@downbeat
 ```
 
-(exact source — marketplace, git, or local path — depends on how you've
-registered downbeat as a plugin source; see Claude Code's own plugin docs).
+(the `name@marketplace` form disambiguates if you have another plugin also
+named `downbeat` registered from a different marketplace).
 
 ## How coexistence works
 
