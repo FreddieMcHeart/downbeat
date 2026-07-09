@@ -9,16 +9,39 @@ settings.json hand-merge remains the baseline path that works everywhere.
 
 ## Install
 
-The repo ships its own marketplace manifest (`.claude-plugin/marketplace.json`),
-so installing from a clone or a local path is one pair of commands:
+Two commands, nothing to fill in — copy, paste, run:
 
-```
-claude plugin marketplace add /path/to/downbeat   # or a git URL to this repo
+```bash
+claude plugin marketplace add FreddieMcHeart/downbeat
 claude plugin install downbeat@downbeat
 ```
 
-(the `name@marketplace` form disambiguates if you have another plugin also
-named `downbeat` registered from a different marketplace).
+No local clone needed: the first command points Claude Code at this GitHub
+repo (it shallow-clones the marketplace manifest under
+`~/.claude/plugins/marketplaces/`), the second installs the plugin from that
+source. Then start a new Claude Code session (or restart your current one)
+so the hooks actually load.
+
+**Verify it worked:**
+
+```bash
+claude plugin list --json | grep -A2 '"id": "downbeat@downbeat"'
+```
+
+Should show `"enabled": true`.
+
+If you're working from a local clone instead (e.g. testing an unmerged
+branch, or you keep the repo checked out anyway), point at the path instead
+of the GitHub shorthand:
+
+```bash
+claude plugin marketplace add /path/to/your/downbeat/checkout
+claude plugin install downbeat@downbeat
+```
+
+(the `name@marketplace` form on the install command disambiguates if you
+ever have another plugin also named `downbeat` registered from a different
+marketplace).
 
 ## How coexistence works
 
