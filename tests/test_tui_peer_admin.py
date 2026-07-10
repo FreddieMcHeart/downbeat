@@ -36,10 +36,37 @@ async def test_add_peer_programmatic(relay_dir):
 
 
 @pytest.mark.asyncio
+async def test_add_peer_modal_default_parent_prefills_and_registers(relay_dir):
+    """Regression test: the modal's parent-name Input must be a distinct
+    attribute from Widget's own internal `_parent` (DOM-parent tracking) —
+    reusing that name once broke mount/attachment with a confusing
+    MountError. Also exercises explicit --parent disambiguation when >1
+    parent peer exists."""
+    from downbeat.core import store
+    store.register_peer(name="parent-a", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s2", cwd="/tmp", role="parent")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        app.push_screen(AddPeerModal(default_parent="parent-b"))
+        await pilot.pause()
+        modal = app.screen
+        assert isinstance(modal, AddPeerModal)
+        assert modal._parent_input.value == "parent-b"
+        modal._name.value = "new-child"
+        modal._session_id.value = "abc"
+        modal._cwd.value = "/tmp"
+        modal.submit()
+        await pilot.pause()
+        registered = store.get_peer("new-child")
+        assert registered.role == "child"
+        assert registered.parent == "parent-b"
+
+
+@pytest.mark.asyncio
 async def test_remove_peer_helper(relay_dir):
     from downbeat.core import store
     from downbeat.core.errors import PeerNotFound
-    store.register_peer(name="rm-me", session_id="s", cwd="/tmp", role="child")
+    store.register_peer(name="rm-me", session_id="s", cwd="/tmp", role="parent")
     perform_remove_peer("rm-me")
     with pytest.raises(PeerNotFound):
         store.get_peer("rm-me")
@@ -53,8 +80,8 @@ async def test_gc_stale_prunes_only_old_peers(relay_dir):
     from downbeat.core import store
 
     # Create two peers
-    store.register_peer(name="old", session_id="s1", cwd="/tmp", role="child")
-    store.register_peer(name="new", session_id="s2", cwd="/tmp", role="child")
+    store.register_peer(name="old", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="new", session_id="s2", cwd="/tmp", role="parent")
 
     # Backdate "old" by 30 days by writing directly to sessions.json
     from downbeat.core import paths
@@ -93,7 +120,7 @@ async def test_remove_peer_y_keybinding_triggers_removal(relay_dir):
     """Pressing 'y' in the RemovePeerConfirm modal must actually remove the peer."""
     from downbeat.core import store
     from downbeat.core.errors import PeerNotFound
-    store.register_peer(name="to-remove", session_id="s", cwd="/tmp", role="child")
+    store.register_peer(name="to-remove", session_id="s", cwd="/tmp", role="parent")
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
         app.push_screen(RemovePeerConfirm("to-remove"))
@@ -121,15 +148,19 @@ async def test_peers_screen_lists_peers(relay_dir):
 
 
 @pytest.mark.asyncio
-async def test_peers_screen_groups_by_prefix(relay_dir):
-    """Peers with shared prefix appear adjacent, parents before children."""
+async def test_peers_screen_groups_by_explicit_parent(relay_dir):
+    """Peers paired via Peer.parent appear adjacent, parents before children —
+    grouping is data-driven, not inferred from any shared name shape."""
     from downbeat.core import store
     from downbeat.tui.screens.peers import PeersScreen
-    # Register intentionally out-of-order
-    store.register_peer(name="PLAT-3113-child", session_id="s1", cwd="/tmp", role="child")
+    # Register intentionally out-of-order, with deliberately unrelated names
+    # to prove grouping doesn't depend on any shared prefix.
     store.register_peer(name="PLAT-2972-master", session_id="s2", cwd="/tmp", role="parent")
     store.register_peer(name="PLAT-3113-master", session_id="s3", cwd="/tmp", role="parent")
-    store.register_peer(name="PLAT-2972-child", session_id="s4", cwd="/tmp", role="child")
+    store.register_peer(name="worker-one", session_id="s1", cwd="/tmp", role="child",
+                        parent="PLAT-3113-master")
+    store.register_peer(name="worker-two", session_id="s4", cwd="/tmp", role="child",
+                        parent="PLAT-2972-master")
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
         app.push_screen(PeersScreen())
@@ -143,7 +174,7 @@ async def test_peers_screen_groups_by_prefix(relay_dir):
             if name:
                 names.append(name)
         # Both PLAT-2972 rows together, both PLAT-3113 rows together, with
-        # the parent first inside each group.
-        expected = ["PLAT-2972-master", "PLAT-2972-child",
-                    "PLAT-3113-master", "PLAT-3113-child"]
+        # the parent first inside each group — grouped by Peer.parent, not name.
+        expected = ["PLAT-2972-master", "worker-two",
+                    "PLAT-3113-master", "worker-one"]
         assert names == expected

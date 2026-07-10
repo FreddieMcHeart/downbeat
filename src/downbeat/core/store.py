@@ -12,7 +12,14 @@ from datetime import UTC
 from pathlib import Path
 
 from . import paths
-from .errors import MessageLocked, MessageNotFound, PeerNotFound, StoreCorrupt
+from .errors import (
+    AmbiguousParent,
+    InvalidParent,
+    MessageLocked,
+    MessageNotFound,
+    PeerNotFound,
+    StoreCorrupt,
+)
 from .models import Broadcast, Message, MessageState, Peer, new_id, now_iso
 
 _log = logging.getLogger("downbeat.core")
@@ -55,9 +62,41 @@ def _save_sessions(data: dict[str, dict]) -> None:
     _atomic_write_text(paths.SESSIONS_FILE, json.dumps(data, indent=2))
 
 
+def _resolve_parent(name: str, sessions: dict[str, dict], existing: dict | None,
+                     parent: str | None) -> str | None:
+    """Resolve the `parent` a role=child peer should be stored with.
+
+    Explicit --parent always wins (validated: must exist, must be role=parent).
+    Otherwise reuse the peer's already-stored parent (rebind case). Otherwise
+    auto-default only if exactly one role=parent peer exists — ambiguity or
+    absence is a hard error, never a silent guess."""
+    if parent is not None:
+        target = sessions.get(parent)
+        if target is None or target.get("role") != "parent":
+            raise InvalidParent(f"--parent {parent!r} is not a registered role=parent peer")
+        return parent
+    if existing and existing.get("parent"):
+        return existing["parent"]
+    parent_names = sorted(
+        n for n, d in sessions.items() if d.get("role") == "parent" and n != name
+    )
+    if len(parent_names) == 1:
+        return parent_names[0]
+    if not parent_names:
+        raise InvalidParent(
+            f"no role=parent peer exists yet to pair {name!r} with — "
+            "register the parent first, or pass --parent explicitly"
+        )
+    raise AmbiguousParent(
+        f"multiple parent peers exist ({', '.join(parent_names)}) — "
+        f"pass --parent explicitly to disambiguate {name!r}"
+    )
+
+
 def register_peer(name: str, session_id: str, cwd: str, role: str,
                   claude_pid: int | None = None,
-                  claude_pid_start: str | None = None) -> Peer:
+                  claude_pid_start: str | None = None,
+                  parent: str | None = None) -> Peer:
     sessions = _load_sessions()
     existing = sessions.get(name)
     registered_at = existing["registered_at"] if existing else now_iso()
@@ -65,18 +104,45 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
     if existing and existing.get("session_id") and existing["session_id"] != session_id:
         if existing["session_id"] not in history:
             history.append(existing["session_id"])
+    resolved_parent = _resolve_parent(name, sessions, existing, parent) if role == "child" else None
     peer = Peer(
         name=name, session_id=session_id, cwd=cwd, role=role,
         registered_at=registered_at, last_seen=now_iso(),
         claude_pid=claude_pid,
         claude_pid_start=claude_pid_start,
         session_id_history=history,
+        parent=resolved_parent,
     )
     sessions[name] = peer.to_dict()
     _save_sessions(sessions)
-    _log.info("register peer=%s session=%s role=%s claude_pid=%s",
-              name, session_id, role, claude_pid)
+    _log.info("register peer=%s session=%s role=%s parent=%s claude_pid=%s",
+              name, session_id, role, resolved_parent, claude_pid)
     return peer
+
+
+def set_parent(name: str, parent: str) -> Peer:
+    """Backfill/repoint an existing role=child peer's parent without full re-register."""
+    sessions = _load_sessions()
+    if name not in sessions:
+        raise PeerNotFound(name)
+    if sessions[name].get("role") != "child":
+        raise InvalidParent(f"{name!r} is not a role=child peer")
+    target = sessions.get(parent)
+    if target is None or target.get("role") != "parent":
+        raise InvalidParent(f"{parent!r} is not a registered role=parent peer")
+    sessions[name]["parent"] = parent
+    _save_sessions(sessions)
+    return Peer.from_dict(sessions[name])
+
+
+def children_of(parent_name: str) -> list[Peer]:
+    """All peers 'related' to acting_as parent_name for TUI display purposes:
+    the parent itself plus every child explicitly paired with it. Replaces the
+    old name-prefix-string inference (_related_prefix)."""
+    return [
+        p for p in list_peers()
+        if p.name == parent_name or p.parent == parent_name
+    ]
 
 
 def list_peers() -> list[Peer]:

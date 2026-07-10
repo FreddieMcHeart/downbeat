@@ -16,3 +16,11 @@ class MessageLocked(RelayError):
 
 class StoreCorrupt(RelayError):
     """Raised when sessions.json or a message file fails to parse."""
+
+
+class AmbiguousParent(RelayError):
+    """Raised registering a child with no --parent when multiple role=parent peers exist."""
+
+
+class InvalidParent(RelayError):
+    """Raised when --parent names a peer that doesn't exist or isn't role=parent."""

@@ -129,6 +129,7 @@ def test_send_without_kind_defaults_to_task(relay_dir, capsys, monkeypatch):
 
 def test_whoami_prints_name_and_role(relay_dir, capsys, monkeypatch):
     from downbeat.core import session, store
+    store.register_peer(name="its-parent", session_id="sid-p", cwd="/tmp", role="parent")
     store.register_peer(name="my-child", session_id="sid-abc", cwd="/tmp", role="child")
     monkeypatch.setattr(session, "detect_session_id", lambda: "sid-abc")
     monkeypatch.setattr(sys, "argv", ["downbeat", "whoami"])

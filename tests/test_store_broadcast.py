@@ -3,7 +3,7 @@ from downbeat.core import store
 
 def _peers(*names):
     for n in names:
-        store.register_peer(name=n, session_id=f"s-{n}", cwd="/tmp", role="child")
+        store.register_peer(name=n, session_id=f"s-{n}", cwd="/tmp", role="parent")
 
 
 def test_broadcast_creates_one_message_per_target(relay_dir):

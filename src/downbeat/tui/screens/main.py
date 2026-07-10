@@ -148,7 +148,8 @@ class MainScreen(Screen):
             peer_list.refresh_from_store()
             if name:
                 self.notify(f"Registered peer {name}", timeout=2)
-        self.app.push_screen(AddPeerModal(), after)
+        default_parent = self.query_one(PeerList).acting_as
+        self.app.push_screen(AddPeerModal(default_parent), after)
 
     def action_remove_peer(self) -> None:
         from ..widgets.peer_admin import RemovePeerConfirm
