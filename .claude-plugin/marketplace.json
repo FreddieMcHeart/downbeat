@@ -1,0 +1,13 @@
+{
+  "name": "downbeat",
+  "owner": {
+    "name": "FreddieMcHeart"
+  },
+  "plugins": [
+    {
+      "name": "downbeat",
+      "source": ".",
+      "description": "Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine"
+    }
+  ]
+}
