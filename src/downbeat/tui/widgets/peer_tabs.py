@@ -1,6 +1,8 @@
 """Tab bar listing peers in the current group with unread badges."""
 from __future__ import annotations
 
+import re
+
 from textual.message import Message as TextualMessage
 from textual.widgets import Tab, Tabs
 
@@ -73,7 +75,10 @@ class PeerTabs(Tabs):
             self._populating = False
 
     def _safe_id(self, name: str) -> str:
-        return name.replace("-", "_").replace(".", "_")
+        # Textual widget ids allow only letters, numbers, underscores, hyphens.
+        # Peer names are free-form (spaces, dots, emoji, etc.) so anything
+        # outside that set must be sanitized, not just the historically-seen "-"/".".
+        return re.sub(r"[^A-Za-z0-9_-]", "_", name)
 
     def _current_peer_name(self) -> str | None:
         if not self.active or not self._members:
