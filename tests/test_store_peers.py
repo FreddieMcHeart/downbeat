@@ -1,7 +1,7 @@
 import pytest
 
 from downbeat.core import store
-from downbeat.core.errors import PeerNotFound
+from downbeat.core.errors import AmbiguousParent, InvalidParent, PeerNotFound
 
 
 def test_register_creates_peer(relay_dir):
@@ -65,6 +65,120 @@ def test_rebind_auto_detect_fails_when_no_marker(relay_dir, monkeypatch):
     monkeypatch.setattr(session_mod, "detect_session_id", lambda: None)
     with pytest.raises(RelayError):
         store.rebind_session("p", None)
+
+
+def test_register_child_auto_defaults_to_sole_parent(relay_dir):
+    store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
+    child = store.register_peer(name="anything-goes", session_id="s-2", cwd="/tmp",
+                                role="child")
+    assert child.parent == "parent"
+
+
+def test_register_child_no_parent_at_all_raises(relay_dir):
+    with pytest.raises(InvalidParent):
+        store.register_peer(name="orphan", session_id="s-1", cwd="/tmp", role="child")
+
+
+def test_register_child_ambiguous_parent_raises(relay_dir):
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s-2", cwd="/tmp", role="parent")
+    with pytest.raises(AmbiguousParent):
+        store.register_peer(name="child", session_id="s-3", cwd="/tmp", role="child")
+
+
+def test_register_child_explicit_parent_disambiguates(relay_dir):
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s-2", cwd="/tmp", role="parent")
+    child = store.register_peer(name="child", session_id="s-3", cwd="/tmp", role="child",
+                                parent="parent-b")
+    assert child.parent == "parent-b"
+
+
+def test_register_child_explicit_parent_not_found_raises(relay_dir):
+    store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
+    with pytest.raises(InvalidParent):
+        store.register_peer(name="child", session_id="s-2", cwd="/tmp", role="child",
+                            parent="nope")
+
+
+def test_register_child_explicit_parent_wrong_role_raises(relay_dir):
+    store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="other-child", session_id="s-2", cwd="/tmp", role="child",
+                        parent="parent")
+    with pytest.raises(InvalidParent):
+        store.register_peer(name="child", session_id="s-3", cwd="/tmp", role="child",
+                            parent="other-child")
+
+
+def test_register_parent_never_gets_a_parent_value(relay_dir):
+    p = store.register_peer(name="p", session_id="s-1", cwd="/tmp", role="parent")
+    assert p.parent is None
+
+
+def test_rebind_preserves_previously_set_parent(relay_dir):
+    store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s-2", cwd="/tmp", role="child",
+                        parent="parent")
+    store.register_peer(name="parent-b", session_id="s-3", cwd="/tmp", role="parent")
+    # Re-registering the same child without --parent, even though there are
+    # now 2 parents (which would otherwise be ambiguous), must keep its
+    # existing pairing rather than erroring or re-guessing.
+    again = store.register_peer(name="child", session_id="s-2", cwd="/tmp", role="child")
+    assert again.parent == "parent"
+
+
+def test_children_of_returns_parent_and_its_children_only(relay_dir):
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s-2", cwd="/tmp", role="parent")
+    store.register_peer(name="alpha", session_id="s-3", cwd="/tmp", role="child",
+                        parent="parent-a")
+    store.register_peer(name="beta", session_id="s-4", cwd="/tmp", role="child",
+                        parent="parent-b")
+    related = {p.name for p in store.children_of("parent-a")}
+    assert related == {"parent-a", "alpha"}
+
+
+def test_children_of_does_not_use_name_prefix(relay_dir):
+    """Free-form names must not need to share a prefix with their parent."""
+    store.register_peer(name="Some-Parent-Name", session_id="s-1", cwd="/tmp",
+                        role="parent")
+    store.register_peer(name="Totally-Unrelated-Name", session_id="s-2", cwd="/tmp",
+                        role="child", parent="Some-Parent-Name")
+    related = {p.name for p in store.children_of("Some-Parent-Name")}
+    assert related == {"Some-Parent-Name", "Totally-Unrelated-Name"}
+
+
+def test_set_parent_backfills_existing_child(relay_dir):
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s-2", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s-3", cwd="/tmp", role="child",
+                        parent="parent-a")
+    updated = store.set_parent("child", "parent-b")
+    assert updated.parent == "parent-b"
+    assert store.get_peer("child").parent == "parent-b"
+
+
+def test_set_parent_unknown_child_raises(relay_dir):
+    store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
+    with pytest.raises(PeerNotFound):
+        store.set_parent("nope", "parent")
+
+
+def test_set_parent_target_not_a_parent_raises(relay_dir):
+    store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s-2", cwd="/tmp", role="child",
+                        parent="parent")
+    store.register_peer(name="other-child", session_id="s-3", cwd="/tmp", role="child",
+                        parent="parent")
+    with pytest.raises(InvalidParent):
+        store.set_parent("child", "other-child")
+
+
+def test_set_parent_on_a_parent_peer_raises(relay_dir):
+    store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-2", session_id="s-2", cwd="/tmp", role="parent")
+    with pytest.raises(InvalidParent):
+        store.set_parent("parent", "parent-2")
 
 
 def test_load_legacy_sessions_without_name_field(relay_dir):

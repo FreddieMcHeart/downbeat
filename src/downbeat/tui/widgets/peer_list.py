@@ -63,14 +63,6 @@ class PeerList(Vertical):
     def on_mount(self):
         self.refresh_from_store()
 
-    def _related_prefix(self, parent_name: str) -> str:
-        """Return the naming prefix used to find related children.
-        For 'PLAT-3113-master' returns 'PLAT-3113-'; for 'parent' returns ''.
-        Empty prefix means "fallback to all children"."""
-        if "-" not in parent_name:
-            return ""
-        return parent_name.rsplit("-", 1)[0] + "-"
-
     def refresh_from_store(self) -> None:
         all_peers = store.list_peers()
         parents = [p for p in all_peers if p.role == "parent"]
@@ -80,16 +72,9 @@ class PeerList(Vertical):
         if self.acting_as not in parent_names:
             self.acting_as = parents[0].name if parents else None
 
-        # Build list: ALL peers (parent + children) that share the prefix.
-        if self.acting_as:
-            prefix = self._related_prefix(self.acting_as)
-            if prefix:
-                related = [p for p in all_peers if p.name.startswith(prefix)]
-            else:
-                # Fallback when parent name has no '-': show everyone
-                related = all_peers
-        else:
-            related = []
+        # Build list: the acting-as parent plus every child explicitly paired
+        # with it (Peer.parent), not peers that merely share a name prefix.
+        related = store.children_of(self.acting_as) if self.acting_as else []
 
         # Build list items
         self.items = []

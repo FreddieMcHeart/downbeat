@@ -41,11 +41,12 @@ class PeersScreen(Screen):
         now = datetime.now(UTC)
 
         def group_key(peer):
-            # Group prefix: everything before the last '-', or '~ungrouped' so
-            # peers with no '-' sort to the bottom of the table.
-            if "-" in peer.name:
-                return peer.name.rsplit("-", 1)[0]
-            return "~ungrouped"
+            # Group by the real parent-child pairing (Peer.parent), not a
+            # name-prefix guess. Parents group under their own name; a child
+            # with no parent set yet (pre-migration peer) sorts to the bottom.
+            if peer.role == "parent":
+                return peer.name
+            return peer.parent or "~ungrouped"
 
         def sort_key(peer):
             return (

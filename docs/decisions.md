@@ -253,5 +253,35 @@ steps. 6 new tests, full suite green, `ruff`/`pyright` clean. Cross-validated wi
 building the symmetric `lib/migrate_to_plugin.py` independently, same exact-match/drop-empty-
 groups/backup-on-write shape.
 
+**Explicit parent-child pairing replaces name-prefix inference (2026-07-10).** Root cause: the
+TUI's "acting as `<parent>`" view (`peer_list.py`, `chat.py`) and the admin table's grouping
+(`peers.py`) all derived parent-child relationships by string-splitting a peer's name on its
+last `-` — a child registered under a different naming convention than its parent was silently
+excluded from that parent's view, with no error anywhere. Found by the `claude-core-hooks`
+maintainer session hitting exactly this on their own machine (relay msg `8167fa3922fb`), who
+then wrote up a full design doc (relay msg `0e6983180fe8`) generalizing the fix beyond the one
+bug. Shipped as specified: `Peer` gained an explicit `parent: str | None` field set at
+registration time (never re-derived); `register_peer()` auto-defaults a `role=child` peer's
+parent to the sole existing `role=parent` peer, hard-errors (`AmbiguousParent`) if more than one
+parent exists and `--parent` wasn't given, and validates an explicit `--parent` actually names a
+registered parent (`InvalidParent`). New `store.children_of(parent_name)` helper replaces the
+two duplicated `_related_prefix()` implementations in `peer_list.py` and `chat.py`; `peers.py`'s
+`group_key()` groups by the real field instead of `rsplit("-", 1)`. New `downbeat peers
+set-parent <child> <parent>` CLI command backfills existing peers without a full re-register.
+`Peer.from_dict()` defaults a missing `parent` key to `None` — old `sessions.json` entries parse
+unchanged, no migration script. Explicitly out of scope (per the design doc): `core/groups.py`'s
+separate named-group mechanism, and multi-parent/nested hierarchies.
+
+Two bugs found only by actually running the TUI modal, not by reading the diff: (1) `Select`'s
+`Select.BLANK` sentinel is literally the boolean `False`, not the real "no selection" marker
+(`Select.NULL`, a `NoSelection` instance) — a `!=` comparison against it silently fails to detect
+blank/uncommitted state; the add-peer modal now tracks role via an `on_select_changed` handler
+compared against `Select.NULL` by identity, not by reading `Select.value` back. (2) naming the
+new parent-name input field `self._parent` collided with `Widget`'s own internal `_parent`
+attribute (DOM-parent tracking) — silently broke `is_attached`/mount tracking with a confusing
+`MountError` unrelated-looking to the actual cause; renamed to `self._parent_input`. Both are
+documented in-code as guardrails against reintroducing them. Full suite green (204 passed, 16
+skipped), `ruff` and `uv run pyright` clean.
+
 **Phase 3 — growth**
 Comparison-table + launch package (#14): badges, social-preview, `awesome-cli-coding-agents` + `awesome-claude-code` PRs, Show HN + Reddit (see launch-plan.md).

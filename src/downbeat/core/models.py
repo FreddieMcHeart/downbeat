@@ -129,6 +129,8 @@ class Peer:
     claude_pid_start: str | None = None         # ISO-8601 normalized
     session_id_history: list[str] = field(default_factory=list)
     last_rebind_at: str | None = None
+    # --- explicit pairing (replaces name-prefix inference) ---
+    parent: str | None = None   # name of the role="parent" peer this child joined; None for parents
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -146,6 +148,7 @@ class Peer:
             claude_pid_start=d.get("claude_pid_start"),
             session_id_history=d.get("session_id_history", []),
             last_rebind_at=d.get("last_rebind_at"),
+            parent=d.get("parent"),
         )
 
 

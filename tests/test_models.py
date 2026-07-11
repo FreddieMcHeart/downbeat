@@ -50,6 +50,26 @@ def test_peer_roundtrip():
     assert again == p
 
 
+def test_peer_roundtrip_with_parent():
+    p = Peer(name="child", session_id="abc", cwd="/tmp",
+             role="child", registered_at="2026-05-12T14:00:00+00:00",
+             last_seen="2026-05-12T14:00:00+00:00", parent="parent")
+    d = p.to_dict()
+    assert d["parent"] == "parent"
+    again = Peer.from_dict(d)
+    assert again == p
+
+
+def test_legacy_peer_without_parent_field_defaults_to_none():
+    legacy = {
+        "name": "PLAT-3113-slave", "session_id": "abc", "cwd": "/tmp",
+        "role": "child", "registered_at": "2026-05-08T14:11:11+00:00",
+        "last_seen": "2026-05-08T14:11:11+00:00",
+    }
+    p = Peer.from_dict(legacy)
+    assert p.parent is None
+
+
 def test_legacy_message_without_new_fields_parses_with_defaults():
     legacy = json.dumps({
         "id": "x",

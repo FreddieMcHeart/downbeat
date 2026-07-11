@@ -55,24 +55,13 @@ class ChatScreen(Screen):
         await self._populate_tabs()
         self._refresh_thread()
 
-    def _related_prefix(self, parent_name: str) -> str:
-        if "-" not in parent_name:
-            return ""
-        return parent_name.rsplit("-", 1)[0] + "-"
-
     def _group_members(self) -> list[str]:
         if not self.acting_as:
             return []
-        prefix = self._related_prefix(self.acting_as)
-        all_peers = store.list_peers()
-        if prefix:
-            # Grouped parent → only peers sharing the same prefix
-            members = [p.name for p in all_peers if p.name.startswith(prefix)]
-        else:
-            # Ungrouped parent (no '-') → only other ungrouped peers
-            members = [p.name for p in all_peers if "-" not in p.name]
-        # The parent shouldn't have a tab to talk to itself
-        return [name for name in members if name != self.acting_as]
+        # Every child explicitly paired with acting_as (Peer.parent), not
+        # peers that merely share a name prefix. The parent shouldn't have
+        # a tab to talk to itself.
+        return [p.name for p in store.children_of(self.acting_as) if p.name != self.acting_as]
 
     def _populate_acting_as(self) -> None:
         parents = [p for p in store.list_peers() if p.role == "parent"]

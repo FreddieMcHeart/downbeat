@@ -378,7 +378,7 @@ async def test_switch_acting_as_modal_lists_parents(relay_dir):
     from downbeat.tui.widgets.switch_acting_as import SwitchActingAsModal
     store.register_peer(name="P1", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="P2", session_id="s2", cwd="/tmp", role="parent")
-    store.register_peer(name="C",  session_id="s3", cwd="/tmp", role="child")
+    store.register_peer(name="C",  session_id="s3", cwd="/tmp", role="child", parent="P1")
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:
         modal = SwitchActingAsModal(current="P1")
@@ -478,9 +478,11 @@ async def test_no_member_peer_renders_own_inbox(relay_dir):
     from downbeat.core import store
     from downbeat.tui.widgets.chat_stream import ChatStream
 
-    # Register a sink peer with no group members
+    # Register a sink peer with no group members. "sender" is registered as
+    # its own unrelated parent (not paired via Peer.parent) so it doesn't
+    # auto-join content-inbox as a child.
     store.register_peer(name="content-inbox", session_id="s1", cwd="/tmp", role="parent")
-    store.register_peer(name="sender",        session_id="s2", cwd="/tmp", role="child")
+    store.register_peer(name="sender",        session_id="s2", cwd="/tmp", role="parent")
 
     # Send 2 messages to content-inbox
     store.send_message(from_peer="sender", to_peer="content-inbox",

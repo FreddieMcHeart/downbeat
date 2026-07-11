@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 from ...core import session, store
 from ...core import watcher as watcher_mod
-from ...core.errors import MessageNotFound, PeerNotFound
+from ...core.errors import AmbiguousParent, InvalidParent, MessageNotFound, PeerNotFound
 from ...core.models import MessageState
 
 
@@ -67,12 +67,18 @@ def cmd_register(args: argparse.Namespace) -> int:
     cwd = os.getcwd()
     claude_pid = session.detect_live_claude_pid()
     claude_pid_start = session.process_start_time(claude_pid) if claude_pid else None
-    peer = store.register_peer(
-        name=args.name, session_id=sid, cwd=cwd, role=args.role,
-        claude_pid=claude_pid, claude_pid_start=claude_pid_start,
-    )
+    try:
+        peer = store.register_peer(
+            name=args.name, session_id=sid, cwd=cwd, role=args.role,
+            claude_pid=claude_pid, claude_pid_start=claude_pid_start,
+            parent=getattr(args, "parent", None),
+        )
+    except (AmbiguousParent, InvalidParent) as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
     session.write_marker_for_self(sid)
-    print(f"registered: {peer.name} (session={peer.session_id}, role={peer.role})")
+    parent_suffix = f", parent={peer.parent}" if peer.parent else ""
+    print(f"registered: {peer.name} (session={peer.session_id}, role={peer.role}{parent_suffix})")
     if claude_pid:
         print(f"  claude_pid={claude_pid} start={claude_pid_start}")
     return 0
@@ -117,13 +123,22 @@ def cmd_inbox(args: argparse.Namespace) -> int:
 
 
 def cmd_peers(args: argparse.Namespace) -> int:
+    if getattr(args, "peers_action", None) == "set-parent":
+        try:
+            peer = store.set_parent(args.child_name, args.parent_name)
+        except (PeerNotFound, InvalidParent) as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 1
+        print(f"{peer.name}: parent set to {peer.parent}")
+        return 0
     peers = store.list_peers()
     if not peers:
         print("no peers registered")
         return 0
     for p in peers:
+        parent_suffix = f"  parent={p.parent}" if p.parent else ""
         print(f"{p.name:<24}  role={p.role:<6}  session={p.session_id}  "
-              f"last_seen={p.last_seen}")
+              f"last_seen={p.last_seen}{parent_suffix}")
     return 0
 
 
