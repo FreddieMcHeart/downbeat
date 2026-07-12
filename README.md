@@ -19,7 +19,7 @@
 | src/downbeat/core/session.py                   |       82 |       30 |     63% |26-27, 77, 94-103, 109-110, 115-116, 131-145, 152 |
 | src/downbeat/core/state.py                     |       42 |        9 |     79% |49, 56, 60-65, 69-70 |
 | src/downbeat/core/store.py                     |      486 |       51 |     90% |35-37, 52-53, 168, 175, 179, 187, 212-213, 250, 259-260, 286-287, 300-302, 327-329, 356, 412, 419-420, 436, 439, 443-444, 446, 449-450, 516, 519, 523-524, 534, 547, 626-627, 643-644, 675-679, 737, 740, 746-747 |
-| src/downbeat/core/watcher.py                   |       87 |       14 |     84% |37, 41-42, 52-53, 89, 93-94, 118-120, 131, 134-136 |
+| src/downbeat/core/watcher.py                   |       87 |       12 |     86% |37, 41-42, 52-53, 89, 93-94, 131, 134-136 |
 | src/downbeat/skill/\_\_init\_\_.py             |        0 |        0 |    100% |           |
 | src/downbeat/tui/\_\_init\_\_.py               |        0 |        0 |    100% |           |
 | src/downbeat/tui/app.py                        |       60 |       22 |     63% |34-38, 44-53, 67-78, 81-82 |
@@ -49,7 +49,7 @@
 | src/downbeat/tui/widgets/peer\_tabs.py         |       52 |        2 |     96% |    41, 89 |
 | src/downbeat/tui/widgets/rebind\_modal.py      |       33 |       33 |      0% |      2-52 |
 | src/downbeat/tui/widgets/switch\_acting\_as.py |       33 |        6 |     82% | 39-43, 46 |
-| **TOTAL**                                      | **3124** | **1068** | **66%** |           |
+| **TOTAL**                                      | **3124** | **1066** | **66%** |           |
 
 
 ## Setup coverage badge
