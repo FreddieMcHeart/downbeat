@@ -192,6 +192,25 @@ async def test_left_right_cycles_peer_tabs(relay_dir):
 
 
 @pytest.mark.asyncio
+async def test_peer_name_with_space_does_not_crash_tabs(relay_dir):
+    """Free-form peer names (e.g. renamed via manual sessions.json edit) can
+    contain spaces; PeerTabs._safe_id must sanitize them into a valid Textual
+    widget id instead of raising BadIdentifier."""
+    from downbeat.core import store
+    store.register_peer(name="Claude-Cost-Optimazing", session_id="s1",
+                        cwd="/tmp", role="parent")
+    store.register_peer(name="Claude Relay", session_id="s2", cwd="/tmp",
+                        role="child", parent="Claude-Cost-Optimazing")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        await pilot.press("right")
+        await pilot.pause()
+        assert screen.active_peer == "Claude Relay"
+
+
+@pytest.mark.asyncio
 async def test_tab_does_not_land_focus_on_peer_tabs(relay_dir):
     from downbeat.core import store
     store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")

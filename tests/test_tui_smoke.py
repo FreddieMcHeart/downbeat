@@ -23,6 +23,27 @@ async def test_app_quits_on_q(relay_dir):
 
 
 @pytest.mark.asyncio
+async def test_app_quits_on_ctrl_c_even_with_composer_focused(relay_dir):
+    """Regression: plain "q" is a non-priority binding, so it's swallowed as
+    literal text by a focused Input/TextArea (composer, find, peer-name
+    field) instead of quitting — by design, so "q" stays typeable in message
+    bodies. ctrl+c must be a priority binding that quits regardless of what
+    has focus, since it's not a printable character anyone needs to type."""
+    from downbeat.core import store
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        app.screen.active_peer = "child"
+        composer = app.screen.query_one("#chat-composer")
+        composer.focus()
+        await pilot.pause()
+        await pilot.press("ctrl+c")
+    # Reaching here means the app exited cleanly despite composer focus.
+
+
+@pytest.mark.asyncio
 async def test_toggle_logs_does_not_crash(relay_dir):
     app = RelayApp()
     async with app.run_test(headless=True) as pilot:

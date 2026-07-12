@@ -18,6 +18,11 @@ from ..widgets.peer_tabs import OWN_INBOX_ID, PeerTabs
 class ChatScreen(Screen):
     BINDINGS = [
         ("q", "app.quit", "Quit"),
+        # priority=True: fires even while a text widget (composer, find, peer-name
+        # input) has focus and would otherwise consume the key. "q" itself must
+        # stay non-priority so it's still typeable in message bodies — ctrl+c is
+        # the universal, always-works escape hatch users expect from any TUI.
+        Binding("ctrl+c", "app.quit", "Quit", priority=True, show=False),
         ("question_mark,f1", "help", "Help"),
         ("ctrl+r", "refresh", "Refresh"),
         ("ctrl+l,f6", "toggle_logs", "Logs"),
