@@ -1,5 +1,5 @@
 {
   "name": "downbeat",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine"
 }
