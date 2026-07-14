@@ -7,9 +7,11 @@ import logging
 from textual.app import App
 
 from ..core import logging as relay_logging
-from ..core import store, watcher
+from ..core import notify, state, store, watcher
 from .messages import StoreChanged
 from .screens.chat import ChatScreen
+
+_HEARTBEAT_INTERVAL_SECONDS = 30
 
 
 class RelayApp(App):
@@ -25,6 +27,7 @@ class RelayApp(App):
     def __init__(self):
         super().__init__()
         self._watcher = None
+        self._notify_seen: dict[str, set[str]] = {}
 
     def on_mount(self) -> None:
         relay_logging.setup(level="INFO")
@@ -54,10 +57,32 @@ class RelayApp(App):
 
         logging.getLogger("downbeat.tui").info("app mounted")
         self.push_screen(ChatScreen())
+
+        # Seed the notify-seen baseline BEFORE writing the heartbeat or
+        # starting the watcher, synchronously — same race-avoidance
+        # rationale the old cmd_watch used: a pre-populated inbox must not
+        # be announced as "new" the moment the TUI starts.
+        try:
+            self._notify_seen = self._seed_notify_seen()
+        except Exception:
+            logging.getLogger("downbeat.tui").exception("notify-seen seeding failed")
+
+        state.set_watcher_heartbeat_at(state.now_iso())
+        self.set_interval(_HEARTBEAT_INTERVAL_SECONDS, self._heartbeat_tick)
+
         self._watcher = watcher.make_watcher(
             on_change=lambda: self.call_from_thread(self._on_change)
         )
         self._watcher.start()
+
+    def _seed_notify_seen(self) -> dict[str, set[str]]:
+        seen: dict[str, set[str]] = {}
+        for peer in store.list_peers():
+            _, seen[peer.name] = store.poll_new(peer.name, set())
+        return seen
+
+    def _heartbeat_tick(self) -> None:
+        state.set_watcher_heartbeat_at(state.now_iso())
 
     def _unseen_rebinds(self) -> list[dict]:
         """Return rebind events newer than the last-seen timestamp in tui_state."""
@@ -87,3 +112,24 @@ class RelayApp(App):
 
     def _on_change(self) -> None:
         self.post_message(StoreChanged())
+        try:
+            self._check_stale_notify()
+        except Exception:
+            logging.getLogger("downbeat.tui").exception("stale-notify check failed")
+
+    def _check_stale_notify(self) -> None:
+        for peer in store.list_peers():
+            seen = self._notify_seen.setdefault(peer.name, set())
+            new_msgs, seen = store.poll_new(peer.name, seen)
+            self._notify_seen[peer.name] = seen
+            if not new_msgs:
+                continue
+            if not store.is_recipient_stale(peer.name):
+                continue
+            last_sent = state.get_notify_last_sent(peer.name)
+            in_cooldown = last_sent is not None and not store._is_timestamp_stale(
+                last_sent, store.STALE_THRESHOLD_MINUTES)
+            if in_cooldown:
+                continue
+            notify.notify("downbeat", f"New message for {peer.name}")
+            state.set_notify_last_sent(peer.name, state.now_iso())

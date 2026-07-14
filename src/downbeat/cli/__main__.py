@@ -175,20 +175,6 @@ def build_parser() -> argparse.ArgumentParser:
     sp_rec.add_argument("--max-redelivery", type=int, default=3)
     sp_rec.set_defaults(func=relay_cmds.cmd_reconcile)
 
-    sp_watch = sub.add_parser("watch", help="watch inbox for new messages",
-                              parents=[debug_parent])
-    sp_watch.add_argument("--peer", default=None,
-                          help="peer name; auto-detected if omitted")
-    sp_watch.add_argument("--interval", type=int, default=90,
-                          help="poll interval in seconds (default: 90)")
-    sp_watch.add_argument("--once", action="store_true",
-                          help="poll once and exit (announces all current NEW)")
-    sp_watch.add_argument("--quiet", action="store_true",
-                          help="suppress idle output; print only on new messages")
-    sp_watch.add_argument("--poll", action="store_true",
-                          help="force poll fallback instead of event-driven")
-    sp_watch.set_defaults(func=relay_cmds.cmd_watch)
-
     sp_init = sub.add_parser("init", help="bootstrap relay dir, skill, shim",
                              parents=[debug_parent])
     sp_init.add_argument("--force", action="store_true")

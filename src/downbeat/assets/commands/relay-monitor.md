@@ -33,5 +33,5 @@ This composes two existing primitives: the `/loop` skill (re-fires a prompt on a
 
 ## Notes
 
-- This is the **in-session self-driver**. For an **external pane observer** that only prints new mail (never acts), use `downbeat watch [--peer X]` instead.
+- This is the **in-session self-driver**. For a passive nudge instead — a native OS notification when mail arrives for an idle peer — no separate command is needed: `downbeat tui` notifies automatically while open, and a Claude Code session's own hook covers the headless case.
 - The child autonomy here is **consent-at-startup**: you explicitly started the monitor on an executor session. It is scoped to executors, never auto-executes for a parent, and is stoppable. See `docs/platform/constitution.md` Art. 11.

@@ -11,13 +11,181 @@ Fails open: any exception → stderr + exit 0, never blocks.
 """
 
 import json
+import os
 import re
+import shlex
+import subprocess
 import sys
+import tempfile
 import traceback
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 STATE_FILE = Path.home() / ".claude" / "relay" / "loop_offer_state.json"
+
+# --- Idle-recipient staleness notify -----------------------------------
+# Self-contained: this hook has NO downbeat package import available (see
+# docs/superpowers/specs/2026-07-14-tui-hosted-relay-notify-design.md,
+# "Implementation constraint") — every helper below duplicates, rather than
+# imports, the equivalent logic in core/store.py, core/state.py, and
+# core/notify.py.
+
+_STALE_THRESHOLD_MINUTES = 10
+
+# How long a TUI's heartbeat can go stale before the hook assumes it's no
+# longer running and stops suppressing its own notify. Deliberately NOT the
+# same constant as _STALE_THRESHOLD_MINUTES above (that one measures
+# recipient idleness, a ~10min-scale concept) -- this measures TUI-process
+# liveness, which must track tui/app.py's own heartbeat refresh cadence
+# (_HEARTBEAT_INTERVAL_SECONDS = 30) instead. Reusing the 10min constant
+# here meant a closed TUI was still treated as "live" for up to 10 minutes,
+# silently swallowing notifications the whole time. ~3x the refresh
+# interval gives margin against a live-but-momentarily-slow TUI (worst case
+# there: one duplicate notification, not a silent gap) while cutting the
+# blind window from ~10min to ~90s.
+_TUI_LIVENESS_THRESHOLD_SECONDS = 90
+
+
+def _relay_dir() -> Path:
+    return Path(os.environ.get("CLAUDE_RELAY_DIR",
+                               str(Path.home() / ".claude" / "relay")))
+
+
+def _is_fresh(iso_ts: str | None, threshold_seconds: float) -> bool:
+    if not iso_ts:
+        return False
+    try:
+        ts = datetime.fromisoformat(iso_ts)
+    except ValueError:
+        return False
+    return ts >= datetime.now(UTC) - timedelta(seconds=threshold_seconds)
+
+
+def _is_stale(iso_ts: str | None, threshold_minutes: int) -> bool:
+    """Mirrors core/store.py's _is_timestamp_stale contract exactly: missing
+    or malformed timestamp -> False (not stale), never raises."""
+    if not iso_ts:
+        return False
+    try:
+        ts = datetime.fromisoformat(iso_ts)
+    except ValueError:
+        return False
+    return ts < datetime.now(UTC) - timedelta(minutes=threshold_minutes)
+
+
+def _is_recipient_stale(peer_name: str,
+                        threshold_minutes: int = _STALE_THRESHOLD_MINUTES) -> bool:
+    sessions_file = _relay_dir() / "sessions.json"
+    if not sessions_file.exists():
+        return False
+    try:
+        sessions = json.loads(sessions_file.read_text() or "{}")
+    except Exception:
+        return False
+    peer = sessions.get(peer_name)
+    if not peer:
+        return False
+    return _is_stale(peer.get("last_seen"), threshold_minutes)
+
+
+def _escape_applescript(s: str) -> str:
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _notify(title: str, message: str) -> None:
+    try:
+        if sys.platform == "darwin":
+            script = (
+                f'display notification "{_escape_applescript(message)}" '
+                f'with title "{_escape_applescript(title)}"'
+            )
+            subprocess.run(["osascript", "-e", script], timeout=3,
+                          capture_output=True, check=False)
+        elif sys.platform.startswith("linux"):
+            subprocess.run(["notify-send", title, message], timeout=3,
+                          capture_output=True, check=False)
+    except Exception:
+        pass
+
+
+def _read_tui_state() -> dict:
+    tui_state_file = _relay_dir() / "tui_state.json"
+    if not tui_state_file.exists():
+        return {}
+    try:
+        return json.loads(tui_state_file.read_text() or "{}")
+    except Exception:
+        return {}
+
+
+def _write_tui_state(data: dict) -> None:
+    tui_state_file = _relay_dir() / "tui_state.json"
+    tui_state_file.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(tui_state_file.parent), prefix=".tmp-", text=True)
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(json.dumps(data, indent=2))
+        os.replace(tmp, tui_state_file)
+    except Exception:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
+def _lookup_original_sender(msg_id: str) -> str | None:
+    for sub in ("inbox", "delivered", "processed"):
+        base = _relay_dir() / sub
+        if not base.exists():
+            continue
+        for match in base.glob(f"*/{msg_id}.json"):
+            try:
+                data = json.loads(match.read_text())
+            except Exception:
+                continue
+            return data.get("from_peer")
+    return None
+
+
+def _resolve_recipient(command: str) -> str | None:
+    # Only the first send/reply token in the command is resolved — a
+    # compound shell command (`cmd1 && cmd2`) only notifies for the first.
+    # Acceptable: this is a best-effort nudge, and relay sends are
+    # typically one-per-Bash-call.
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        return None
+    for i, tok in enumerate(tokens):
+        if tok in ("send", "reply") and i + 1 < len(tokens):
+            arg = tokens[i + 1]
+            if tok == "send":
+                return arg
+            return _lookup_original_sender(arg)
+    return None
+
+
+def _maybe_notify_stale_recipient(command: str) -> None:
+    """Best-effort native notification if the send/reply's recipient looks
+    idle and no TUI is currently watching. Never raises."""
+    try:
+        to_peer = _resolve_recipient(command)
+        if not to_peer:
+            return
+        if not _is_recipient_stale(to_peer):
+            return
+        tui_state = _read_tui_state()
+        if _is_fresh(tui_state.get("watcher_heartbeat_at"),
+                     _TUI_LIVENESS_THRESHOLD_SECONDS):
+            return  # a TUI is open and will notify itself — avoid double-fire
+        last_sent = tui_state.get("notify_last_sent", {}).get(to_peer)
+        if _is_fresh(last_sent, _STALE_THRESHOLD_MINUTES * 60):
+            return  # cooldown
+        _notify("downbeat", f"New message for {to_peer}")
+        tui_state.setdefault("notify_last_sent", {})[to_peer] = (
+            datetime.now(UTC).isoformat(timespec="seconds")
+        )
+        _write_tui_state(tui_state)
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
 
 # Match either path-based shim or the global CLI binary.
 SEND_REPLY_RE = re.compile(
@@ -79,6 +247,11 @@ def main() -> None:
     exit_code = tool_result.get("exit_code")
     if exit_code is not None and exit_code != 0:
         return
+
+    # Independent of the once-per-session /loop-offer gate below — fires
+    # every send/reply that targets a currently-stale peer, subject to its
+    # own per-recipient cooldown.
+    _maybe_notify_stale_recipient(command)
 
     session_id = (
         payload.get("session_id")
