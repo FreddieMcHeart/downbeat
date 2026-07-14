@@ -92,6 +92,11 @@ longer exists), never raises `PeerNotFound` into the caller.
 Threshold is a hardcoded constant (`10` minutes) for this iteration — not
 config/env-configurable. Revisit only if it proves wrong in practice.
 
+The same constant is reused as the **cooldown window** for
+`notify_last_sent` (see `core/state.py` below) — a recipient is "in
+cooldown" if `now - notify_last_sent[peer] < 10 minutes`. One magic number,
+not two independent ones to keep in sync.
+
 ### 3. `core/state.py` (extend `tui_state.json`)
 
 Three new fields, alongside the existing `last_acting_as` / `last_active_peer`:
@@ -126,8 +131,21 @@ and a hook process can lose one of the two timestamp updates — acceptable
 
 ### 5. `assets/hooks/relay-poll-offer.py` (extend)
 
-After the existing `send`/`reply` regex match (unchanged): parse the
-recipient (`to_peer`) out of the matched command. If
+After the existing `send`/`reply` regex match (unchanged): determine the
+recipient. This differs by verb, since only `send`'s command line actually
+contains the recipient name:
+- `send <to> <subject> <body>` — `to_peer` is the first positional argument
+  after `send`. Parse via `shlex.split(command)`, taking the token after the
+  matched `send` (handles quoted subjects/bodies containing spaces).
+- `reply <msg_id> <body>` — the command line has no recipient at all; the
+  recipient is the *original sender* of the message being replied to. Parse
+  `msg_id` the same way (first positional after `reply`), then look it up
+  via the store (the message's `from_peer`) to get the actual recipient.
+  If the lookup fails (message not found — already archived/moved by the
+  time the hook runs), skip the staleness-notify silently; this is a
+  best-effort nudge, not a guaranteed delivery path.
+
+If
 `is_recipient_stale(to_peer)` **and** `watcher_heartbeat_at` is not fresh
 (TUI not open — avoids double-firing with the TUI path) **and** the
 recipient isn't in cooldown → call `core.notify.notify(...)` directly from
@@ -187,7 +205,9 @@ per-recipient cooldown above), not once per session.
 - `assets/hooks/relay-poll-offer.py` — extend whatever existing hook test
   coverage exists (confirm at implementation time) with: stale+no-TUI →
   notify; stale+TUI-heartbeat-live → skip (avoid double-fire); not-stale →
-  skip; in-cooldown → skip.
+  skip; in-cooldown → skip; recipient resolution for `send` (parsed directly
+  from command) vs `reply` (looked up via the original message's
+  `from_peer`, including the not-found-message case → skip silently).
 - `tests/test_watch.py` — **deleted entirely** after the 4 pure-`poll_new`
   tests are migrated out (the rest test `cmd_watch`/`_watch_emit`, which no
   longer exist).
