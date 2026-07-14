@@ -242,3 +242,66 @@ def test_is_recipient_stale_custom_threshold(relay_dir):
     store._save_sessions(sessions)
     assert store.is_recipient_stale("c", threshold_minutes=10) is False
     assert store.is_recipient_stale("c", threshold_minutes=3) is True
+
+
+def test_poll_new_first_call_returns_all_new(relay_dir):
+    _peers("p", "c")
+    m1 = store.send_message(from_peer="p", to_peer="c", subject="s1", body="b1")
+    m2 = store.send_message(from_peer="p", to_peer="c", subject="s2", body="b2")
+
+    new_msgs, seen = store.poll_new("c", set())
+
+    assert {m.id for m in new_msgs} == {m1.id, m2.id}
+    assert seen == {m1.id, m2.id}
+
+
+def test_poll_new_second_call_returns_empty(relay_dir):
+    _peers("p", "c")
+    store.send_message(from_peer="p", to_peer="c", subject="s", body="b")
+
+    _, seen = store.poll_new("c", set())
+    new_msgs, seen2 = store.poll_new("c", seen)
+
+    assert new_msgs == []
+    assert seen2 == seen  # seen unchanged (no new ids added)
+
+
+def test_poll_new_only_returns_incremental(relay_dir):
+    _peers("p", "c")
+    m1 = store.send_message(from_peer="p", to_peer="c", subject="first", body="x")
+
+    _, seen = store.poll_new("c", set())  # seed seen with m1
+
+    m2 = store.send_message(from_peer="p", to_peer="c", subject="second", body="y")
+    new_msgs, seen2 = store.poll_new("c", seen)
+
+    assert [m.id for m in new_msgs] == [m2.id]
+    assert m1.id not in {m.id for m in new_msgs}
+    assert {m1.id, m2.id} <= seen2
+
+
+def test_poll_new_excludes_non_new_states(relay_dir):
+    _peers("p", "c")
+    # delivered state: drain moves it from inbox/ to delivered/
+    m_delivered = store.send_message(from_peer="p", to_peer="c",
+                                     subject="delivered", body="x")
+    store.deliver_messages(peer_name="c", session_id="s-c")
+    assert store.get_message(m_delivered.id).state == MessageState.DELIVERED
+
+    # archived state: ack after deliver
+    m_acked = store.send_message(from_peer="p", to_peer="c",
+                                 subject="acked", body="y")
+    store.deliver_messages(peer_name="c", session_id="s-c")
+    store.ack_messages([m_acked.id])
+    assert store.get_message(m_acked.id).state == MessageState.ARCHIVED
+
+    # One genuinely NEW message
+    m_new = store.send_message(from_peer="p", to_peer="c",
+                               subject="still new", body="z")
+
+    new_msgs, _ = store.poll_new("c", set())
+
+    ids = {m.id for m in new_msgs}
+    assert m_new.id in ids
+    assert m_delivered.id not in ids
+    assert m_acked.id not in ids

@@ -3,13 +3,10 @@ from __future__ import annotations
 
 import argparse
 import sys
-import threading
 from datetime import UTC, datetime, timedelta
 
 from ...core import session, store
-from ...core import watcher as watcher_mod
 from ...core.errors import AmbiguousParent, InvalidParent, MessageNotFound, PeerNotFound
-from ...core.models import MessageState
 
 
 def _detect_peer_or_error(name: str | None) -> str:
@@ -246,66 +243,6 @@ def cmd_whoami(args: argparse.Namespace) -> int:
 def cmd_tui(args: argparse.Namespace) -> int:
     from ...tui.app import RelayApp
     RelayApp().run()
-    return 0
-
-
-def _watch_emit(peer: str, seen: set[str]) -> set[str]:
-    """Poll for new messages and print them. Returns updated seen set.
-
-    Pure helper — no watcher dependency; directly testable.
-    """
-    new_msgs, seen = store.poll_new(peer, seen)
-    if new_msgs:
-        print("NEW RELAY MESSAGE(S):")
-        for m in new_msgs:
-            print(f"* {m.id}  {m.created_at}  {m.from_peer}  {m.subject}")
-    return seen
-
-
-def cmd_watch(args: argparse.Namespace) -> int:
-    peer = _detect_peer_or_error(args.peer)
-
-    if args.once:
-        # --once: announce everything currently NEW (start with empty seen)
-        seen: set[str] = set()
-        new_msgs, _ = store.poll_new(peer, seen)
-        if new_msgs:
-            print("NEW RELAY MESSAGE(S):")
-            for m in new_msgs:
-                print(f"* {m.id}  {m.created_at}  {m.from_peer}  {m.subject}")
-        return 0
-
-    # Seed seen with current NEW ids BEFORE starting the watcher so a
-    # pre-populated inbox is NOT re-announced on startup.
-    seen = {m.id for m in store.list_inbox(peer) if m.state == MessageState.NEW}
-
-    # Mutable holder so the callback closure can update seen across fires.
-    state: dict[str, set[str]] = {"seen": seen}
-
-    def _on_change() -> None:
-        state["seen"] = _watch_emit(peer, state["seen"])
-
-    prefer = "poll" if args.poll else "auto"
-    w = watcher_mod.make_watcher(
-        on_change=_on_change,
-        prefer=prefer,
-        poll_interval=args.interval,
-    )
-
-    backend = type(w).__name__
-    if backend == "FsWatcher":
-        print("[watch] event-driven (fswatch/FSEvents)")
-    else:
-        print(f"[watch] polling every {args.interval}s (event watcher unavailable)")
-
-    w.start()
-    try:
-        threading.Event().wait()  # block until KeyboardInterrupt
-    except KeyboardInterrupt:
-        pass
-    finally:
-        w.stop()
-    print("[watch] stopped")
     return 0
 
 
