@@ -44,14 +44,51 @@ recorded in `ideas/downbeat/cloud-relay-downbeat-inbox-rework.md` in the wiki
 
 ## Architecture
 
-No new process. Two independent triggers converge on one shared notify
-helper:
+No new process. Two independent triggers, **not** sharing code — see
+"Implementation constraint" below:
 
 ```
-TUI resident FsWatcher (tui/app.py, already running when TUI is open) ──┐
-                                                                          ├──► core/notify.py
-relay-poll-offer.py (PostToolUse hook on Bash send/reply, headless) ────┘      (subprocess: osascript / notify-send)
+TUI resident FsWatcher (tui/app.py, already running when TUI is open)
+    → core/notify.py (subprocess: osascript / notify-send)
+
+relay-poll-offer.py (PostToolUse hook on Bash send/reply, headless)
+    → self-contained duplicate notify logic inline in the same hook file
 ```
+
+### Implementation constraint: hooks cannot import the `downbeat` package
+
+Verified directly: both existing hooks
+(`src/downbeat/assets/hooks/relay-poll-offer.py`,
+`.../relay-inbox.py`) are stdlib-only (`json`, `re`, `sys`, `tempfile`,
+`traceback`, `datetime`, `pathlib` — no `downbeat.core` imports anywhere).
+`hooks/hooks.json` invokes them by absolute path with a bare
+`#!/usr/bin/env python3` shebang — confirmed `python3 -c "import downbeat"`
+fails with `ModuleNotFoundError` on this machine's system Python, which is
+what actually runs the hook (not the uv-tool venv the `downbeat` CLI itself
+runs under). So `relay-poll-offer.py` **cannot** call
+`core.notify.notify()`, `core.store.is_recipient_stale()`, or
+`core.state.*` — those only work for code invoked through the installed
+`downbeat` package (the TUI, via `downbeat tui`).
+
+Consequence: the headless path re-implements the same **contract** (same
+`sessions.json`/`tui_state.json` file paths and formats, same 10-minute
+threshold constant, same notify mechanism) as a **second, independent,
+stdlib-only implementation inside the hook file itself** — matching the
+existing pattern where `relay-poll-offer.py` already duplicates its own
+small state-file read/write helpers (`_load_state`/`_save_state` for
+`loop_offer_state.json`) rather than importing anything. This is a
+deliberate, acknowledged DRY violation forced by the hook's execution
+environment, not an oversight — noted explicitly so nobody "fixes" it later
+by adding an import that will silently break the hook (fails open, so the
+whole feature would just stop firing with no visible error).
+
+The hook's own `CLAUDE_RELAY_DIR` env var handling: the *existing* hook code
+hardcodes `Path.home() / ".claude" / "relay"` for its own
+`loop_offer_state.json` (pre-existing gap, not fixed here — out of scope).
+The **new** staleness-notify code added by this design reads that same env
+var (`os.environ.get("CLAUDE_RELAY_DIR")`, mirroring `core/paths.py`'s own
+one-liner) so it's testable via the project's existing `relay_dir` pytest
+fixture, without changing the old code path's behavior.
 
 - **Recipient-TUI open** → notify fires from the TUI's own resident
   `FsWatcher.on_change` path. Recipient-side: the process that has the
@@ -129,7 +166,32 @@ and a hook process can lose one of the two timestamp updates — acceptable
   `notify_last_sent`, call `core.notify.notify(...)` and update
   `notify_last_sent[recipient]`.
 
-### 5. `assets/hooks/relay-poll-offer.py` (extend)
+### 5. `assets/hooks/relay-poll-offer.py` (extend, self-contained — see constraint above)
+
+All of the following is added as new **private, stdlib-only functions
+inside this file** — no imports from `downbeat.core`:
+
+- `_relay_dir() -> Path`: `Path(os.environ.get("CLAUDE_RELAY_DIR", str(Path.home() / ".claude" / "relay")))`
+  — mirrors `core/paths.py`'s `RELAY_DIR` one-liner, for test redirection.
+- `_is_recipient_stale(peer_name, threshold_minutes=10) -> bool`: reads
+  `_relay_dir() / "sessions.json"` directly (`json.loads`), looks up
+  `peer_name`'s `last_seen`, compares via `datetime.fromisoformat` +
+  `timedelta` against `datetime.now(UTC)`. Missing peer or missing/malformed
+  `last_seen` → `False` (matches `core.store.is_recipient_stale`'s
+  fail-quiet contract, independently).
+- `_notify(title, message) -> None`: same subprocess logic as
+  `core/notify.py`'s `notify()` (`osascript`/`notify-send` by
+  `sys.platform`, `timeout=3`, fail-open on any exception) — a private
+  duplicate, not a shared import.
+- `_read_tui_state() -> dict` / `_write_tui_state(data: dict) -> None`:
+  reads/writes `_relay_dir() / "tui_state.json"` as a whole dict, same
+  load-mutate-save shape as this file's existing `_load_state`/`_save_state`
+  for `loop_offer_state.json`. The hook only ever **reads**
+  `watcher_heartbeat_at` (never writes it — only the TUI writes that key)
+  and only **writes** `notify_last_sent[peer]` (read-modify-write,
+  preserving every other key already in the file, including
+  `watcher_heartbeat_at` and `last_acting_as`/`last_active_peer` written by
+  the TUI).
 
 After the existing `send`/`reply` regex match (unchanged): determine the
 recipient. This differs by verb, since only `send`'s command line actually
@@ -139,18 +201,20 @@ contains the recipient name:
   matched `send` (handles quoted subjects/bodies containing spaces).
 - `reply <msg_id> <body>` — the command line has no recipient at all; the
   recipient is the *original sender* of the message being replied to. Parse
-  `msg_id` the same way (first positional after `reply`), then look it up
-  via the store (the message's `from_peer`) to get the actual recipient.
-  If the lookup fails (message not found — already archived/moved by the
-  time the hook runs), skip the staleness-notify silently; this is a
-  best-effort nudge, not a guaranteed delivery path.
+  `msg_id` the same way (first positional after `reply`), then resolve it to
+  a peer name by reading the message file directly off disk (glob
+  `_relay_dir() / "{inbox,delivered,processed}" / "*" / f"{msg_id}.json"`,
+  read `from_peer`) — a minimal, read-only, stdlib-only lookup, not a call
+  into `core.store`. If no matching file is found (message already moved
+  somewhere the glob doesn't cover, or genuinely absent), skip the
+  staleness-notify silently; this is a best-effort nudge, not a guaranteed
+  delivery path.
 
-If
-`is_recipient_stale(to_peer)` **and** `watcher_heartbeat_at` is not fresh
-(TUI not open — avoids double-firing with the TUI path) **and** the
-recipient isn't in cooldown → call `core.notify.notify(...)` directly from
-the hook process (not via the `PushNotification` tool — the hook is a plain
-subprocess and can shell out itself) and update `notify_last_sent`.
+If `_is_recipient_stale(to_peer)` **and** `watcher_heartbeat_at` from
+`_read_tui_state()` is not fresh (TUI not open — avoids double-firing with
+the TUI path) **and** the recipient isn't in cooldown per
+`notify_last_sent` → call `_notify(...)` and update
+`notify_last_sent[to_peer]` via `_write_tui_state`.
 
 This is **independent of** the existing once-per-session `/loop`-offer gate
 (`hinted_at` in `loop_offer_state.json`) — that gate is about the `/loop`
@@ -177,15 +241,23 @@ per-recipient cooldown above), not once per session.
 
 ## Error handling
 
-- `core/notify.py` fails open (see above) — never raises into either caller.
+- `core/notify.py`'s `notify()` fails open (see above) — never raises into
+  its one caller (the TUI).
 - `relay-poll-offer.py` already wraps `main()` in `try/except` with
   `sys.exit(0)` on any exception (never blocks the Bash tool). The new
-  staleness logic sits inside that same envelope — no new failure contract.
+  staleness logic (`_is_recipient_stale`/`_notify`/`_read_tui_state`/
+  `_write_tui_state`) sits inside that same envelope — no new failure
+  contract, and its own `_notify` fails open independently of
+  `core/notify.py`'s (see "Implementation constraint" above — they're two
+  separate functions, not one shared import).
 - `tui/app.py`'s `_on_change` staleness/notify logic wraps in `try/except`
   matching the existing pattern used elsewhere in `on_mount` (e.g. the
   rebind-notification block already does this) — a notify failure must never
   crash the TUI.
-- `is_recipient_stale` never raises `PeerNotFound` — returns `False` instead.
+- `core.store.is_recipient_stale` never raises `PeerNotFound` — returns
+  `False` instead. The hook's independent `_is_recipient_stale` matches this
+  contract by construction (a missing key in a `dict.get()` chain, not an
+  exception path).
 
 ## Testing
 
@@ -202,12 +274,22 @@ per-recipient cooldown above), not once per session.
   `is_recipient_stale` / `core.notify.notify`; assert `_on_change` notifies
   only when the recipient is stale and not in cooldown, and does not
   notify otherwise.
-- `assets/hooks/relay-poll-offer.py` — extend whatever existing hook test
-  coverage exists (confirm at implementation time) with: stale+no-TUI →
-  notify; stale+TUI-heartbeat-live → skip (avoid double-fire); not-stale →
+- `tests/test_relay_poll_offer_hook.py` (new — no test coverage exists for
+  this hook today besides manifest-parity). Since the hook has no `__init__.py`/
+  package context and its filename has a hyphen (`relay-poll-offer.py`,
+  not importable via a normal `import` statement), load it per-test via
+  `importlib.util.spec_from_file_location("relay_poll_offer", path)` +
+  `spec.loader.exec_module(module)`, then call the loaded module's private
+  functions directly (`module._is_recipient_stale(...)`,
+  `module._notify(...)`, `module.main()` with a monkeypatched `sys.stdin`).
+  Set `CLAUDE_RELAY_DIR` via `monkeypatch.setenv` (reusing the project's
+  `relay_dir` fixture works here too, since the new hook code reads that
+  same env var) before loading the module, so `_relay_dir()` resolves into
+  `tmp_path`, never touching the real `~/.claude/relay/`. Cases: stale+no-TUI
+  → notify; stale+TUI-heartbeat-live → skip (avoid double-fire); not-stale →
   skip; in-cooldown → skip; recipient resolution for `send` (parsed directly
-  from command) vs `reply` (looked up via the original message's
-  `from_peer`, including the not-found-message case → skip silently).
+  from the command string) vs `reply` (resolved via the on-disk message
+  file's `from_peer`, including the not-found-message case → skip silently).
 - `tests/test_watch.py` — **deleted entirely** after the 4 pure-`poll_new`
   tests are migrated out (the rest test `cmd_watch`/`_watch_emit`, which no
   longer exist).
