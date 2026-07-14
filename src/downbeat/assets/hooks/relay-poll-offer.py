@@ -133,6 +133,10 @@ def _lookup_original_sender(msg_id: str) -> str | None:
 
 
 def _resolve_recipient(command: str) -> str | None:
+    # Only the first send/reply token in the command is resolved — a
+    # compound shell command (`cmd1 && cmd2`) only notifies for the first.
+    # Acceptable: this is a best-effort nudge, and relay sends are
+    # typically one-per-Bash-call.
     try:
         tokens = shlex.split(command)
     except ValueError:
