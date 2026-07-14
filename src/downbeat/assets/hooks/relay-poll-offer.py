@@ -16,6 +16,7 @@ import re
 import shlex
 import subprocess
 import sys
+import tempfile
 import traceback
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -47,6 +48,18 @@ def _is_fresh(iso_ts: str | None, threshold_minutes: int) -> bool:
     return ts >= datetime.now(UTC) - timedelta(minutes=threshold_minutes)
 
 
+def _is_stale(iso_ts: str | None, threshold_minutes: int) -> bool:
+    """Mirrors core/store.py's _is_timestamp_stale contract exactly: missing
+    or malformed timestamp -> False (not stale), never raises."""
+    if not iso_ts:
+        return False
+    try:
+        ts = datetime.fromisoformat(iso_ts)
+    except ValueError:
+        return False
+    return ts < datetime.now(UTC) - timedelta(minutes=threshold_minutes)
+
+
 def _is_recipient_stale(peer_name: str,
                         threshold_minutes: int = _STALE_THRESHOLD_MINUTES) -> bool:
     sessions_file = _relay_dir() / "sessions.json"
@@ -59,7 +72,7 @@ def _is_recipient_stale(peer_name: str,
     peer = sessions.get(peer_name)
     if not peer:
         return False
-    return not _is_fresh(peer.get("last_seen"), threshold_minutes)
+    return _is_stale(peer.get("last_seen"), threshold_minutes)
 
 
 def _escape_applescript(s: str) -> str:
@@ -95,7 +108,14 @@ def _read_tui_state() -> dict:
 def _write_tui_state(data: dict) -> None:
     tui_state_file = _relay_dir() / "tui_state.json"
     tui_state_file.parent.mkdir(parents=True, exist_ok=True)
-    tui_state_file.write_text(json.dumps(data, indent=2))
+    fd, tmp = tempfile.mkstemp(dir=str(tui_state_file.parent), prefix=".tmp-", text=True)
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(json.dumps(data, indent=2))
+        os.replace(tmp, tui_state_file)
+    except Exception:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 
 
 def _lookup_original_sender(msg_id: str) -> str | None:

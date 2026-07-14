@@ -76,6 +76,18 @@ def test_is_recipient_stale_false_for_missing_peer(relay_dir):
     assert hook._is_recipient_stale("ghost") is False
 
 
+def test_is_recipient_stale_false_for_missing_last_seen(relay_dir):
+    hook = _load_hook_module()
+    _write_sessions(relay_dir, {"child": {}})
+    assert hook._is_recipient_stale("child") is False
+
+
+def test_is_recipient_stale_false_for_malformed_last_seen(relay_dir):
+    hook = _load_hook_module()
+    _write_sessions(relay_dir, {"child": {"last_seen": "not-a-timestamp"}})
+    assert hook._is_recipient_stale("child") is False
+
+
 def test_maybe_notify_fires_when_stale_and_no_tui(relay_dir):
     hook = _load_hook_module()
     _write_sessions(relay_dir, {"child": {"last_seen": _iso_minutes_ago(20)}})
@@ -140,3 +152,13 @@ def test_maybe_notify_never_raises_on_garbage_sessions_file(relay_dir):
     with patch.object(hook, "_notify") as mock_notify:
         hook._maybe_notify_stale_recipient('downbeat send child "s" "b"')
     mock_notify.assert_not_called()
+
+
+def test_write_tui_state_roundtrips_via_atomic_write(relay_dir):
+    hook = _load_hook_module()
+    data = {"last_acting_as": "alice", "notify_last_sent": {"child": _iso_minutes_ago(1)}}
+    hook._write_tui_state(data)
+    tui_state_file = relay_dir / "tui_state.json"
+    assert tui_state_file.exists()
+    written = json.loads(tui_state_file.read_text())
+    assert written == data
