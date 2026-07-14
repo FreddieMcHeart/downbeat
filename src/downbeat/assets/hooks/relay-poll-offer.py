@@ -32,20 +32,33 @@ STATE_FILE = Path.home() / ".claude" / "relay" / "loop_offer_state.json"
 
 _STALE_THRESHOLD_MINUTES = 10
 
+# How long a TUI's heartbeat can go stale before the hook assumes it's no
+# longer running and stops suppressing its own notify. Deliberately NOT the
+# same constant as _STALE_THRESHOLD_MINUTES above (that one measures
+# recipient idleness, a ~10min-scale concept) -- this measures TUI-process
+# liveness, which must track tui/app.py's own heartbeat refresh cadence
+# (_HEARTBEAT_INTERVAL_SECONDS = 30) instead. Reusing the 10min constant
+# here meant a closed TUI was still treated as "live" for up to 10 minutes,
+# silently swallowing notifications the whole time. ~3x the refresh
+# interval gives margin against a live-but-momentarily-slow TUI (worst case
+# there: one duplicate notification, not a silent gap) while cutting the
+# blind window from ~10min to ~90s.
+_TUI_LIVENESS_THRESHOLD_SECONDS = 90
+
 
 def _relay_dir() -> Path:
     return Path(os.environ.get("CLAUDE_RELAY_DIR",
                                str(Path.home() / ".claude" / "relay")))
 
 
-def _is_fresh(iso_ts: str | None, threshold_minutes: int) -> bool:
+def _is_fresh(iso_ts: str | None, threshold_seconds: float) -> bool:
     if not iso_ts:
         return False
     try:
         ts = datetime.fromisoformat(iso_ts)
     except ValueError:
         return False
-    return ts >= datetime.now(UTC) - timedelta(minutes=threshold_minutes)
+    return ts >= datetime.now(UTC) - timedelta(seconds=threshold_seconds)
 
 
 def _is_stale(iso_ts: str | None, threshold_minutes: int) -> bool:
@@ -161,10 +174,10 @@ def _maybe_notify_stale_recipient(command: str) -> None:
             return
         tui_state = _read_tui_state()
         if _is_fresh(tui_state.get("watcher_heartbeat_at"),
-                     _STALE_THRESHOLD_MINUTES):
+                     _TUI_LIVENESS_THRESHOLD_SECONDS):
             return  # a TUI is open and will notify itself — avoid double-fire
         last_sent = tui_state.get("notify_last_sent", {}).get(to_peer)
-        if _is_fresh(last_sent, _STALE_THRESHOLD_MINUTES):
+        if _is_fresh(last_sent, _STALE_THRESHOLD_MINUTES * 60):
             return  # cooldown
         _notify("downbeat", f"New message for {to_peer}")
         tui_state.setdefault("notify_last_sent", {})[to_peer] = (

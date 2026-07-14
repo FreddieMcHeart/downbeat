@@ -107,6 +107,37 @@ def test_maybe_notify_skips_when_tui_heartbeat_fresh(relay_dir):
     mock_notify.assert_not_called()
 
 
+def test_maybe_notify_fires_when_tui_heartbeat_stale_but_within_10min(relay_dir):
+    """Regression for the blind-window bug: a heartbeat aged past the
+    liveness threshold (90s) but still within the unrelated 10-minute
+    recipient-staleness window must NOT be treated as "TUI still live" —
+    the hook should notify. Before the fix, this case incorrectly matched
+    test_maybe_notify_skips_when_tui_heartbeat_fresh's semantics because
+    both checks shared the same 10-minute constant."""
+    hook = _load_hook_module()
+    _write_sessions(relay_dir, {"child": {"last_seen": _iso_minutes_ago(20)}})
+    (relay_dir / "tui_state.json").write_text(
+        json.dumps({"watcher_heartbeat_at": _iso_minutes_ago(3)}))
+    with patch.object(hook, "_notify") as mock_notify:
+        hook._maybe_notify_stale_recipient('downbeat send child "s" "b"')
+    mock_notify.assert_called_once()
+
+
+def test_stale_and_liveness_thresholds_are_independent_constants(relay_dir):
+    hook = _load_hook_module()
+    assert hook._TUI_LIVENESS_THRESHOLD_SECONDS != hook._STALE_THRESHOLD_MINUTES * 60
+
+
+def test_hook_and_store_staleness_constants_match():
+    """The 10-minute recipient-staleness window is duplicated (hooks can't
+    import the downbeat package — see the module docstring), so nothing
+    stops the two from silently drifting apart if one is tuned without the
+    other. This test is the guard."""
+    from downbeat.core import store
+    hook = _load_hook_module()
+    assert hook._STALE_THRESHOLD_MINUTES == store.STALE_THRESHOLD_MINUTES
+
+
 def test_maybe_notify_skips_when_recipient_not_stale(relay_dir):
     hook = _load_hook_module()
     _write_sessions(relay_dir, {"child": {"last_seen": _iso_minutes_ago(1)}})
