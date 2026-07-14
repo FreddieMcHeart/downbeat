@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_f7effdba90412ef5_app_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.14.3">coverage.py v7.14.3</a>,
-            created at 2026-07-13 18:46 +0000
+            created at 2026-07-14 16:36 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -191,7 +191,7 @@
     <p class="pln"><span class="n"><a id="t109" href="#t109">109</a></span><span class="t">        <span class="com"># it can block forever acquiring an internal lock still held by an</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t110" href="#t110">110</a></span><span class="t">        <span class="com"># emitter thread parked in a blocking inotify read. Bound it in a</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t111" href="#t111">111</a></span><span class="t">        <span class="com"># daemon thread so a deadlocked stop() can't hang the caller (a real</span>&nbsp;</span><span class="r"></span></p>
-    <p class="pln"><span class="n"><a id="t112" href="#t112">112</a></span><span class="t">        <span class="com"># user hitting Ctrl-C in `downbeat watch`, or a test's teardown)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="pln"><span class="n"><a id="t112" href="#t112">112</a></span><span class="t">        <span class="com"># user hitting Ctrl-C in `downbeat tui`, or a test's teardown)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t113" href="#t113">113</a></span><span class="t">        <span class="com"># forever &#8212; the daemon thread leaking is harmless at process exit.</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t114" href="#t114">114</a></span><span class="t">        <span class="nam">stopper</span> <span class="op">=</span> <span class="nam">threading</span><span class="op">.</span><span class="nam">Thread</span><span class="op">(</span><span class="nam">target</span><span class="op">=</span><span class="nam">self</span><span class="op">.</span><span class="nam">_observer</span><span class="op">.</span><span class="nam">stop</span><span class="op">,</span> <span class="nam">daemon</span><span class="op">=</span><span class="key">True</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t115" href="#t115">115</a></span><span class="t">        <span class="nam">stopper</span><span class="op">.</span><span class="nam">start</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -225,7 +225,7 @@
             <a class="nav" href="z_f7effdba90412ef5_app_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.14.3">coverage.py v7.14.3</a>,
-            created at 2026-07-13 18:46 +0000
+            created at 2026-07-14 16:36 +0000
         </p>
     </div>
 </footer>

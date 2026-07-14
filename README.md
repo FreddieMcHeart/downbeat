@@ -6,23 +6,24 @@
 |----------------------------------------------- | -------: | -------: | ------: | --------: |
 | src/downbeat/\_\_init\_\_.py                   |        1 |        0 |    100% |           |
 | src/downbeat/cli/\_\_init\_\_.py               |        0 |        0 |    100% |           |
-| src/downbeat/cli/\_\_main\_\_.py               |      118 |        3 |     97% |33-34, 228 |
+| src/downbeat/cli/\_\_main\_\_.py               |      111 |        3 |     97% |33-34, 214 |
 | src/downbeat/cli/commands/\_\_init\_\_.py      |        0 |        0 |    100% |           |
 | src/downbeat/cli/commands/init\_cmd.py         |      293 |       17 |     94% |98, 115-120, 176-177, 252, 264, 268-269, 310-311, 330, 341 |
-| src/downbeat/cli/commands/relay\_cmds.py       |      231 |       60 |     74% |20-22, 54-56, 93-95, 101-109, 116-117, 136-137, 146-163, 170-175, 178, 203-210, 247-249, 286, 297, 313-316, 320-321 |
+| src/downbeat/cli/commands/relay\_cmds.py       |      193 |       58 |     70% |17-19, 51-53, 90-92, 98-106, 113-114, 133-134, 143-160, 167-172, 175, 200-207, 244-246, 250-253, 257-258 |
 | src/downbeat/core/\_\_init\_\_.py              |        0 |        0 |    100% |           |
 | src/downbeat/core/errors.py                    |        7 |        0 |    100% |           |
 | src/downbeat/core/groups.py                    |       22 |        0 |    100% |           |
 | src/downbeat/core/logging.py                   |       24 |        0 |    100% |           |
 | src/downbeat/core/models.py                    |       84 |        0 |    100% |           |
+| src/downbeat/core/notify.py                    |       17 |        0 |    100% |           |
 | src/downbeat/core/paths.py                     |       17 |        0 |    100% |           |
 | src/downbeat/core/session.py                   |       82 |       30 |     63% |26-27, 77, 94-103, 109-110, 115-116, 131-145, 152 |
-| src/downbeat/core/state.py                     |       42 |        9 |     79% |49, 56, 60-65, 69-70 |
-| src/downbeat/core/store.py                     |      486 |       51 |     90% |35-37, 52-53, 168, 175, 179, 187, 212-213, 250, 259-260, 286-287, 300-302, 327-329, 356, 412, 419-420, 436, 439, 443-444, 446, 449-450, 516, 519, 523-524, 534, 547, 626-627, 643-644, 675-679, 737, 740, 746-747 |
+| src/downbeat/core/state.py                     |       57 |        8 |     86% |49, 56, 60-65, 81 |
+| src/downbeat/core/store.py                     |      502 |       54 |     89% |35-37, 52-53, 168, 183, 187-188, 206, 210, 218, 243-244, 281, 290-291, 317-318, 331-333, 358-360, 387, 443, 450-451, 467, 470, 474-475, 477, 480-481, 547, 550, 554-555, 565, 578, 657-658, 674-675, 706-710, 768, 771, 777-778 |
 | src/downbeat/core/watcher.py                   |       87 |       12 |     86% |37, 41-42, 52-53, 89, 93-94, 131, 134-136 |
 | src/downbeat/skill/\_\_init\_\_.py             |        0 |        0 |    100% |           |
 | src/downbeat/tui/\_\_init\_\_.py               |        0 |        0 |    100% |           |
-| src/downbeat/tui/app.py                        |       60 |       22 |     63% |34-38, 44-53, 67-78, 81-82 |
+| src/downbeat/tui/app.py                        |       94 |       27 |     71% |37-41, 47-56, 67-68, 85, 92-103, 106-107, 117-118 |
 | src/downbeat/tui/messages.py                   |        4 |        0 |    100% |           |
 | src/downbeat/tui/screens/\_\_init\_\_.py       |        0 |        0 |    100% |           |
 | src/downbeat/tui/screens/broadcast\_status.py  |       20 |       20 |      0% |      2-30 |
@@ -49,7 +50,7 @@
 | src/downbeat/tui/widgets/peer\_tabs.py         |       52 |        2 |     96% |    41, 89 |
 | src/downbeat/tui/widgets/rebind\_modal.py      |       33 |       33 |      0% |      2-52 |
 | src/downbeat/tui/widgets/switch\_acting\_as.py |       33 |        6 |     82% | 39-43, 46 |
-| **TOTAL**                                      | **3124** | **1066** | **66%** |           |
+| **TOTAL**                                      | **3161** | **1071** | **66%** |           |
 
 
 ## Setup coverage badge
