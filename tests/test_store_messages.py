@@ -210,3 +210,35 @@ def test_reply_archives_original_preserving_kind(relay_dir):
     archived = store.get_message(orig.id)
     assert archived.archived is True
     assert archived.kind == "backflow-ready"
+
+
+def test_is_recipient_stale_fresh_last_seen_is_not_stale(relay_dir):
+    _peers("c")
+    assert store.is_recipient_stale("c") is False
+
+
+def test_is_recipient_stale_old_last_seen_is_stale(relay_dir):
+    from datetime import UTC, datetime, timedelta
+    _peers("c")
+    sessions = store._load_sessions()
+    sessions["c"]["last_seen"] = (
+        datetime.now(UTC) - timedelta(minutes=20)
+    ).isoformat()
+    store._save_sessions(sessions)
+    assert store.is_recipient_stale("c") is True
+
+
+def test_is_recipient_stale_missing_peer_is_not_stale(relay_dir):
+    assert store.is_recipient_stale("ghost") is False
+
+
+def test_is_recipient_stale_custom_threshold(relay_dir):
+    from datetime import UTC, datetime, timedelta
+    _peers("c")
+    sessions = store._load_sessions()
+    sessions["c"]["last_seen"] = (
+        datetime.now(UTC) - timedelta(minutes=5)
+    ).isoformat()
+    store._save_sessions(sessions)
+    assert store.is_recipient_stale("c", threshold_minutes=10) is False
+    assert store.is_recipient_stale("c", threshold_minutes=3) is True

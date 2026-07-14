@@ -170,6 +170,37 @@ def touch_peer(name: str) -> None:
     _save_sessions(sessions)
 
 
+STALE_THRESHOLD_MINUTES = 10
+
+
+def _is_timestamp_stale(iso_ts: str | None, threshold_minutes: int) -> bool:
+    """True if iso_ts is older than threshold_minutes, or missing/malformed.
+    Package-private, reused by callers that need the same staleness check
+    against a timestamp that isn't a peer's last_seen (e.g. a notify
+    cooldown timestamp) — same reuse pattern as core/state.py importing
+    _atomic_write_text from this module."""
+    if not iso_ts:
+        return False
+    from datetime import datetime, timedelta
+    try:
+        ts = datetime.fromisoformat(iso_ts)
+    except ValueError:
+        return False
+    return ts < datetime.now(UTC) - timedelta(minutes=threshold_minutes)
+
+
+def is_recipient_stale(peer_name: str,
+                       threshold_minutes: int = STALE_THRESHOLD_MINUTES) -> bool:
+    """True if peer_name's last_seen is older than threshold_minutes, or the
+    peer doesn't exist. Never raises — used for a best-effort notify nudge,
+    not a hard dependency."""
+    try:
+        peer = get_peer(peer_name)
+    except PeerNotFound:
+        return False
+    return _is_timestamp_stale(peer.last_seen, threshold_minutes)
+
+
 def _message_path(msg: Message) -> Path:
     if msg.quarantined_at is not None:
         base = paths.QUARANTINE_DIR
