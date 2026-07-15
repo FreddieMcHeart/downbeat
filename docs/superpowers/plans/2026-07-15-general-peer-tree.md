@@ -644,10 +644,14 @@ async def test_switch_acting_as_modal_includes_interior_child_node(relay_dir):
 async def test_find_message_switches_acting_as_to_interior_child_node(relay_dir):
     """find_message's acting-as-target check must accept a role=child peer
     that has its own children as a valid switch target, not just
-    role=parent peers. Drives the real modal flow (types the message id,
-    presses Enter) rather than re-deriving the target expression inline --
-    a test that only recomputes the same formula and compares it to itself
-    would never fail if the actual chat.py logic were wrong."""
+    role=parent peers. Drives the real modal's dismiss-and-callback flow --
+    not Textual's keyboard focus routing (DataTable.move_cursor() does not
+    move focus, and the still-focused Input would swallow an Enter
+    keypress before it reached the modal's own binding -- a find_message.py
+    testability detail genuinely out of this task's scope) -- by calling
+    the modal's own bound action method directly after populating its
+    result table. This still exercises chat.py's real after(msg) closure
+    via the real self.dismiss(msg) call, not a re-derived inline formula."""
     from downbeat.core import store
     store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="Child-A", session_id="s2", cwd="/tmp", role="child",
@@ -668,7 +672,7 @@ async def test_find_message_switches_acting_as_to_interior_child_node(relay_dir)
         modal._refresh_results(msg.id)
         await pilot.pause()
         modal._table.move_cursor(row=0)
-        await pilot.press("enter")
+        modal.action_open_selected()
         await pilot.pause()
         assert screen.acting_as == "Child-A"
 ```
