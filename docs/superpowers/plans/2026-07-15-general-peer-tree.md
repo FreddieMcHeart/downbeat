@@ -921,9 +921,14 @@ git commit -m "feat: peers screen groups interior tree nodes as their own header
 **Files:**
 - Delete: `src/downbeat/tui/screens/main.py`
 - Delete: `src/downbeat/tui/widgets/peer_list.py`
+- Delete: `tests/test_tui_message_view.py` (both tests are `@pytest.mark.skip`-marked, referencing the deleted `PeerList` — whole file is dead)
+- Delete: `tests/test_tui_inbox.py` (all 5 tests are `@pytest.mark.skip`-marked, same reason — whole file is dead)
 - Modify: `tests/test_tui_peers.py` (remove the 4 skip-marked tests that exercise the deleted `PeerList` widget; keep the one live test)
+- Modify: `tests/test_tui_edit_delete.py` (remove the 1 skip-marked test that exercises `PeerList`; keep the 2 live tests, which don't touch the TUI at all)
 
-**Interfaces:** none (removes unreferenced code; nothing in this codebase imports either deleted file outside of each other, confirmed by `grep -rln "MainScreen" tests/ src/` and `grep -rln "PeerList" src/downbeat/tui/` at planning time — both come back empty except the two files being deleted and `app.py`'s comment referencing `ChatScreen` as the replacement).
+**Interfaces:** none (removes unreferenced code).
+
+**Correction found during implementation (Task 4's original drift-check surfaced a real planning gap, not code drift):** the original plan text claimed `PeerList` appears only in `src/downbeat/tui/screens/main.py` and `src/downbeat/tui/widgets/peer_list.py` themselves — that was **not fully checked at planning time**; the drift-check grep command (`grep -rn "PeerList\b" src/ tests/`, Step 1 below) was run against `src/` and `tests/` together but the planning pass that produced the "Interfaces: none" claim only actually verified `src/downbeat/tui/`, missing three additional dead test files under `tests/` that also reference `PeerList` via the same string-based Textual query (`query_one("PeerList")` — not a Python import, so deleting `peer_list.py` does NOT cause a collection/import error in these files; they were simply going to keep referencing a nonexistent widget name forever, invisibly, since they're all skip-marked and never run). All confirmed by direct inspection during implementation: `tests/test_tui_edit_delete.py` (1 of 3 tests skip-marked and PeerList-referencing), `tests/test_tui_message_view.py` (2 of 2, whole file dead), `tests/test_tui_inbox.py` (5 of 5, whole file dead) — all `@pytest.mark.skip(reason="three-pane view replaced by chat view")`, the identical reason already established for the `test_tui_peers.py` cleanup. Cleaning these up now is squarely within this task's own stated purpose (remove code left newly-orphaned by this refactor), just wider in scope than originally written down.
 
 - [ ] **Step 1: Confirm no other code references these files (defense against drift since planning)**
 
@@ -1034,7 +1039,50 @@ from downbeat.tui.app import RelayApp
 
 (This leaves the file's remaining content — the `test_group_members_uses_explicit_parent_not_name_shape` test, which tests `ChatScreen`, not `PeerList` — untouched below this point.)
 
-- [ ] **Step 3: Delete the two dead files**
+- [ ] **Step 2b: Remove the 1 skip-marked `PeerList` test from `tests/test_tui_edit_delete.py`**
+
+Find this exact block (the first test only — the two live tests below it are untouched):
+
+```python
+@pytest.mark.skip(reason="three-pane view replaced by chat view")
+@pytest.mark.asyncio
+async def test_edit_unread_message(relay_dir):
+    from downbeat.core import store
+    store.register_peer(name="p", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="c", session_id="s2", cwd="/tmp", role="child")
+    msg = store.send_message(from_peer="p", to_peer="c", subject="s", body="old")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        peers = app.screen.query_one("PeerList")
+        peers.acting_as = "c"
+        peers.refresh_from_store()
+        inbox = app.screen.query_one("InboxList")
+        inbox.refresh_for_peer("c")
+        await pilot.pause()
+        # Programmatic edit (skip modal UI for testability):
+        from downbeat.tui.widgets.edit_modal import perform_edit
+        perform_edit(msg.id, new_body="new")
+        assert store.get_message(msg.id).body == "new"
+
+
+@pytest.mark.asyncio
+async def test_edit_read_message_blocked(relay_dir):
+```
+
+Replace it with:
+
+```python
+@pytest.mark.asyncio
+async def test_edit_read_message_blocked(relay_dir):
+```
+
+- [ ] **Step 2c: Delete the two entirely-dead test files**
+
+```bash
+git rm tests/test_tui_message_view.py tests/test_tui_inbox.py
+```
+
+- [ ] **Step 3: Delete the two dead source files**
 
 ```bash
 git rm src/downbeat/tui/screens/main.py src/downbeat/tui/widgets/peer_list.py
@@ -1043,18 +1091,18 @@ git rm src/downbeat/tui/screens/main.py src/downbeat/tui/widgets/peer_list.py
 - [ ] **Step 4: Run the full test suite to confirm the deletion is clean**
 
 Run: `pytest -v`
-Expected: PASS — zero collection errors (nothing imports the deleted modules), zero references to `MainScreen`/`PeerList` remain anywhere except the harmless comment in `chat.py`.
+Expected: PASS — zero collection errors (nothing imports the deleted modules), zero references to `MainScreen`/`PeerList` remain anywhere except the harmless comment in `chat.py`. Test count drops by 4 (`test_tui_peers.py`) + 1 (`test_tui_edit_delete.py`) + 2 (`test_tui_message_view.py`, whole file) + 5 (`test_tui_inbox.py`, whole file) = 12 fewer collected tests, all of which were already `skip`-status, not `pass`-status, so the PASS count itself should be unaffected — only the skip count drops.
 
 - [ ] **Step 5: Run ruff to catch any lint issue from the deletion**
 
-Run: `ruff check src/downbeat/tui/ tests/test_tui_peers.py`
+Run: `ruff check src/downbeat/tui/ tests/test_tui_peers.py tests/test_tui_edit_delete.py`
 Expected: no errors.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add -A
-git commit -m "refactor: delete dead MainScreen/PeerList (superseded by ChatScreen)"
+git commit -m "refactor: delete dead MainScreen/PeerList and their dead test coverage (superseded by ChatScreen)"
 ```
 
 ---
