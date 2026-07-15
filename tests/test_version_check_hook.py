@@ -87,3 +87,75 @@ def test_warns_when_the_cli_is_ahead_too(tmp_path, cli):
     """Drift in either direction means the two artifacts disagree; the user
     should know regardless of which one moved."""
     assert _run(tmp_path, plugin_version="0.9.2", cli_stdout=cli) != ""
+
+
+# --- the tests that would have caught the ANSI bug ---------------------------
+#
+# Everything above fakes the CLI with `echo`. That is exactly how a hook that
+# could never fire shipped: rich_argparse renders --version through the help
+# formatter and emits ANSI even into a pipe, so the real bytes are
+# '\x1b[39mdownbeat 0.9.2\x1b[0m' -- and the regex's leading \b could not match
+# after the escape's trailing 'm'. A plain-text fixture proved nothing about
+# the real thing. These tests use the real code path instead.
+
+def _real_version_output(monkeypatch, prov):
+    """The exact string `downbeat --version` prints for a given provenance,
+    rendered through the real argparse + rich_argparse path."""
+    from downbeat.cli import __main__ as cli
+    from downbeat.core import provenance as prov_mod
+
+    monkeypatch.setattr(prov_mod, "detect", lambda: prov)
+    parser = cli.build_parser()
+    import contextlib
+    import io
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), contextlib.suppress(SystemExit):
+        parser.parse_args(["--version"])
+    return buf.getvalue()
+
+
+def _hook_parses(text):
+    """Run the hook's own parsing over `text`, as if the CLI had printed it."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_vc", HOOK)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    stripped = mod._ANSI_RE.sub("", text)
+    m = mod._VERSION_RE.search(stripped)
+    return (m.group(1) if m else None), ("editable" in stripped)
+
+
+def test_hook_parses_the_real_release_version_output(monkeypatch):
+    from downbeat.core.provenance import Provenance
+    text = _real_version_output(monkeypatch, Provenance(version="0.9.2"))
+    assert "downbeat 0.9.2" in mod_strip(text)
+    version, editable = _hook_parses(text)
+    assert version == "0.9.2", (
+        f"hook cannot parse what the CLI actually prints: {text!r}"
+    )
+    assert editable is False
+
+
+def test_hook_parses_the_real_editable_version_output(monkeypatch):
+    from downbeat.core.provenance import Provenance
+    text = _real_version_output(monkeypatch, Provenance(
+        version="0.7.1", editable=True, editable_path="/Users/me/mama/downbeat"))
+    version, editable = _hook_parses(text)
+    assert version == "0.7.1"
+    assert editable is True, "editable must be detected or we'd cry wolf forever"
+
+
+def test_the_real_output_actually_contains_ansi(monkeypatch):
+    """Guards the guard: if rich_argparse ever stops colourising, the ANSI
+    stripping becomes untested dead weight and this test says so out loud."""
+    from downbeat.core.provenance import Provenance
+    text = _real_version_output(monkeypatch, Provenance(version="0.9.2"))
+    assert "\x1b[" in text, (
+        "the real --version no longer emits ANSI — the hook's stripping is now "
+        "belt-without-braces; re-check whether it's still needed"
+    )
+
+
+def mod_strip(text):
+    import re
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)

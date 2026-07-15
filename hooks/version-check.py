@@ -27,6 +27,9 @@ Deliberately:
   - Says nothing on an editable install beyond naming it: there the version
     is stamped at install time and the code is read live from a working tree,
     so "0.7.1 != 0.9.2" would be noise, not news.
+  - Never raises and never blocks. It runs on EVERY session start, so any
+    failure -- weird install, hostile binary on PATH, unreadable manifest --
+    must degrade to silence, not to an error banner or a stall.
 """
 from __future__ import annotations
 
@@ -37,8 +40,21 @@ import shutil
 import subprocess
 import sys
 
-# `downbeat X.Y.Z ...` -- describe() may add provenance detail after it.
-_VERSION_RE = re.compile(r"\bdownbeat\s+(\d+\.\d+\.\d+(?:[.\w+-]*)?)")
+# rich_argparse renders --version through the help formatter and emits colour
+# even into a pipe, so the real output is '\x1b[39mdownbeat 0.9.2\x1b[0m'.
+# We ask for plain text via NO_COLOR *and* strip ANSI anyway: relying on
+# either alone once made this hook silently unable to fire at all.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+# No \b before 'downbeat': the char before it is 'm' (end of an ANSI escape)
+# whenever stripping is bypassed, and word-char->word-char is not a boundary,
+# which is precisely how this regex used to never match.
+_VERSION_RE = re.compile(r"downbeat\s+(\d+\.\d+\.\d+(?:[.\w+-]*)?)")
+
+# --version prints ~100 bytes. Anything beyond this is a broken or hostile
+# binary and we want none of it in memory: an unbounded capture of a
+# `yes`-style flooder was measured allocating 13 GB before its timeout fired.
+_MAX_OUTPUT = 64 * 1024
+_SUBPROCESS_TIMEOUT = 5
 
 
 def plugin_version() -> str | None:
@@ -47,7 +63,9 @@ def plugin_version() -> str | None:
         return None
     try:
         with open(os.path.join(root, ".claude-plugin", "plugin.json")) as f:
-            return json.load(f).get("version")
+            data = json.load(f)
+        # Valid JSON that isn't an object is still garbage to us.
+        return data.get("version") if isinstance(data, dict) else None
     except (OSError, ValueError):
         return None
 
@@ -62,20 +80,65 @@ def cli_report() -> tuple[str | None, bool]:
     exe = shutil.which("downbeat")
     if not exe:
         return None, False
-    try:
-        out = subprocess.run(
-            [exe, "--version"],
-            capture_output=True, text=True, timeout=5, check=False,
-        )
-    except (OSError, subprocess.SubprocessError):
+
+    text = _run_version(exe)
+    if text is None:
         return None, False
-    text = f"{out.stdout} {out.stderr}"
     m = _VERSION_RE.search(text)
+    # Match 'editable' only against our own version line, not arbitrary
+    # stderr, so an unrelated warning mentioning the word can't silence us.
     return (m.group(1) if m else None), ("editable" in text)
 
 
+def _run_version(exe: str) -> str | None:
+    """`<exe> --version`, bounded in both time and memory, or None.
+
+    Reads nothing until the child exits: a flooder blocks on a full pipe
+    buffer (~64KB) instead of ballooning this process, and then dies on the
+    timeout. subprocess.run(capture_output=True) buffers without limit and
+    does not bound this -- it was measured hitting 18GB RSS.
+    """
+    try:
+        proc = subprocess.Popen(
+            [exe, "--version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,  # never let a child eat OUR stdin
+            text=True,
+            env={**os.environ, "NO_COLOR": "1"},
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+    try:
+        try:
+            proc.wait(timeout=_SUBPROCESS_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            return None
+        return _ANSI_RE.sub("", proc.stdout.read(_MAX_OUTPUT) if proc.stdout else "")
+    except (OSError, ValueError):
+        return None
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+        try:
+            if proc.stdout:
+                proc.stdout.close()
+        except OSError:
+            pass
+        proc.wait()
+
+
 def main() -> int:
-    sys.stdin.read()  # drain the payload; we don't need it
+    # Claude Code always supplies stdin, but a closed fd 0 makes sys.stdin
+    # None and a tty makes read() block to EOF -- burning the hook's whole
+    # timeout on every session start. The sibling relay-inbox.py already
+    # guards this; don't relearn it.
+    if sys.stdin is not None and not sys.stdin.isatty():
+        try:
+            sys.stdin.read()
+        except (OSError, ValueError):
+            pass
 
     want = plugin_version()
     have, editable = cli_report()
@@ -105,4 +168,10 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception:
+        # Last resort. A non-zero exit surfaces a "hook error" banner plus a
+        # stderr line in the transcript on every single session start; a
+        # version check is never worth that.
+        sys.exit(0)

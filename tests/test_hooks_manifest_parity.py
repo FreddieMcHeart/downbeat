@@ -11,17 +11,6 @@ from pathlib import Path
 
 import downbeat
 
-
-def _manifest_bindings() -> set[tuple[str, str | None, str]]:
-    manifest_path = Path(downbeat.__file__).parent / "assets" / "hooks_manifest.json"
-    manifest = json.loads(manifest_path.read_text())
-    # Path(...).name here (not just e["command"] as-is) keeps this symmetric
-    # with _plugin_hooks_json_bindings() rather than relying on the
-    # documented-but-unenforced invariant that manifest "command" is always
-    # already a bare basename.
-    return {(e["event"], e["matcher"], Path(e["command"]).name) for e in manifest["events"]}
-
-
 # Hooks that legitimately live in the plugin only, and why. Anything NOT named
 # here that appears in one file but not the other is accidental drift and still
 # fails the test below -- this is a named list, not a blanket relaxation,
@@ -34,6 +23,23 @@ _PLUGIN_ONLY: dict[str, str] = {
     # also implies a check is running when none is.
     "version-check.py": "needs CLAUDE_PLUGIN_ROOT to have anything to compare against",
 }
+
+
+def _manifest_bindings() -> set[tuple[str, str | None, str]]:
+    manifest_path = Path(downbeat.__file__).parent / "assets" / "hooks_manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    # Path(...).name here (not just e["command"] as-is) keeps this symmetric
+    # with _plugin_hooks_json_bindings() rather than relying on the
+    # documented-but-unenforced invariant that manifest "command" is always
+    # already a bare basename.
+    # Filtered on BOTH sides, so registering a plugin-only hook in the
+    # manifest by mistake reports "this is plugin-only" via the test below
+    # rather than a baffling one-sided diff.
+    return {
+        (e["event"], e["matcher"], Path(e["command"]).name)
+        for e in manifest["events"]
+        if Path(e["command"]).name not in _PLUGIN_ONLY
+    }
 
 
 def _plugin_hooks_json_bindings() -> set[tuple[str, str | None, str]]:
