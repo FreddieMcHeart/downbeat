@@ -780,3 +780,42 @@ async def test_find_message_switches_acting_as_to_interior_child_node(relay_dir)
         modal.action_open_selected()
         await pilot.pause()
         assert screen.acting_as == "Child-A"
+
+
+@pytest.mark.asyncio
+async def test_ctrl_r_on_a_peer_tab_keeps_the_thread_rendered(relay_dir):
+    """Regression for #16: refreshing while sitting on a peer tab wiped the
+    thread. PeerTabs.populate() rebuilds its tabs (clear + re-add), and the
+    re-add auto-activated own-inbox before the real tab was restored -- each
+    activation posted a PeerSelected, so one ctrl+R phantom-switched the peer
+    UM -> own-inbox -> UM. ChatStream.refresh_thread then rendered nothing on
+    those transitions, leaving the thread empty."""
+    from downbeat.core import store
+    store.register_peer(name="CCO", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="UM", session_id="s2", cwd="/tmp", role="child",
+                        parent="CCO")
+    store.send_message(from_peer="UM", to_peer="CCO", subject="old", body="1")
+    store.send_message(from_peer="UM", to_peer="CCO", subject="new", body="2")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        stream = screen.query_one("#chat-stream")
+        tabs = screen.query_one("#peer-tabs")
+
+        tabs.active = f"tab-{tabs._safe_id('UM')}"
+        for _ in range(5):
+            await pilot.pause()
+
+        await screen.action_refresh()
+        for _ in range(5):
+            await pilot.pause()
+
+        rendered = {c._msg.id for c in stream.children
+                    if getattr(c, "_msg", None) is not None}
+        expected = {m.id for m in store.list_thread("CCO", "UM")}
+        assert rendered == expected, (
+            f"ctrl+R emptied the thread: rendered {len(rendered)} bubbles, "
+            f"data has {len(expected)} messages"
+        )
