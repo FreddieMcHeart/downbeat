@@ -178,3 +178,34 @@ async def test_peers_screen_groups_by_explicit_parent(relay_dir):
         expected = ["PLAT-2972-master", "worker-two",
                     "PLAT-3113-master", "worker-one"]
         assert names == expected
+
+
+@pytest.mark.asyncio
+async def test_peers_screen_interior_node_groups_under_itself(relay_dir):
+    """An interior node (child of one peer, parent of its own) becomes its
+    own group header -- this screen is a 2-level viewport per peer, not a
+    recursive tree, so Child-A shows as a group root with its own child
+    rather than nesting under Root's group."""
+    from downbeat.core import store
+    from downbeat.tui.screens.peers import PeersScreen
+    store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="Child-A", session_id="s2", cwd="/tmp", role="child",
+                        parent="Root")
+    store.register_peer(name="Child-A-1", session_id="s3", cwd="/tmp", role="child",
+                        parent="Child-A")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        app.push_screen(PeersScreen())
+        await pilot.pause()
+        table = app.screen.query_one("#peers-table")
+        names: list[str] = []
+        for row_idx in range(table.row_count):
+            row = table.get_row_at(row_idx)
+            name = row[0].strip() if row[0] else ""
+            if name:
+                names.append(name)
+        # Group keys sort alphabetically: "Child-A" < "Root". Within the
+        # "Child-A" group: Child-A itself (rank 0, group header) then
+        # Child-A-1 (rank 1). Root has no children here, so it's a
+        # single-row group on its own.
+        assert names == ["Child-A", "Child-A-1", "Root"]
