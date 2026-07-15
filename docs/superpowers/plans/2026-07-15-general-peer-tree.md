@@ -641,10 +641,13 @@ async def test_switch_acting_as_modal_includes_interior_child_node(relay_dir):
 
 
 @pytest.mark.asyncio
-async def test_find_message_acting_as_target_recognizes_interior_child_node(relay_dir):
+async def test_find_message_switches_acting_as_to_interior_child_node(relay_dir):
     """find_message's acting-as-target check must accept a role=child peer
     that has its own children as a valid switch target, not just
-    role=parent peers."""
+    role=parent peers. Drives the real modal flow (types the message id,
+    presses Enter) rather than re-deriving the target expression inline --
+    a test that only recomputes the same formula and compares it to itself
+    would never fail if the actual chat.py logic were wrong."""
     from downbeat.core import store
     store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
     store.register_peer(name="Child-A", session_id="s2", cwd="/tmp", role="child",
@@ -657,17 +660,23 @@ async def test_find_message_acting_as_target_recognizes_interior_child_node(rela
     async with app.run_test(headless=True) as pilot:
         await pilot.pause()
         screen = app.screen
-        from downbeat.tui.widgets.peer_tabs import PeerTabs
-        peers = {p.name: p for p in store.list_peers()}
-        candidate_names = {p.name for p in store.acting_as_candidates()}
-        target_acting = msg.to_peer if msg.to_peer in candidate_names else msg.from_peer
-        assert target_acting == "Child-A"
+        screen.acting_as = "Root"
+        screen.action_find_message()
+        await pilot.pause()
+        modal = app.screen
+        modal._input.value = msg.id
+        modal._refresh_results(msg.id)
+        await pilot.pause()
+        modal._table.move_cursor(row=0)
+        await pilot.press("enter")
+        await pilot.pause()
+        assert screen.acting_as == "Child-A"
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `pytest tests/test_tui_chat.py -k "interior_child_node" -v`
-Expected: the first two FAIL — `test_acting_as_candidates_include_interior_child_node` fails because `screen.acting_as` gets reset away from `"Child-A"` (old code only recognizes `role=="parent"`); `test_switch_acting_as_modal_includes_interior_child_node` fails because `modal._parents == ["Root"]` only. The third test doesn't exercise app code directly (it's checking the plan's own replacement expression against real data) and should already pass — it's included as a literal spec of the exact expression Step 3 below installs into `find_message`.
+Expected: the first two FAIL — `test_acting_as_candidates_include_interior_child_node` fails because `screen.acting_as` gets reset away from `"Child-A"` (old code only recognizes `role=="parent"`); `test_switch_acting_as_modal_includes_interior_child_node` fails because `modal._parents == ["Root"]` only. `test_find_message_switches_acting_as_to_interior_child_node` fails because `chat.py`'s `after(msg)` closure still checks `role=="parent"` and Child-A doesn't qualify, so `screen.acting_as` stays `"Root"` instead of switching to `"Child-A"`.
 
 - [ ] **Step 3: Update `chat.py`'s `_populate_acting_as` and `find_message`**
 
