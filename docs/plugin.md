@@ -7,6 +7,53 @@ existing hand-merge into `settings.json`. It doesn't replace `init`: downbeat
 is a general local message bus, not a Claude-Code-only tool, so `init`'s
 settings.json hand-merge remains the baseline path that works everywhere.
 
+## Updating: use `/downbeat:update`, not `claude plugin update` alone
+
+**`claude plugin update` does not update the `downbeat` CLI.** It moves the
+plugin only. This surprises everyone exactly once, so it's worth being blunt
+about why.
+
+A Claude Code plugin cannot ship a terminal command. Plugin `bin/` puts
+executables on the **Bash tool's** PATH — reachable when Claude shells out
+inside a session, invisible to a terminal you open yourself. There is also no
+install-time hook: the hook event list has no `PluginInstall`/`PluginUpdate`,
+so nothing can run at update time to go fetch the CLI. Those are properties of
+the plugin system, not gaps in this project.
+
+So downbeat is two artifacts with two update paths, and the plugin can only
+move one of them:
+
+| artifact | what it is | updated by |
+|---|---|---|
+| plugin | hooks, slash commands, skills | `claude plugin update downbeat@downbeat` |
+| CLI / TUI | the `downbeat` command | `uv tool upgrade downbeat` |
+
+Run **`/downbeat:update`** and forget the table — it does both and reports what
+moved.
+
+Two things guard the gap for when you forget:
+
+- The plugin's `SessionStart` hook compares your CLI's version against the
+  plugin's and speaks up if they've drifted. It stays quiet when they agree,
+  and quiet on editable installs — there the version is stamped at install
+  time while the code is read live from a working tree, so a mismatch is
+  expected and means nothing.
+- `downbeat --version` reports *where the code came from*, not just a number:
+
+  ```
+  downbeat 0.9.2
+  downbeat 0.9.2 (editable → /path/to/checkout; this number is from install
+                  time, the code is whatever is checked out there now)
+  ```
+
+  That second form matters. A bug once got filed against the version
+  `--version` printed while the code actually running was several releases
+  ahead; the mismatch sent the investigation the wrong way twice.
+
+**A running TUI holds the code it loaded at launch.** After any update, quit
+and relaunch `downbeat tui` — otherwise you are still on the old one, and no
+amount of updating will show it.
+
 ## Install
 
 Two commands, nothing to fill in — copy, paste, run:

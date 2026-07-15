@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from importlib.metadata import PackageNotFoundError, version
 
 from rich_argparse import RichHelpFormatter
 
@@ -28,10 +27,11 @@ class _RichArgumentParser(argparse.ArgumentParser):
 
 
 def _version_string() -> str:
-    try:
-        return f"downbeat {version('downbeat')}"
-    except PackageNotFoundError:
-        return "downbeat (unknown version — not installed as a package)"
+    # Deliberately not a bare version: on an editable install the number is
+    # stamped at install time and the running code is whatever the working
+    # tree holds now, so a bare number actively misleads. See core.provenance.
+    from ..core import provenance
+    return provenance.detect().describe()
 
 
 def build_parser() -> argparse.ArgumentParser:
