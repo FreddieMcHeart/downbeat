@@ -65,7 +65,7 @@
             <a id="nextFileLink" class="nav" href="z_5011eddb56125a73_init_cmd_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.14.3">coverage.py v7.14.3</a>,
-            created at 2026-07-14 16:37 +0000
+            created at 2026-07-15 14:25 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -137,9 +137,9 @@
     <p class="run"><span class="n"><a id="t55" href="#t55">55</a></span><span class="t">    <span class="nam">sp_reg</span><span class="op">.</span><span class="nam">add_argument</span><span class="op">(</span><span class="str">"name"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t56" href="#t56">56</a></span><span class="t">    <span class="nam">sp_reg</span><span class="op">.</span><span class="nam">add_argument</span><span class="op">(</span><span class="str">"--role"</span><span class="op">,</span> <span class="nam">choices</span><span class="op">=</span><span class="op">[</span><span class="str">"parent"</span><span class="op">,</span> <span class="str">"child"</span><span class="op">]</span><span class="op">,</span> <span class="nam">default</span><span class="op">=</span><span class="str">"child"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t57" href="#t57">57</a></span><span class="t">    <span class="nam">sp_reg</span><span class="op">.</span><span class="nam">add_argument</span><span class="op">(</span><span class="str">"--parent"</span><span class="op">,</span> <span class="nam">default</span><span class="op">=</span><span class="key">None</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t58" href="#t58">58</a></span><span class="t">                        <span class="nam">help</span><span class="op">=</span><span class="str">"name of the role=parent peer this child is joining "</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t59" href="#t59">59</a></span><span class="t">                             <span class="str">"(required for --role child unless exactly one parent "</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t60" href="#t60">60</a></span><span class="t">                             <span class="str">"peer is currently registered)"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t58" href="#t58">58</a></span><span class="t">                        <span class="nam">help</span><span class="op">=</span><span class="str">"name of the peer this session is joining as a child "</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t59" href="#t59">59</a></span><span class="t">                             <span class="str">"(required for --role child unless exactly one "</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t60" href="#t60">60</a></span><span class="t">                             <span class="str">"role=parent peer is currently registered)"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t61" href="#t61">61</a></span><span class="t">    <span class="nam">sp_reg</span><span class="op">.</span><span class="nam">set_defaults</span><span class="op">(</span><span class="nam">func</span><span class="op">=</span><span class="nam">relay_cmds</span><span class="op">.</span><span class="nam">cmd_register</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t62" href="#t62">62</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t63" href="#t63">63</a></span><span class="t">    <span class="nam">sp_send</span> <span class="op">=</span> <span class="nam">sub</span><span class="op">.</span><span class="nam">add_parser</span><span class="op">(</span><span class="str">"send"</span><span class="op">,</span> <span class="nam">help</span><span class="op">=</span><span class="str">"send a message"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
@@ -178,7 +178,7 @@
     <p class="run run2"><span class="n"><a id="t96" href="#t96">96</a></span><span class="t">                                           <span class="nam">parser_class</span><span class="op">=</span><span class="nam">_RichArgumentParser</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t97" href="#t97">97</a></span><span class="t">    <span class="nam">sp_peers_setparent</span> <span class="op">=</span> <span class="nam">sp_peers_sub</span><span class="op">.</span><span class="nam">add_parser</span><span class="op">(</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t98" href="#t98">98</a></span><span class="t">        <span class="str">"set-parent"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t99" href="#t99">99</a></span><span class="t">        <span class="nam">help</span><span class="op">=</span><span class="str">"backfill/repoint an existing child peer's parent without full re-register"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t99" href="#t99">99</a></span><span class="t">        <span class="nam">help</span><span class="op">=</span><span class="str">"backfill/repoint an existing peer's parent without full re-register"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t100" href="#t100">100</a></span><span class="t">        <span class="nam">parents</span><span class="op">=</span><span class="op">[</span><span class="nam">debug_parent</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t101" href="#t101">101</a></span><span class="t">    <span class="nam">sp_peers_setparent</span><span class="op">.</span><span class="nam">add_argument</span><span class="op">(</span><span class="str">"child_name"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="run"><span class="n"><a id="t102" href="#t102">102</a></span><span class="t">    <span class="nam">sp_peers_setparent</span><span class="op">.</span><span class="nam">add_argument</span><span class="op">(</span><span class="str">"parent_name"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
@@ -303,7 +303,7 @@
             <a class="nav" href="z_5011eddb56125a73_init_cmd_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.14.3">coverage.py v7.14.3</a>,
-            created at 2026-07-14 16:37 +0000
+            created at 2026-07-15 14:25 +0000
         </p>
     </div>
 </footer>
