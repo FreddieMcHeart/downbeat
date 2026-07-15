@@ -105,6 +105,16 @@ class ChatScreen(Screen):
                 self.active_peer = last
             else:
                 self.active_peer = OWN_INBOX_ID
+        # active_peer (what we render) and tabs.active (what the user sees
+        # highlighted) are two views of one choice, so they have to be
+        # reconciled explicitly. populate() cannot do it: it restores whatever
+        # tab it had before, and on first mount it has none, so it falls back
+        # to own-inbox -- while the branch above restores the peer the user
+        # was last reading. Left unreconciled that reads as a tab bar saying
+        # "inbox" over someone else's thread.
+        want = f"tab-{tabs._safe_id(self.active_peer)}" if self.active_peer else None
+        if want is not None and tabs.active != want:
+            tabs.active = want
 
     def _refresh_thread(self) -> None:
         stream = self.query_one("#chat-stream", ChatStream)
