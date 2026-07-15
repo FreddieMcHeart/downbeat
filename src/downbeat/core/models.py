@@ -121,7 +121,12 @@ class Peer:
     name: str
     session_id: str
     cwd: str
-    role: str   # "parent" | "child"
+    role: str   # "parent" | "child" -- the /relay-monitor autonomy DEFAULT
+                # only (auto-execute vs surface-and-ask). NOT structural
+                # position: a peer can be role="child" and still have its
+                # own children -- gaining/losing children never changes
+                # this field. See docs/superpowers/specs/
+                # 2026-07-15-general-peer-tree-design.md.
     registered_at: str
     last_seen: str
     # --- rebind identity ---
@@ -130,7 +135,11 @@ class Peer:
     session_id_history: list[str] = field(default_factory=list)
     last_rebind_at: str | None = None
     # --- explicit pairing (replaces name-prefix inference) ---
-    parent: str | None = None   # name of the role="parent" peer this child joined; None for parents
+    parent: str | None = None   # name of the peer this one is a child of; None for
+                                # a tree root. Any registered peer is a valid target
+                                # regardless of role -- a role="parent" peer can have
+                                # its own parent (an interior node). See the role
+                                # field's comment above.
 
     def to_dict(self) -> dict:
         return asdict(self)

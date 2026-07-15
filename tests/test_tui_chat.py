@@ -705,3 +705,78 @@ async def test_archived_toggle_action_only_acts_on_own_inbox_tab(relay_dir):
         screen.active_peer = OWN_INBOX_ID
         screen.action_toggle_archived()
         assert stream._show_archived is True, "must toggle on the own-inbox tab"
+
+
+@pytest.mark.asyncio
+async def test_acting_as_candidates_include_interior_child_node(relay_dir):
+    """_populate_acting_as's candidate set includes a role=child peer that
+    itself has children (an interior node), not just role=parent peers."""
+    from downbeat.core import store
+    store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="Child-A", session_id="s2", cwd="/tmp", role="child",
+                        parent="Root")
+    store.register_peer(name="Child-A-1", session_id="s3", cwd="/tmp", role="child",
+                        parent="Child-A")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        screen.acting_as = "Child-A"
+        screen._populate_acting_as()
+        assert screen.acting_as == "Child-A"
+
+
+@pytest.mark.asyncio
+async def test_switch_acting_as_modal_includes_interior_child_node(relay_dir):
+    """A role=child peer that has its own children (an interior node) must
+    be selectable as acting_as too -- not just role=parent peers."""
+    from downbeat.core import store
+    from downbeat.tui.widgets.switch_acting_as import SwitchActingAsModal
+    store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="Child-A", session_id="s2", cwd="/tmp", role="child",
+                        parent="Root")
+    store.register_peer(name="Child-A-1", session_id="s3", cwd="/tmp", role="child",
+                        parent="Child-A")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        modal = SwitchActingAsModal(current="Root")
+        app.push_screen(modal)
+        await pilot.pause()
+        assert set(modal._parents) == {"Root", "Child-A"}
+
+
+@pytest.mark.asyncio
+async def test_find_message_switches_acting_as_to_interior_child_node(relay_dir):
+    """find_message's acting-as-target check must accept a role=child peer
+    that has its own children as a valid switch target, not just
+    role=parent peers. Drives the real modal's dismiss-and-callback flow --
+    not Textual's keyboard focus routing (DataTable.move_cursor() does not
+    move focus, and the still-focused Input would swallow an Enter
+    keypress before it reached the modal's own binding -- a find_message.py
+    testability detail out of scope here) -- by calling the modal's own
+    bound action method directly after populating its result table. This
+    still exercises chat.py's real after(msg) closure via the real
+    self.dismiss(msg) call, not a re-derived inline formula."""
+    from downbeat.core import store
+    store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="Child-A", session_id="s2", cwd="/tmp", role="child",
+                        parent="Root")
+    store.register_peer(name="Child-A-1", session_id="s3", cwd="/tmp", role="child",
+                        parent="Child-A")
+    msg = store.send_message(from_peer="Child-A-1", to_peer="Child-A",
+                             subject="s", body="b")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        screen.acting_as = "Root"
+        screen.action_find_message()
+        await pilot.pause()
+        modal = app.screen
+        modal._input.value = msg.id
+        modal._refresh_results(msg.id)
+        await pilot.pause()
+        modal._table.move_cursor(row=0)
+        modal.action_open_selected()
+        await pilot.pause()
+        assert screen.acting_as == "Child-A"

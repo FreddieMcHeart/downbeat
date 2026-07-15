@@ -48,16 +48,15 @@ Options:
 
 After the question is answered (Yes or No), remember the decision for the rest of the session. If the user later types `/loop stop` or closes the session, the loop is gone — no need to re-offer until a new "about to wait" moment.
 
-## Registration + always-on watch
+## Registration + automatic idle-notify
 
-After a child registers (`downbeat register <name>`), run `downbeat watch` in the
-child terminal (or as a Monitor job) for always-on surfacing of new mail — notify-only; the
-human still drives action at the next prompt.
-
-`downbeat watch` is event-driven (fswatch/FSEvents) with automatic poll fallback — it
-blocks on filesystem events and costs ~0 on an idle channel. For cheap notify-to-wake, run
-it as a Monitor; `/relay-monitor` is for in-session role-aware auto-acting and costs a model
-turn per tick.
+After a child registers (`downbeat register <name>`), no manual step is needed for
+always-on mail awareness: if `downbeat tui` is open, its resident watcher fires a
+native OS notification the moment mail arrives for an idle (>10min) peer; if the TUI
+isn't open, the same notification fires from a Claude Code session's own hook on its
+next `send`/`reply`. Notify-only in both cases — the human still drives action.
+`/relay-monitor` is the separate in-session role-aware auto-acting option, costing a
+model turn per tick.
 
 ## Continuous self-monitoring
 

@@ -69,15 +69,15 @@ class ChatScreen(Screen):
         return [p.name for p in store.children_of(self.acting_as) if p.name != self.acting_as]
 
     def _populate_acting_as(self) -> None:
-        parents = [p for p in store.list_peers() if p.role == "parent"]
-        parent_names = {p.name for p in parents}
+        candidates = store.acting_as_candidates()
+        candidate_names = {p.name for p in candidates}
         # Prefer persisted last-acting-as if still valid
-        if self.acting_as is None or self.acting_as not in parent_names:
+        if self.acting_as is None or self.acting_as not in candidate_names:
             last = state.get_last_acting_as()
-            if last in parent_names:
+            if last in candidate_names:
                 self.acting_as = last
             else:
-                self.acting_as = parents[0].name if parents else None
+                self.acting_as = candidates[0].name if candidates else None
         chip = self.query_one("#acting-as-chip", Static)
         if self.acting_as:
             q_count = sum(
@@ -199,11 +199,10 @@ class ChatScreen(Screen):
             if msg is None:
                 return
             # Switch acting-as and tab if needed
-            peers = {p.name: p for p in store.list_peers()}
-            is_parent = msg.to_peer in peers and peers[msg.to_peer].role == "parent"
-            target_acting = msg.to_peer if is_parent else msg.from_peer
+            candidate_names = {p.name for p in store.acting_as_candidates()}
+            target_acting = msg.to_peer if msg.to_peer in candidate_names else msg.from_peer
             other = msg.from_peer if target_acting == msg.to_peer else msg.to_peer
-            if target_acting in peers and peers[target_acting].role == "parent":
+            if target_acting in candidate_names:
                 self.acting_as = target_acting
                 await self._populate_tabs()
                 self.active_peer = other

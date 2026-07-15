@@ -67,8 +67,7 @@ That's the whole lifecycle: `inbox/<peer>/*.json` on send, moved to
 
 ## Next steps
 
-- `downbeat tui` — full management UI over the same data instead of raw CLI calls.
-- `downbeat watch --peer demo-child` — event-driven inbox notifications (run this in
-  a second terminal, then re-run the `send` command above from a third).
+- `downbeat tui` — full management UI over the same data instead of raw CLI calls;
+  also fires an automatic native notification for idle-peer mail while it's open.
 - `/relay-monitor` (inside a registered Claude Code session) — the self-driving,
   role-aware version of the same loop; see the main [README](../../README.md).

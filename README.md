@@ -67,34 +67,15 @@ downbeat tui                 # full management UI
 (structured RLM findings from a child — see the downbeat skill). Future kinds
 (`workflow-request`, `workflow-result`) are planned for Phase 3.
 
-### Always-on inbox watch
+### Automatic idle-recipient notify
 
-Give a child session always-on inbox awareness after pairing:
-
-```bash
-downbeat watch                     # event-driven (fswatch/FSEvents); instant, ~0 idle cost
-downbeat watch --peer child-1      # parent watching a child's inbox
-downbeat watch --poll              # force poll fallback (every --interval seconds)
-downbeat watch --interval 30       # poll fallback interval (default: 90s)
-downbeat watch --once              # one-shot: print all current NEW, then exit
-```
-
-Run `downbeat watch` in the child terminal (or as a Monitor job) immediately
-after `downbeat register`. The watcher notifies only — it never drains, acks,
-or takes any action. The human (or the session's hook at the next prompt) drives action.
-Stop with Ctrl+C.
-
-`watch` is event-driven by default (uses watchdog FSEvents/inotify — fires instantly on
-inbox changes, near-zero idle CPU). If watchdog is unavailable it falls back to polling
-automatically and prints `[watch] polling every Ns` on startup so you always know which
-backend is active. Use `--poll` to force the interval fallback regardless.
-
-**watch-vs-monitor cost table:**
-
-| Want | Use | Cost on idle channel |
-|---|---|---|
-| Cheap notify-to-wake, you act when woken | `downbeat watch` as a Monitor | ~0 (blocks on FS event; model turn only on real mail) |
-| Session auto-acts role-aware on a cadence | `/relay-monitor` (/loop) | a model turn every interval |
+No manual step needed. If the TUI (`downbeat tui`) is open, its resident
+event-driven watcher (watchdog FSEvents/inotify) fires a native OS
+notification the moment mail arrives for a peer that's been idle for more
+than 10 minutes. If the TUI isn't open, a Claude Code session
+sending/replying to an idle peer gets the same native notification from
+its own hook, independent of the TUI. Either way: notify-only, never
+drains/acks/acts.
 
 ### Background inbox polling
 
@@ -127,18 +108,17 @@ downbeat whoami          # prints: <name> <role>
 downbeat whoami --json   # prints: {"name": "...", "role": "..."}
 ```
 
-**watch vs /relay-monitor — key distinction:**
+**Automatic notify vs /relay-monitor — key distinction:**
 
-| | `downbeat watch` | `/relay-monitor` |
+| | Automatic idle-notify | `/relay-monitor` |
 |---|---|---|
-| Runs as | external process (pane / Monitor job) | in-session `/loop` |
-| Backend | event-driven (FSEvents/inotify), poll fallback | timer-based loop |
-| Does | prints new mail to a pane (human reads) | session pulls mail into its own context + acts per role |
+| Runs as | TUI's resident watcher, or a Claude Code hook — no separate process to start | in-session `/loop` |
+| Does | fires a native OS notification (human reads it, decides what to do) | session pulls mail into its own context + acts per role |
 | Acts? | never | child: yes (autonomous); parent: no (surfaces) |
-| Idle cost | ~0 (event-driven; model turn only on real mail) | a model turn every interval |
-| Use when | operator watching from outside | a session should self-drive on its inbox |
+| Idle cost | ~0 (event-driven when TUI open; hook-adjacent cadence otherwise) | a model turn every interval |
+| Use when | you want a nudge, not automation | a session should self-drive on its inbox |
 
-Both tools are complementary and can be run simultaneously.
+Both are complementary and can run at the same time.
 
 ### TUI keybindings
 

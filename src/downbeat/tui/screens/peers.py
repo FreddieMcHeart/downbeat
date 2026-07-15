@@ -40,18 +40,27 @@ class PeersScreen(Screen):
         self._table.clear()
         now = datetime.now(UTC)
 
+        candidate_names = {p.name for p in store.acting_as_candidates()}
+
         def group_key(peer):
             # Group by the real parent-child pairing (Peer.parent), not a
-            # name-prefix guess. Parents group under their own name; a child
-            # with no parent set yet (pre-migration peer) sorts to the bottom.
-            if peer.role == "parent":
+            # name-prefix guess. Peers eligible to act as a group header
+            # (role="parent", or any peer with children of its own) group
+            # under their own name; everyone else groups under their
+            # explicit parent, or "~ungrouped" if that's unset. An interior
+            # node (child of one peer, parent of others) becomes its OWN
+            # group header here rather than nesting under its own parent's
+            # group -- this screen is intentionally a 2-level viewport per
+            # peer, not a recursive tree; see docs/superpowers/specs/
+            # 2026-07-15-general-peer-tree-design.md.
+            if peer.name in candidate_names:
                 return peer.name
             return peer.parent or "~ungrouped"
 
         def sort_key(peer):
             return (
                 group_key(peer),
-                0 if peer.role == "parent" else 1,
+                0 if peer.name in candidate_names else 1,
                 peer.name,
             )
 
@@ -65,8 +74,11 @@ class PeersScreen(Screen):
             except ValueError:
                 age_str = "?"
 
-            # Visually indent children so the parent → children relationship is obvious
-            display_name = p.name if p.role == "parent" else f"  {p.name}"
+            # Visually indent non-header rows so the group->member relationship
+            # is obvious -- keyed on the same candidate_names used for grouping
+            # above, not p.role, so an interior-node group header (a role="child"
+            # peer with its own children) is un-indented like any other header.
+            display_name = p.name if p.name in candidate_names else f"  {p.name}"
             self._table.add_row(
                 display_name, p.role, p.session_id,
                 p.cwd[:30] + ("…" if len(p.cwd) > 30 else ""),

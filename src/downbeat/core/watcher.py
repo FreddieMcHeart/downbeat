@@ -109,7 +109,7 @@ class FsWatcher:
         # it can block forever acquiring an internal lock still held by an
         # emitter thread parked in a blocking inotify read. Bound it in a
         # daemon thread so a deadlocked stop() can't hang the caller (a real
-        # user hitting Ctrl-C in `downbeat watch`, or a test's teardown)
+        # user hitting Ctrl-C in `downbeat tui`, or a test's teardown)
         # forever — the daemon thread leaking is harmless at process exit.
         stopper = threading.Thread(target=self._observer.stop, daemon=True)
         stopper.start()
