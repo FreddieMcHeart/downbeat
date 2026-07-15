@@ -117,6 +117,18 @@ def test_register_parent_never_gets_a_parent_value(relay_dir):
     assert p.parent is None
 
 
+def test_reregister_parent_role_interior_node_preserves_parent(relay_dir):
+    """A role=parent peer that was given a parent via set_parent (an
+    interior node) must keep it on a plain re-register with no --parent --
+    parent-preservation must not be scoped to role=child only, now that
+    role=parent peers can be interior nodes too."""
+    store.register_peer(name="root", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="mid", session_id="s-2", cwd="/tmp", role="parent")
+    store.set_parent("mid", "root")
+    again = store.register_peer(name="mid", session_id="s-2", cwd="/tmp", role="parent")
+    assert again.parent == "root"
+
+
 def test_rebind_preserves_previously_set_parent(relay_dir):
     store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s-2", cwd="/tmp", role="child",

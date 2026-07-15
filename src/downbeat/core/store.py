@@ -142,7 +142,7 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
             history.append(existing["session_id"])
     resolved_parent = (
         _resolve_parent(name, sessions, existing, parent)
-        if role == "child" or parent is not None
+        if role == "child" or parent is not None or (existing and existing.get("parent"))
         else None
     )
     peer = Peer(
