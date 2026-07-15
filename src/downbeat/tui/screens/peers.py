@@ -74,8 +74,11 @@ class PeersScreen(Screen):
             except ValueError:
                 age_str = "?"
 
-            # Visually indent children so the parent → children relationship is obvious
-            display_name = p.name if p.role == "parent" else f"  {p.name}"
+            # Visually indent non-header rows so the group->member relationship
+            # is obvious -- keyed on the same candidate_names used for grouping
+            # above, not p.role, so an interior-node group header (a role="child"
+            # peer with its own children) is un-indented like any other header.
+            display_name = p.name if p.name in candidate_names else f"  {p.name}"
             self._table.add_row(
                 display_name, p.role, p.session_id,
                 p.cwd[:30] + ("…" if len(p.cwd) > 30 else ""),
