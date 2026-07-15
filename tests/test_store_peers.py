@@ -112,7 +112,10 @@ def test_register_child_explicit_parent_can_be_a_child_peer(relay_dir):
     assert grandchild.parent == "other-child"
 
 
-def test_register_parent_never_gets_a_parent_value(relay_dir):
+def test_register_fresh_parent_role_peer_has_no_parent_value(relay_dir):
+    """A *freshly* registered role=parent peer starts as a tree root. It can
+    still be given a parent later (see the interior-node tests below) --
+    role is not a structural gate."""
     p = store.register_peer(name="p", session_id="s-1", cwd="/tmp", role="parent")
     assert p.parent is None
 
@@ -230,6 +233,18 @@ def test_set_parent_direct_two_node_cycle_raises(relay_dir):
     store.register_peer(name="B", session_id="s-2", cwd="/tmp", role="child", parent="A")
     with pytest.raises(CycleDetected):
         store.set_parent("A", "B")
+
+
+def test_register_explicit_parent_cycle_raises(relay_dir):
+    """_check_no_cycle guards BOTH writers -- set_parent and register_peer's
+    explicit --parent. Covering only set_parent would let a regression that
+    drops the check from _resolve_parent through unnoticed."""
+    from downbeat.core.errors import CycleDetected
+    store.register_peer(name="A", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="B", session_id="s-2", cwd="/tmp", role="child", parent="A")
+    with pytest.raises(CycleDetected):
+        store.register_peer(name="A", session_id="s-1", cwd="/tmp", role="parent",
+                            parent="B")
 
 
 def test_set_parent_self_parent_raises(relay_dir):

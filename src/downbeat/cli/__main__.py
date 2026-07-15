@@ -96,7 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
                                            parser_class=_RichArgumentParser)
     sp_peers_setparent = sp_peers_sub.add_parser(
         "set-parent",
-        help="backfill/repoint an existing child peer's parent without full re-register",
+        help="backfill/repoint an existing peer's parent without full re-register",
         parents=[debug_parent])
     sp_peers_setparent.add_argument("child_name")
     sp_peers_setparent.add_argument("parent_name")
