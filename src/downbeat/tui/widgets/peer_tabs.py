@@ -89,6 +89,15 @@ class PeerTabs(Tabs):
         return None
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
+        # populate() rebuilds the tab set (clear + re-add), and Textual
+        # auto-activates the first tab added -- own-inbox -- before we restore
+        # the tab the user was actually on. Those activations are rebuild
+        # churn, not a user selection: reporting them phantom-switches the
+        # screen's peer (UM -> own-inbox -> UM on a single refresh), which
+        # emptied the thread. See #16. populate() owns the active tab while
+        # it runs; the screen's own _populate_tabs() reconciles active_peer.
+        if self._populating:
+            return
         name = self._current_peer_name()
         if name:
             self.post_message(self.PeerSelected(name))
