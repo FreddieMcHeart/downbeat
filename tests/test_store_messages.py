@@ -97,6 +97,29 @@ def test_reply_archives_original_and_creates_response(relay_dir):
     assert reply.state == MessageState.NEW
 
 
+@pytest.mark.parametrize("operation", ["archive", "reply"])
+def test_message_move_writes_replacement_before_unlink(relay_dir, monkeypatch, operation):
+    """A move keeps the source readable until its replacement is durable."""
+    _peers("parent", "child")
+    msg = store.send_message(from_peer="parent", to_peer="child", subject="s", body="b")
+    old_path = store._find_message_path(msg.id)
+    write_message = store._write_message
+    old_exists_during_write = []
+
+    def tracking_write(message):
+        if message.id == msg.id:
+            old_exists_during_write.append(old_path.exists())
+        write_message(message)
+
+    monkeypatch.setattr(store, "_write_message", tracking_write)
+    if operation == "archive":
+        store.archive_messages([msg.id])
+    else:
+        store.reply_to(msg.id, body="reply", from_peer="child")
+
+    assert old_exists_during_write == [True]
+
+
 def test_list_inbox_for_peer(relay_dir):
     _peers("parent", "child")
     store.send_message(from_peer="parent", to_peer="child", subject="a", body="x")

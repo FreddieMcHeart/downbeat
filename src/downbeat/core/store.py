@@ -402,8 +402,8 @@ def archive_messages(ids: list[str]) -> dict[str, bool]:
             if d.get("delivered_at") is not None and d.get("delivery_ack_at") is None:
                 d["delivery_ack_at"] = now_iso()
             updated = Message.from_dict(d)
-            old.unlink()
             _write_message(updated)  # _message_path routes archived → processed/
+            old.unlink()
             _log.info("archive msg=%s peer=%s", mid, updated.to_peer)
             _append_delivery_log({"event": "archive", "msg_id": mid,
                                   "peer": updated.to_peer})
@@ -463,8 +463,8 @@ def reply_to(msg_id: str, body: str, from_peer: str,
         _append_delivery_log({"event": "auto_ack_via_reply",
                               "msg_id": msg_id, "peer": original.to_peer})
     archived = Message.from_dict(d)
-    old_path.unlink()
     _write_message(archived)
+    old_path.unlink()
     # Send the reply with in_reply_to set.
     # Bypass peer check — the broadcaster (original.from_peer) may not be
     # registered in the peer registry (broadcast fan-out case).
