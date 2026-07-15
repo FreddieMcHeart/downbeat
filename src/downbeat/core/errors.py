@@ -23,4 +23,12 @@ class AmbiguousParent(RelayError):
 
 
 class InvalidParent(RelayError):
-    """Raised when --parent names a peer that doesn't exist or isn't role=parent."""
+    """Raised when --parent names a peer that doesn't exist, or the
+    assignment would be invalid for another reason (see CycleDetected)."""
+
+
+class CycleDetected(InvalidParent):
+    """Raised when a --parent assignment would create a cycle in the peer
+    tree (including self-parenting, the degenerate 1-cycle). Subclasses
+    InvalidParent so existing catch sites (cli/commands/relay_cmds.py,
+    tui/widgets/add_peer_modal.py) need no new wiring."""

@@ -27,7 +27,7 @@ class SwitchActingAsModal(ModalScreen):
             yield self._listview
 
     def on_mount(self) -> None:
-        self._parents = [p.name for p in store.list_peers() if p.role == "parent"]
+        self._parents = [p.name for p in store.acting_as_candidates()]
         for name in self._parents:
             marker = "[b yellow]▶[/b yellow]" if name == self.current else " "
             self._listview.append(ListItem(Static(f"{marker} {name}")))

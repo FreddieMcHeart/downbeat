@@ -55,9 +55,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp_reg.add_argument("name")
     sp_reg.add_argument("--role", choices=["parent", "child"], default="child")
     sp_reg.add_argument("--parent", default=None,
-                        help="name of the role=parent peer this child is joining "
-                             "(required for --role child unless exactly one parent "
-                             "peer is currently registered)")
+                        help="name of the peer this session is joining as a child "
+                             "(required for --role child unless exactly one "
+                             "role=parent peer is currently registered)")
     sp_reg.set_defaults(func=relay_cmds.cmd_register)
 
     sp_send = sub.add_parser("send", help="send a message",
@@ -96,7 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
                                            parser_class=_RichArgumentParser)
     sp_peers_setparent = sp_peers_sub.add_parser(
         "set-parent",
-        help="backfill/repoint an existing child peer's parent without full re-register",
+        help="backfill/repoint an existing peer's parent without full re-register",
         parents=[debug_parent])
     sp_peers_setparent.add_argument("child_name")
     sp_peers_setparent.add_argument("parent_name")
