@@ -14,6 +14,7 @@ from pathlib import Path
 from . import paths
 from .errors import (
     AmbiguousParent,
+    CycleDetected,
     InvalidParent,
     MessageLocked,
     MessageNotFound,
@@ -62,18 +63,52 @@ def _save_sessions(data: dict[str, dict]) -> None:
     _atomic_write_text(paths.SESSIONS_FILE, json.dumps(data, indent=2))
 
 
+def _check_no_cycle(name: str, parent: str, sessions: dict[str, dict]) -> None:
+    """Walk upward from `parent` following .parent pointers; raise
+    CycleDetected if the walk reaches `name` (would create a cycle) or if
+    parent==name outright (self-parent, the degenerate 1-cycle). Bounded by
+    len(sessions) iterations so a pre-existing corrupt cycle already on disk
+    (e.g. from a hand-edited sessions.json) can't hang this walk -- that's
+    defense against corrupt existing data, not a depth limit on new writes;
+    see "Why no depth cap" in docs/superpowers/specs/
+    2026-07-15-general-peer-tree-design.md."""
+    if parent == name:
+        raise CycleDetected(f"{name!r} cannot be its own parent")
+    chain = [name, parent]
+    current = parent
+    for _ in range(len(sessions)):
+        next_parent = sessions.get(current, {}).get("parent")
+        if next_parent is None:
+            return
+        chain.append(next_parent)
+        if next_parent == name:
+            raise CycleDetected(
+                f"setting {name!r}'s parent to {parent!r} would create a "
+                f"cycle: {' → '.join(chain)}"
+            )
+        current = next_parent
+
+
 def _resolve_parent(name: str, sessions: dict[str, dict], existing: dict | None,
                      parent: str | None) -> str | None:
-    """Resolve the `parent` a role=child peer should be stored with.
+    """Resolve the `parent` a peer should be stored with.
 
-    Explicit --parent always wins (validated: must exist, must be role=parent).
-    Otherwise reuse the peer's already-stored parent (rebind case). Otherwise
-    auto-default only if exactly one role=parent peer exists — ambiguity or
-    absence is a hard error, never a silent guess."""
+    Explicit --parent always wins (validated: must exist, must not create a
+    cycle). Any registered peer is a valid target regardless of role --
+    role is no longer a structural gate, see docs/superpowers/specs/
+    2026-07-15-general-peer-tree-design.md. Otherwise reuse the peer's
+    already-stored parent (rebind case -- no new edge introduced, skip the
+    cycle check). Otherwise auto-default only if exactly one role=parent
+    peer exists — ambiguity or absence is a hard error, never a silent
+    guess. Auto-default stays scoped to role=parent peers specifically (the
+    common single-coordinator convenience); it does NOT expand to "any
+    peer with no other candidates," since that would silently guess a
+    non-obvious interior node as often as not."""
     if parent is not None:
         target = sessions.get(parent)
-        if target is None or target.get("role") != "parent":
-            raise InvalidParent(f"--parent {parent!r} is not a registered role=parent peer")
+        if target is None:
+            raise InvalidParent(f"--parent {parent!r} is not a registered peer")
+        _check_no_cycle(name, parent, sessions)
         return parent
     if existing and existing.get("parent"):
         return existing["parent"]
@@ -81,6 +116,7 @@ def _resolve_parent(name: str, sessions: dict[str, dict], existing: dict | None,
         n for n, d in sessions.items() if d.get("role") == "parent" and n != name
     )
     if len(parent_names) == 1:
+        _check_no_cycle(name, parent_names[0], sessions)
         return parent_names[0]
     if not parent_names:
         raise InvalidParent(
@@ -104,7 +140,11 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
     if existing and existing.get("session_id") and existing["session_id"] != session_id:
         if existing["session_id"] not in history:
             history.append(existing["session_id"])
-    resolved_parent = _resolve_parent(name, sessions, existing, parent) if role == "child" else None
+    resolved_parent = (
+        _resolve_parent(name, sessions, existing, parent)
+        if role == "child" or parent is not None
+        else None
+    )
     peer = Peer(
         name=name, session_id=session_id, cwd=cwd, role=role,
         registered_at=registered_at, last_seen=now_iso(),
@@ -121,15 +161,16 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
 
 
 def set_parent(name: str, parent: str) -> Peer:
-    """Backfill/repoint an existing role=child peer's parent without full re-register."""
+    """Repoint an existing peer's parent. Any registered peer is a valid
+    target regardless of role -- role is no longer a structural gate, see
+    docs/superpowers/specs/2026-07-15-general-peer-tree-design.md."""
     sessions = _load_sessions()
     if name not in sessions:
         raise PeerNotFound(name)
-    if sessions[name].get("role") != "child":
-        raise InvalidParent(f"{name!r} is not a role=child peer")
     target = sessions.get(parent)
-    if target is None or target.get("role") != "parent":
-        raise InvalidParent(f"{parent!r} is not a registered role=parent peer")
+    if target is None:
+        raise InvalidParent(f"{parent!r} is not a registered peer")
+    _check_no_cycle(name, parent, sessions)
     sessions[name]["parent"] = parent
     _save_sessions(sessions)
     return Peer.from_dict(sessions[name])
@@ -143,6 +184,18 @@ def children_of(parent_name: str) -> list[Peer]:
         p for p in list_peers()
         if p.name == parent_name or p.parent == parent_name
     ]
+
+
+def acting_as_candidates() -> list[Peer]:
+    """Peers eligible to be selected as `acting_as`: either explicitly
+    role="parent" (even with zero children yet -- needed so a freshly
+    registered parent can be acted-as to add its first child), or any peer
+    that has at least one child (an interior node in the tree, regardless
+    of its own role/autonomy setting). Union, not either alone -- see
+    docs/superpowers/specs/2026-07-15-general-peer-tree-design.md."""
+    peers = list_peers()
+    parent_names = {p.parent for p in peers if p.parent is not None}
+    return [p for p in peers if p.role == "parent" or p.name in parent_names]
 
 
 def list_peers() -> list[Peer]:

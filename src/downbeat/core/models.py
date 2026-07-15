@@ -121,7 +121,12 @@ class Peer:
     name: str
     session_id: str
     cwd: str
-    role: str   # "parent" | "child"
+    role: str   # "parent" | "child" -- the /relay-monitor autonomy DEFAULT
+                # only (auto-execute vs surface-and-ask). NOT structural
+                # position: a peer can be role="child" and still have its
+                # own children -- gaining/losing children never changes
+                # this field. See docs/superpowers/specs/
+                # 2026-07-15-general-peer-tree-design.md.
     registered_at: str
     last_seen: str
     # --- rebind identity ---

@@ -101,13 +101,15 @@ def test_register_child_explicit_parent_not_found_raises(relay_dir):
                             parent="nope")
 
 
-def test_register_child_explicit_parent_wrong_role_raises(relay_dir):
+def test_register_child_explicit_parent_can_be_a_child_peer(relay_dir):
+    """A role=child peer is now a valid --parent target -- it becomes an
+    interior node (structurally both a child and a parent)."""
     store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
     store.register_peer(name="other-child", session_id="s-2", cwd="/tmp", role="child",
                         parent="parent")
-    with pytest.raises(InvalidParent):
-        store.register_peer(name="child", session_id="s-3", cwd="/tmp", role="child",
-                            parent="other-child")
+    grandchild = store.register_peer(name="child", session_id="s-3", cwd="/tmp",
+                                     role="child", parent="other-child")
+    assert grandchild.parent == "other-child"
 
 
 def test_register_parent_never_gets_a_parent_value(relay_dir):
@@ -164,21 +166,25 @@ def test_set_parent_unknown_child_raises(relay_dir):
         store.set_parent("nope", "parent")
 
 
-def test_set_parent_target_not_a_parent_raises(relay_dir):
+def test_set_parent_target_can_be_a_child_peer(relay_dir):
+    """Repointing a peer's parent to another role=child peer is now valid --
+    the target becomes an interior node."""
     store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
     store.register_peer(name="child", session_id="s-2", cwd="/tmp", role="child",
                         parent="parent")
     store.register_peer(name="other-child", session_id="s-3", cwd="/tmp", role="child",
                         parent="parent")
-    with pytest.raises(InvalidParent):
-        store.set_parent("child", "other-child")
+    updated = store.set_parent("child", "other-child")
+    assert updated.parent == "other-child"
 
 
-def test_set_parent_on_a_parent_peer_raises(relay_dir):
+def test_set_parent_on_a_parent_peer_is_now_valid(relay_dir):
+    """A role=parent peer can now also have its own parent -- role is no
+    longer a structural gate."""
     store.register_peer(name="parent", session_id="s-1", cwd="/tmp", role="parent")
     store.register_peer(name="parent-2", session_id="s-2", cwd="/tmp", role="parent")
-    with pytest.raises(InvalidParent):
-        store.set_parent("parent", "parent-2")
+    updated = store.set_parent("parent", "parent-2")
+    assert updated.parent == "parent-2"
 
 
 def test_load_legacy_sessions_without_name_field(relay_dir):
@@ -204,3 +210,94 @@ def test_load_legacy_sessions_without_name_field(relay_dir):
     # get_peer must also work
     fetched = store.get_peer("PLAT-3113-slave")
     assert fetched.session_id == "abc"
+
+
+def test_set_parent_direct_two_node_cycle_raises(relay_dir):
+    from downbeat.core.errors import CycleDetected
+    store.register_peer(name="A", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="B", session_id="s-2", cwd="/tmp", role="child", parent="A")
+    with pytest.raises(CycleDetected):
+        store.set_parent("A", "B")
+
+
+def test_set_parent_self_parent_raises(relay_dir):
+    from downbeat.core.errors import CycleDetected
+    store.register_peer(name="A", session_id="s-1", cwd="/tmp", role="parent")
+    with pytest.raises(CycleDetected):
+        store.set_parent("A", "A")
+
+
+def test_set_parent_multi_hop_cycle_raises(relay_dir):
+    from downbeat.core.errors import CycleDetected
+    store.register_peer(name="A", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="B", session_id="s-2", cwd="/tmp", role="child", parent="A")
+    store.register_peer(name="C", session_id="s-3", cwd="/tmp", role="child", parent="B")
+    with pytest.raises(CycleDetected):
+        store.set_parent("A", "C")
+
+
+def test_set_parent_cycle_error_message_lists_the_chain(relay_dir):
+    from downbeat.core.errors import CycleDetected
+    store.register_peer(name="A", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="B", session_id="s-2", cwd="/tmp", role="child", parent="A")
+    store.register_peer(name="C", session_id="s-3", cwd="/tmp", role="child", parent="B")
+    with pytest.raises(CycleDetected) as exc_info:
+        store.set_parent("A", "C")
+    message = str(exc_info.value)
+    assert "A" in message
+    assert "B" in message
+    assert "C" in message
+
+
+def test_set_parent_valid_deep_chain_accepted(relay_dir):
+    store.register_peer(name="L1", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="L2", session_id="s-2", cwd="/tmp", role="child", parent="L1")
+    store.register_peer(name="L3", session_id="s-3", cwd="/tmp", role="child", parent="L2")
+    store.register_peer(name="L4", session_id="s-4", cwd="/tmp", role="child", parent="L3")
+    store.register_peer(name="L5", session_id="s-5", cwd="/tmp", role="child", parent="L4")
+    assert store.get_peer("L5").parent == "L4"
+    assert store.get_peer("L1").parent is None
+
+
+def test_autonomy_role_unchanged_when_gaining_children(relay_dir):
+    store.register_peer(name="Root", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="Child-A", session_id="s-2", cwd="/tmp", role="child",
+                        parent="Root")
+    store.register_peer(name="Child-A-1", session_id="s-3", cwd="/tmp", role="child",
+                        parent="Child-A")
+    # Child-A just gained its own child -- its own role/autonomy must not
+    # have changed as a side effect.
+    assert store.get_peer("Child-A").role == "child"
+
+
+def test_acting_as_candidates_excludes_pure_leaf(relay_dir):
+    store.register_peer(name="Root", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="Leaf", session_id="s-2", cwd="/tmp", role="child",
+                        parent="Root")
+    names = {p.name for p in store.acting_as_candidates()}
+    assert "Leaf" not in names
+
+
+def test_acting_as_candidates_includes_childless_parent_role(relay_dir):
+    store.register_peer(name="Root", session_id="s-1", cwd="/tmp", role="parent")
+    names = {p.name for p in store.acting_as_candidates()}
+    assert names == {"Root"}
+
+
+def test_acting_as_candidates_includes_interior_child_role_node(relay_dir):
+    store.register_peer(name="Root", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="Child-A", session_id="s-2", cwd="/tmp", role="child",
+                        parent="Root")
+    store.register_peer(name="Child-A-1", session_id="s-3", cwd="/tmp", role="child",
+                        parent="Child-A")
+    names = {p.name for p in store.acting_as_candidates()}
+    assert names == {"Root", "Child-A"}
+
+
+def test_acting_as_candidates_no_duplicate_for_parent_role_with_children(relay_dir):
+    store.register_peer(name="Root", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="Child", session_id="s-2", cwd="/tmp", role="child",
+                        parent="Root")
+    candidates = store.acting_as_candidates()
+    names = [p.name for p in candidates]
+    assert names.count("Root") == 1
