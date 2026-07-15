@@ -819,3 +819,39 @@ async def test_ctrl_r_on_a_peer_tab_keeps_the_thread_rendered(relay_dir):
             f"ctrl+R emptied the thread: rendered {len(rendered)} bubbles, "
             f"data has {len(expected)} messages"
         )
+
+
+@pytest.mark.asyncio
+async def test_mount_renders_the_thread_the_tab_bar_is_pointing_at(relay_dir):
+    """The tab bar and the rendered thread are two views of one thing and must
+    agree. _populate_tabs restores active_peer from persisted state but never
+    moved the tab widget to match; PeerTabs.populate(), knowing nothing about
+    that, defaults its own active tab to own-inbox. The result on launch was a
+    tab bar reading 'inbox' over someone else's thread.
+
+    This stayed invisible while populate() still emitted its rebuild churn as
+    PeerSelected: the phantom own-inbox event overwrote active_peer back to
+    own-inbox, coincidentally re-syncing the two. Silencing that churn (#16)
+    removed the coincidence and exposed the real gap."""
+    from downbeat.core import state, store
+    store.register_peer(name="CCO", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="REL", session_id="s2", cwd="/tmp", role="child",
+                        parent="CCO")
+    store.send_message(from_peer="REL", to_peer="CCO", subject="a", body="1")
+    # the user was last reading the REL tab, in a previous run
+    state.set_last_acting_as("CCO")
+    state.set_last_active_peer("REL")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        for _ in range(5):
+            await pilot.pause()
+        screen = app.screen
+        tabs = screen.query_one("#peer-tabs")
+        stream = screen.query_one("#chat-stream")
+
+        assert tabs.active == f"tab-{tabs._safe_id(str(screen.active_peer))}", (
+            f"tab bar is on {tabs.active!r} but the screen renders "
+            f"{screen.active_peer!r}"
+        )
+        assert stream._peer == screen.active_peer
