@@ -1,4 +1,5 @@
 import logging
+from logging.handlers import RotatingFileHandler
 
 from downbeat.core import logging as relay_logging
 from downbeat.core import paths
@@ -28,5 +29,12 @@ def test_setup_respects_debug_level(relay_dir):
 def test_setup_idempotent(relay_dir):
     relay_logging.setup(level="INFO")
     relay_logging.setup(level="INFO")
-    handlers = logging.getLogger("downbeat").handlers
+    # setup()'s idempotency contract only covers the RotatingFileHandler it
+    # manages (see logging.py) — pytest's own log-capture handlers can also
+    # be attached to this logger by unrelated tests and aren't setup()'s to
+    # clean up.
+    handlers = [
+        h for h in logging.getLogger("downbeat").handlers
+        if isinstance(h, RotatingFileHandler)
+    ]
     assert len(handlers) == 1
