@@ -55,6 +55,10 @@ _VERSION_RE = re.compile(r"downbeat\s+(\d+\.\d+\.\d+(?:[.\w+-]*)?)")
 # `yes`-style flooder was measured allocating 13 GB before its timeout fired.
 _MAX_OUTPUT = 64 * 1024
 _SUBPROCESS_TIMEOUT = 5
+# How far past the version number to look for "(editable ...)". Wide enough to
+# survive argparse line-wrapping the version string at narrow terminal widths,
+# narrow enough that unrelated output can't reach in and silence the check.
+_EDITABLE_WINDOW = 64
 
 
 def plugin_version() -> str | None:
@@ -85,26 +89,47 @@ def cli_report() -> tuple[str | None, bool]:
     if text is None:
         return None, False
     m = _VERSION_RE.search(text)
-    # Match 'editable' only against our own version line, not arbitrary
-    # stderr, so an unrelated warning mentioning the word can't silence us.
-    return (m.group(1) if m else None), ("editable" in text)
+    if not m:
+        return None, False
+    # Scope the 'editable' test to the tail of our OWN version line. A bare
+    # `"editable" in text` reads the whole capture, so any passing mention of
+    # the word -- a uv/pip deprecation notice, say -- would silence the hook
+    # for good. describe() puts "(editable ...)" directly after the number;
+    # the window is generous because argparse line-wraps this string at narrow
+    # terminal widths.
+    return m.group(1), ("editable" in text[m.end():m.end() + _EDITABLE_WINDOW])
 
 
 def _run_version(exe: str) -> str | None:
     """`<exe> --version`, bounded in both time and memory, or None.
 
-    Reads nothing until the child exits: a flooder blocks on a full pipe
-    buffer (~64KB) instead of ballooning this process, and then dies on the
-    timeout. subprocess.run(capture_output=True) buffers without limit and
-    does not bound this -- it was measured hitting 18GB RSS.
+    Two separate hazards, two separate bounds -- an earlier version of this
+    fixed one and reintroduced the other:
+
+    Memory: read nothing until the child exits, so a flooding child blocks on
+    a full pipe buffer (65536 bytes, measured on macOS) rather than ballooning
+    us. subprocess.run(capture_output=True) buffers without limit and does NOT
+    bound this -- measured hitting 18.5GB RSS over 21s despite timeout=5.
+
+    Time: the read must not block either. wait() succeeding spends the whole
+    timeout, and a child that exits fast while leaving a grandchild holding
+    the inherited pipe write-end never yields EOF -- a blocking read then
+    waits out the grandchild's entire life (measured: 20s for a 20s
+    grandchild). Note a flood is what *saves* the flooding case: it makes
+    wait() time out, so the read is never reached. The dangerous shape is the
+    inverse -- fast exit plus a survivor. Since the child has exited by the
+    time we read, its bytes are already in the pipe, so one non-blocking read
+    gets everything there is and cannot wait on anyone.
     """
     try:
         proc = subprocess.Popen(
             [exe, "--version"],
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            # NOT stderr=STDOUT: folding stderr in here is what let an
+            # unrelated warning mentioning "editable" silence the check.
+            # argparse writes --version to stdout; anything else is noise.
+            stderr=subprocess.DEVNULL,
             stdin=subprocess.DEVNULL,  # never let a child eat OUR stdin
-            text=True,
             env={**os.environ, "NO_COLOR": "1"},
         )
     except (OSError, subprocess.SubprocessError):
@@ -115,7 +140,7 @@ def _run_version(exe: str) -> str | None:
             proc.wait(timeout=_SUBPROCESS_TIMEOUT)
         except subprocess.TimeoutExpired:
             return None
-        return _ANSI_RE.sub("", proc.stdout.read(_MAX_OUTPUT) if proc.stdout else "")
+        return _ANSI_RE.sub("", _read_available(proc))
     except (OSError, ValueError):
         return None
     finally:
@@ -127,6 +152,26 @@ def _run_version(exe: str) -> str | None:
         except OSError:
             pass
         proc.wait()
+
+
+def _read_available(proc: subprocess.Popen) -> str:
+    """Whatever the exited child left in the pipe, without blocking.
+
+    Called only after the child has exited, so everything it wrote is already
+    buffered and a non-blocking read returns it all in one go. The point of
+    not blocking is a grandchild that inherited the write end: it keeps the
+    pipe open forever, so a blocking read waits for an EOF that never comes.
+    """
+    if not proc.stdout:
+        return ""
+    fd = proc.stdout.fileno()
+    os.set_blocking(fd, False)
+    try:
+        data = os.read(fd, _MAX_OUTPUT)
+    except (BlockingIOError, OSError):
+        # BlockingIOError: nothing there (child printed nothing).
+        return ""
+    return data.decode("utf-8", "replace")
 
 
 def main() -> int:

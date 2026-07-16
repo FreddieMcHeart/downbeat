@@ -89,14 +89,20 @@ def test_warns_when_the_cli_is_ahead_too(tmp_path, cli):
     assert _run(tmp_path, plugin_version="0.9.2", cli_stdout=cli) != ""
 
 
-# --- the tests that would have caught the ANSI bug ---------------------------
+# --- against the real thing --------------------------------------------------
 #
 # Everything above fakes the CLI with `echo`. That is exactly how a hook that
 # could never fire shipped: rich_argparse renders --version through the help
 # formatter and emits ANSI even into a pipe, so the real bytes are
 # '\x1b[39mdownbeat 0.9.2\x1b[0m' -- and the regex's leading \b could not match
 # after the escape's trailing 'm'. A plain-text fixture proved nothing about
-# the real thing. These tests use the real code path instead.
+# the real thing.
+#
+# Nor did the first attempt at fixing that: it fed real output to a *copy* of
+# the hook's two regexes, which is a restatement of the implementation, not a
+# test of the chain. _run_version -- the part that actually talks to the CLI,
+# and the part that then shipped an unbounded hang -- had no coverage at all.
+# So these drive the real hook process against a real CLI on a real PATH.
 
 def _real_version_output(monkeypatch, prov):
     """The exact string `downbeat --version` prints for a given provenance,
@@ -114,37 +120,6 @@ def _real_version_output(monkeypatch, prov):
     return buf.getvalue()
 
 
-def _hook_parses(text):
-    """Run the hook's own parsing over `text`, as if the CLI had printed it."""
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("_vc", HOOK)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    stripped = mod._ANSI_RE.sub("", text)
-    m = mod._VERSION_RE.search(stripped)
-    return (m.group(1) if m else None), ("editable" in stripped)
-
-
-def test_hook_parses_the_real_release_version_output(monkeypatch):
-    from downbeat.core.provenance import Provenance
-    text = _real_version_output(monkeypatch, Provenance(version="0.9.2"))
-    assert "downbeat 0.9.2" in mod_strip(text)
-    version, editable = _hook_parses(text)
-    assert version == "0.9.2", (
-        f"hook cannot parse what the CLI actually prints: {text!r}"
-    )
-    assert editable is False
-
-
-def test_hook_parses_the_real_editable_version_output(monkeypatch):
-    from downbeat.core.provenance import Provenance
-    text = _real_version_output(monkeypatch, Provenance(
-        version="0.7.1", editable=True, editable_path="/Users/me/mama/downbeat"))
-    version, editable = _hook_parses(text)
-    assert version == "0.7.1"
-    assert editable is True, "editable must be detected or we'd cry wolf forever"
-
-
 def test_the_real_output_actually_contains_ansi(monkeypatch):
     """Guards the guard: if rich_argparse ever stops colourising, the ANSI
     stripping becomes untested dead weight and this test says so out loud."""
@@ -156,6 +131,103 @@ def test_the_real_output_actually_contains_ansi(monkeypatch):
     )
 
 
-def mod_strip(text):
-    import re
-    return re.sub(r"\x1b\[[0-9;]*m", "", text)
+# --- integration: the real hook, a real CLI, a real PATH ---------------------
+
+def _rich_cli(tmp_path, version, editable=False, grandchild_sleep=None):
+    """A `downbeat` on PATH whose --version goes through the REAL argparse +
+    rich_argparse path -- ANSI and all -- rather than `echo`.
+
+    The python goes in its own file rather than `sh -c '...'`: an earlier
+    version inlined it and the paths, interpolated with !r, arrived
+    single-quoted and closed the shell's own quote. The script then printed
+    nothing and the test failed pointing at the hook. Nothing to quote,
+    nothing to get wrong.
+    """
+    src = Path(__file__).resolve().parents[1] / "src"
+    prov = (f'Provenance(version="{version}", editable=True, '
+            f'editable_path="/w/tree")' if editable
+            else f'Provenance(version="{version}")')
+    pyfile = tmp_path / "fake_downbeat.py"
+    pyfile.write_text(
+        "import sys\n"
+        f'sys.path.insert(0, "{src}")\n'
+        "from downbeat.core import provenance as p\n"
+        "from downbeat.core.provenance import Provenance\n"
+        f"p.detect = lambda: {prov}\n"
+        "from downbeat.cli.__main__ import build_parser\n"
+        'build_parser().parse_args(["--version"])\n'
+    )
+
+    bindir = tmp_path / "bin"
+    bindir.mkdir(exist_ok=True)
+    script = bindir / "downbeat"
+    lines = ["#!/bin/sh"]
+    if grandchild_sleep:
+        # Outlives the child and keeps the inherited pipe write-end open.
+        lines.append(f"( sleep {grandchild_sleep} & )")
+    lines.append(f'exec "{sys.executable}" "{pyfile}" "$@"')
+    script.write_text("\n".join(lines) + "\n")
+    script.chmod(0o755)
+    return bindir
+
+
+def _run_hook(tmp_path, bindir, plugin_version):
+    plugin_root = tmp_path / "plugin"
+    (plugin_root / ".claude-plugin").mkdir(parents=True, exist_ok=True)
+    (plugin_root / ".claude-plugin" / "plugin.json").write_text(
+        json.dumps({"name": "downbeat", "version": plugin_version}))
+    proc = subprocess.run(
+        [sys.executable, str(HOOK)], input="{}", capture_output=True,
+        text=True, timeout=30,
+        env={"PATH": f"{bindir}:/usr/bin:/bin", "CLAUDE_PLUGIN_ROOT": str(plugin_root),
+             "HOME": str(tmp_path)},
+    )
+    assert proc.returncode == 0, proc.stderr
+    return proc.stdout.strip()
+
+
+def test_end_to_end_warns_against_a_real_rich_argparse_cli(tmp_path):
+    """The one that matters: real hook process, real CLI, real ANSI. This is
+    the test whose absence let an inert hook ship."""
+    bindir = _rich_cli(tmp_path, "0.7.1")
+    out = _run_hook(tmp_path, bindir, plugin_version="0.9.2")
+    assert out, "hook stayed silent against real drift — it is inert again"
+    assert "0.7.1" in json.loads(out)["systemMessage"]
+
+
+def test_end_to_end_silent_when_a_real_cli_matches(tmp_path):
+    bindir = _rich_cli(tmp_path, "0.9.2")
+    assert _run_hook(tmp_path, bindir, plugin_version="0.9.2") == ""
+
+
+def test_end_to_end_silent_against_a_real_editable_cli(tmp_path):
+    bindir = _rich_cli(tmp_path, "0.7.1", editable=True)
+    assert _run_hook(tmp_path, bindir, plugin_version="0.9.2") == ""
+
+
+def test_a_grandchild_holding_the_pipe_does_not_stall_session_start(tmp_path):
+    """A child that exits fast but leaves a grandchild on the inherited pipe
+    write-end yields no EOF. A blocking read waits out the grandchild's whole
+    life -- measured at 20s for a 20s sleeper, and in production the 8s hook
+    timeout then kills the hook, so the warning is never shown either. Both
+    halves matter: it must be fast AND still report."""
+    import time
+    bindir = _rich_cli(tmp_path, "0.7.1", grandchild_sleep=10)
+    start = time.monotonic()
+    out = _run_hook(tmp_path, bindir, plugin_version="0.9.2")
+    elapsed = time.monotonic() - start
+    assert elapsed < 5, f"hook took {elapsed:.1f}s — it is waiting out the grandchild"
+    assert out, "hook must still report the drift, not just return quickly"
+
+
+def test_stderr_mentioning_editable_cannot_silence_the_hook(tmp_path):
+    """`"editable" in <whole capture>` let any passing mention -- a uv/pip
+    deprecation notice -- disable the check permanently and invisibly."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir(exist_ok=True)
+    script = bindir / "downbeat"
+    script.write_text('#!/bin/sh\n'
+                      'echo "note: editable installs are deprecated" >&2\n'
+                      'echo "downbeat 0.7.1"\n')
+    script.chmod(0o755)
+    assert _run_hook(tmp_path, bindir, plugin_version="0.9.2") != ""
