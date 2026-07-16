@@ -210,8 +210,25 @@ def get_peer(name: str) -> Peer:
 
 
 def remove_peer(name: str) -> None:
+    """Remove a peer and promote its children to its own parent.
+
+    Without the promotion the children's `parent` pointers dangle: they drop
+    out of every acting-as / children_of view while still living on disk and
+    accepting messages (#19). Reattaching each child to the removed node's
+    parent -- grandparent promotion -- keeps the tree connected; removing a
+    root (parent=None) leaves its children as roots. This can't create a
+    cycle: the new parent is an ancestor of the removed node and therefore of
+    the orphans, and an ancestor is never a descendant. Runs for every caller
+    (CLI gc, the TUI remove, GcStaleModal's sweep), so a multi-peer sweep
+    stays a forest whatever order the peers come off in."""
     sessions = _load_sessions()
-    sessions.pop(name, None)
+    removed = sessions.pop(name, None)
+    if removed is None:
+        return
+    grandparent = removed.get("parent")  # None if the removed peer was a root
+    for peer in sessions.values():
+        if peer.get("parent") == name:
+            peer["parent"] = grandparent
     _save_sessions(sessions)
 
 

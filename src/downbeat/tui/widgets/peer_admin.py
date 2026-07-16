@@ -28,6 +28,18 @@ class RemovePeerConfirm(ModalScreen):
         with Vertical(classes="pane"):
             yield Label(f"[b]Remove peer[/b] {_rich_escape(self.peer_name)}?")
             yield Label("[dim]Inbox / processed message files are left untouched.[/dim]")
+            # Surface where the children go -- remove_peer promotes them to
+            # this peer's own parent, so it's a re-parent, not a loss.
+            children = [p.name for p in store.children_of(self.peer_name)
+                        if p.name != self.peer_name]
+            if children:
+                me = next((p for p in store.list_peers()
+                           if p.name == self.peer_name), None)
+                dest = (me.parent if me and me.parent else "no parent (they become roots)")
+                yield Label(
+                    f"[dim]{len(children)} child(ren) will move to "
+                    f"{_rich_escape(dest)}.[/dim]"
+                )
             yield Label("Press [b]y[/b] to confirm, [b]n[/b] to cancel")
 
     def action_yes(self) -> None:
