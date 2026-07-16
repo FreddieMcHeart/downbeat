@@ -36,7 +36,7 @@
 | src/downbeat/tui/widgets/\_\_init\_\_.py       |        0 |        0 |    100% |           |
 | src/downbeat/tui/widgets/add\_peer\_modal.py   |       56 |        9 |     84% |66, 72-74, 81-84, 88 |
 | src/downbeat/tui/widgets/chat\_composer.py     |       64 |       31 |     52% |54-57, 59-62, 68, 73-77, 80-101 |
-| src/downbeat/tui/widgets/chat\_stream.py       |      180 |       26 |     86% |26-27, 70-71, 116, 146, 169, 176, 242, 248, 272, 278, 286, 289, 294-295, 298-299, 303, 306, 309-311, 316-317, 324 |
+| src/downbeat/tui/widgets/chat\_stream.py       |      179 |       24 |     87% |26-27, 79-80, 177, 184, 250, 261, 285, 291, 299, 302, 307-308, 311-312, 316, 319, 322-324, 329-330, 337 |
 | src/downbeat/tui/widgets/clipboard.py          |       25 |       20 |     20% |     17-41 |
 | src/downbeat/tui/widgets/composer.py           |       64 |       64 |      0% |      2-87 |
 | src/downbeat/tui/widgets/confirm.py            |       20 |        1 |     95% |        35 |
@@ -49,7 +49,7 @@
 | src/downbeat/tui/widgets/peer\_tabs.py         |       54 |        2 |     96% |    41, 89 |
 | src/downbeat/tui/widgets/rebind\_modal.py      |       33 |       33 |      0% |      2-52 |
 | src/downbeat/tui/widgets/switch\_acting\_as.py |       33 |        6 |     82% | 39-43, 46 |
-| **TOTAL**                                      | **3024** |  **784** | **74%** |           |
+| **TOTAL**                                      | **3023** |  **782** | **74%** |           |
 
 
 ## Setup coverage badge
