@@ -210,8 +210,34 @@ def get_peer(name: str) -> Peer:
 
 
 def remove_peer(name: str) -> None:
+    """Remove a peer and promote its children to its own parent.
+
+    Without the promotion the children's `parent` pointers dangle: they drop
+    out of every acting-as / children_of view while still living on disk and
+    accepting messages (#19). Reattaching each child to the removed node's
+    parent -- grandparent promotion -- keeps the tree connected; removing a
+    root (parent=None) leaves its children as roots. For any forest the store
+    API can produce this cannot create a cycle: the new parent is an ancestor
+    of the removed node and therefore of the orphans, and an ancestor is never
+    a descendant. Runs for every caller (CLI gc, the TUI remove, GcStaleModal's
+    sweep), so a multi-peer sweep stays a forest whatever order the peers come
+    off in."""
     sessions = _load_sessions()
-    sessions.pop(name, None)
+    removed = sessions.pop(name, None)
+    if removed is None:
+        return
+    grandparent = removed.get("parent")  # None if the removed peer was a root
+    # Two corrupt-input guards so removal HEALS a hand-edited sessions.json
+    # instead of forwarding its damage (neither is reachable via the store
+    # API, which gates every edge through _check_no_cycle):
+    #   - a grandparent that no longer exists (dangling pointer) -> root.
+    #   - promoting a child to ITSELF (a 2-cycle A<->B: removing A would
+    #     repoint B to grandparent B) -> root, per child.
+    if grandparent is not None and grandparent not in sessions:
+        grandparent = None
+    for child_name, peer in sessions.items():
+        if peer.get("parent") == name:
+            peer["parent"] = None if grandparent == child_name else grandparent
     _save_sessions(sessions)
 
 
@@ -402,8 +428,15 @@ def archive_messages(ids: list[str]) -> dict[str, bool]:
             if d.get("delivered_at") is not None and d.get("delivery_ack_at") is None:
                 d["delivery_ack_at"] = now_iso()
             updated = Message.from_dict(d)
-            old.unlink()
-            _write_message(updated)  # _message_path routes archived → processed/
+            # Write the new copy BEFORE dropping the old one: the window this
+            # leaves has the message in two places, which list_inbox's `seen`
+            # set already dedupes. The reverse order left it in none -- see
+            # the sibling movers (deliver_messages, ack_messages, reconcile,
+            # requeue_quarantined), which all write-then-unlink.
+            target = _message_path(updated)  # archived → processed/
+            _write_message(updated)
+            if old != target:  # already-archived: same path, nothing to drop
+                old.unlink()
             _log.info("archive msg=%s peer=%s", mid, updated.to_peer)
             _append_delivery_log({"event": "archive", "msg_id": mid,
                                   "peer": updated.to_peer})
@@ -463,8 +496,11 @@ def reply_to(msg_id: str, body: str, from_peer: str,
         _append_delivery_log({"event": "auto_ack_via_reply",
                               "msg_id": msg_id, "peer": original.to_peer})
     archived = Message.from_dict(d)
-    old_path.unlink()
+    # Write before unlinking -- see archive_messages for why.
+    archived_path = _message_path(archived)
     _write_message(archived)
+    if old_path != archived_path:
+        old_path.unlink()
     # Send the reply with in_reply_to set.
     # Bypass peer check — the broadcaster (original.from_peer) may not be
     # registered in the peer registry (broadcast fan-out case).

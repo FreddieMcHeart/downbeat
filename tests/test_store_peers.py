@@ -32,6 +32,66 @@ def test_remove_peer(relay_dir):
     assert store.list_peers() == []
 
 
+def _parent_of(name):
+    return next(p.parent for p in store.list_peers() if p.name == name)
+
+
+def test_remove_interior_node_promotes_children_to_grandparent(relay_dir):
+    """#19: removing a node must not leave its children's parent pointers
+    dangling -- that made them vanish from every acting-as view while still
+    living on disk and accepting messages. Promote them to the removed node's
+    own parent (the natural tree semantic)."""
+    store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="Mid", session_id="s2", cwd="/tmp", role="parent")
+    store.set_parent("Mid", "Root")
+    store.register_peer(name="W1", session_id="s3", cwd="/tmp", role="child", parent="Mid")
+    store.register_peer(name="W2", session_id="s4", cwd="/tmp", role="child", parent="Mid")
+
+    store.remove_peer("Mid")
+
+    assert "Mid" not in {p.name for p in store.list_peers()}
+    # W1, W2 reattached to Root -- not left pointing at the gone 'Mid'
+    assert _parent_of("W1") == "Root"
+    assert _parent_of("W2") == "Root"
+    # And they're reachable again: Root's children view includes them.
+    assert {p.name for p in store.children_of("Root")} == {"Root", "W1", "W2"}
+
+
+def test_remove_root_makes_its_children_roots(relay_dir):
+    """Removing a root (no parent of its own) leaves its children as roots,
+    not dangling."""
+    store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="C1", session_id="s2", cwd="/tmp", role="child", parent="Root")
+    store.remove_peer("Root")
+    assert _parent_of("C1") is None
+
+
+def test_remove_leaf_touches_no_one(relay_dir):
+    store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="C1", session_id="s2", cwd="/tmp", role="child", parent="Root")
+    store.register_peer(name="C2", session_id="s3", cwd="/tmp", role="child", parent="Root")
+    store.remove_peer("C1")
+    assert _parent_of("C2") == "Root"
+
+
+def test_gc_sweep_removing_parent_and_child_together_keeps_a_forest(relay_dir):
+    """GcStaleModal removes many peers in one loop. Whatever order a parent
+    and its child come off in, no pointer may end up dangling."""
+    store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="Mid", session_id="s2", cwd="/tmp", role="parent")
+    store.set_parent("Mid", "Root")
+    store.register_peer(name="Leaf", session_id="s3", cwd="/tmp", role="child", parent="Mid")
+    # Remove child then parent (one valid sweep order)
+    store.remove_peer("Mid")
+    assert _parent_of("Leaf") == "Root"
+    store.remove_peer("Root")
+    assert _parent_of("Leaf") is None
+    # every surviving parent pointer resolves to a real peer (forest intact)
+    names = {p.name for p in store.list_peers()}
+    for p in store.list_peers():
+        assert p.parent is None or p.parent in names
+
+
 def test_touch_peer_updates_last_seen(relay_dir):
     store.register_peer(name="p", session_id="s-1", cwd="/tmp", role="parent")
     before = store.get_peer("p").last_seen
@@ -328,3 +388,39 @@ def test_acting_as_candidates_no_duplicate_for_parent_role_with_children(relay_d
     candidates = store.acting_as_candidates()
     names = [p.name for p in candidates]
     assert names.count("Root") == 1
+
+
+def test_remove_heals_a_corrupt_cycle_instead_of_forwarding_it(relay_dir):
+    """remove_peer is the one tree mutator with no _check_no_cycle gate, so a
+    hand-corrupted sessions.json is the only way a cycle reaches it. Rather
+    than forwarding the corruption (a 2-cycle A<->B would mint a self-parent
+    B->B when A is removed), promotion to a vanished grandparent falls back to
+    root. Removal heals."""
+    import json
+
+    from downbeat.core import paths
+    paths.SESSIONS_FILE.write_text(json.dumps({
+        "A": {"name": "A", "session_id": "s1", "cwd": "/tmp", "role": "parent",
+              "registered_at": "t", "last_seen": "t", "parent": "B"},
+        "B": {"name": "B", "session_id": "s2", "cwd": "/tmp", "role": "parent",
+              "registered_at": "t", "last_seen": "t", "parent": "A"},
+    }))
+    store.remove_peer("A")
+    # B must NOT end up its own parent; it becomes a root.
+    assert _parent_of("B") is None
+
+
+def test_remove_heals_a_dangling_grandparent(relay_dir):
+    """If the removed node's own parent already points at a gone name, the
+    orphans fall back to root rather than inheriting a fresh dangling pointer."""
+    import json
+
+    from downbeat.core import paths
+    paths.SESSIONS_FILE.write_text(json.dumps({
+        "Mid": {"name": "Mid", "session_id": "s1", "cwd": "/tmp", "role": "parent",
+                "registered_at": "t", "last_seen": "t", "parent": "GHOST"},
+        "W": {"name": "W", "session_id": "s2", "cwd": "/tmp", "role": "child",
+              "registered_at": "t", "last_seen": "t", "parent": "Mid"},
+    }))
+    store.remove_peer("Mid")
+    assert _parent_of("W") is None

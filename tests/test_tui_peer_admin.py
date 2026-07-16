@@ -209,3 +209,40 @@ async def test_peers_screen_interior_node_groups_under_itself(relay_dir):
         # Child-A-1 (rank 1). Root has no children here, so it's a
         # single-row group on its own.
         assert names == ["Child-A", "Child-A-1", "Root"]
+
+
+@pytest.mark.asyncio
+async def test_remove_confirm_shows_where_children_go(relay_dir):
+    """The confirm dialog should tell the user removal re-parents children
+    rather than orphaning them (#19), so it's not a surprise."""
+    from downbeat.core import store
+    store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="Mid", session_id="s2", cwd="/tmp", role="parent")
+    store.set_parent("Mid", "Root")
+    store.register_peer(name="W1", session_id="s3", cwd="/tmp", role="child",
+                        parent="Mid")
+    store.register_peer(name="W2", session_id="s4", cwd="/tmp", role="child",
+                        parent="Mid")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        await app.push_screen(RemovePeerConfirm("Mid"))
+        await pilot.pause()
+        labels = " ".join(str(w.render()) for w in app.screen.query("Label"))
+        assert "2 child(ren) will move to Root" in labels
+
+
+@pytest.mark.asyncio
+async def test_remove_confirm_says_nothing_about_children_for_a_leaf(relay_dir):
+    from downbeat.core import store
+    store.register_peer(name="Root", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="Leaf", session_id="s2", cwd="/tmp", role="child",
+                        parent="Root")
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        await app.push_screen(RemovePeerConfirm("Leaf"))
+        await pilot.pause()
+        labels = " ".join(str(w.render()) for w in app.screen.query("Label"))
+        assert "will move" not in labels
