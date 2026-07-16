@@ -3,7 +3,11 @@
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/relay-inbox.py", "timeout": 3 }
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/relay-inbox.py",
+            "timeout": 3
+          }
         ]
       }
     ],
@@ -11,7 +15,21 @@
       {
         "matcher": "startup|resume",
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/relay-inbox.py", "timeout": 3 }
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/relay-inbox.py",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/version-check.py",
+            "timeout": 8
+          }
         ]
       }
     ],
@@ -19,7 +37,11 @@
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/relay-poll-offer.py", "timeout": 3 }
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/relay-poll-offer.py",
+            "timeout": 3
+          }
         ]
       }
     ]

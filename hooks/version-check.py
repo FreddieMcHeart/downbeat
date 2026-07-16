@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""Staleness check — warns when the downbeat CLI is older than this plugin.
+
+Wired into:
+  SessionStart  — startup|resume
+
+Why this exists:
+  The plugin and the `downbeat` CLI are two separate artifacts with two
+  separate update paths, and Claude Code plugins fundamentally cannot ship a
+  terminal command (plugin `bin/` is on the Bash *tool's* PATH, not the
+  user's shell). So `claude plugin update` moves one and not the other, and
+  nothing announces the drift. A real session ran a TUI several releases
+  stale for hours while the plugin reported itself up to date, and a bug got
+  filed against the version `--version` printed rather than the code that ran.
+
+  This hook closes that specific hole: the next session start after the two
+  diverge, it says so and gives the one command that fixes it.
+
+Deliberately:
+  - Asks the `downbeat` on the user's PATH, via subprocess, rather than
+    importing downbeat here. The hook runs under Claude Code's interpreter;
+    the CLI usually lives in its own venv (uv tool). Importing would report
+    on the wrong installation, which is the exact class of bug this hook is
+    supposed to catch.
+  - Says nothing when the versions agree. A hook that speaks every session
+    gets tuned out, and then it is worthless on the one session that matters.
+  - Says nothing on an editable install beyond naming it: there the version
+    is stamped at install time and the code is read live from a working tree,
+    so "0.7.1 != 0.9.2" would be noise, not news.
+  - Never raises and never blocks. It runs on EVERY session start, so any
+    failure -- weird install, hostile binary on PATH, unreadable manifest --
+    must degrade to silence, not to an error banner or a stall.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+# rich_argparse renders --version through the help formatter and emits colour
+# even into a pipe, so an unprepared read gets '\x1b[39mdownbeat 0.9.2\x1b[0m'.
+#
+# Dormant in practice: we ask for NO_COLOR, and NO_COLOR beats FORCE_COLOR in
+# rich, so the CLI answers in plain text and this never fires. Kept anyway,
+# for a CLI that ignores NO_COLOR -- but don't mistake it for what makes this
+# work. The belt below is what carries the load.
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+# No \b before 'downbeat'. THIS is the load-bearing part: with colour present
+# the preceding char is the 'm' ending an escape, and word-char->word-char is
+# not a word boundary, so \bdownbeat cannot match. That one character made
+# this hook silently unable to fire at all, through a full review round.
+_VERSION_RE = re.compile(r"downbeat\s+(\d+\.\d+\.\d+(?:[.\w+-]*)?)")
+
+# DO NOT LOWER THIS. It is not a comfort limit -- it is load-bearing, and the
+# reason is not obvious.
+#
+# It must be >= the OS pipe capacity (65536 on macOS and Linux). That equality
+# is what makes _read_available's single read safe: a child that EXITED cannot
+# have written more than the pipe holds, because it would have blocked on a
+# full pipe and been killed by the wait() timeout instead. So one read always
+# gets that child's entire output, and truncation is structurally impossible.
+#
+# Lower it -- to 4096, say, because "--version only prints ~100 bytes" -- and
+# truncation comes back, and truncation here does not fail loudly: it mints a
+# valid-looking WRONG version. `downbeat 0.7.15` clipped mid-number parses as
+# `0.7.1` and the hook then nags about a version that does not exist. Silence
+# would be safer than that, and this constant is the only thing preventing it.
+_MAX_OUTPUT = 64 * 1024
+
+# Bounds a child that never exits. Sits under the 8s hooks.json timeout so we
+# always return silence ourselves rather than being killed mid-write. The real
+# CLI answers in ~0.11s; the headroom is for a cold FS cache, not for hope.
+_SUBPROCESS_TIMEOUT = 5
+# How far past the version number to look for "(editable ...)". Wide enough to
+# survive argparse line-wrapping the version string at narrow terminal widths,
+# narrow enough that unrelated output can't reach in and silence the check.
+_EDITABLE_WINDOW = 64
+
+
+def plugin_version() -> str | None:
+    root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+    if not root:
+        return None
+    try:
+        with open(os.path.join(root, ".claude-plugin", "plugin.json")) as f:
+            data = json.load(f)
+        # Valid JSON that isn't an object is still garbage to us.
+        return data.get("version") if isinstance(data, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
+def cli_report() -> tuple[str | None, bool]:
+    """(version, is_editable) for the `downbeat` on PATH.
+
+    (None, False) when there is no downbeat to ask, or it can't be parsed --
+    both mean "no opinion", never a warning. A hook that guesses wrong is
+    worse than a hook that stays quiet.
+    """
+    exe = shutil.which("downbeat")
+    if not exe:
+        return None, False
+
+    text = _run_version(exe)
+    if text is None:
+        return None, False
+    m = _VERSION_RE.search(text)
+    if not m:
+        return None, False
+    # Scope the 'editable' test to the tail of our OWN version line. A bare
+    # `"editable" in text` reads the whole capture, so any passing mention of
+    # the word -- a uv/pip deprecation notice, say -- would silence the hook
+    # for good. describe() puts "(editable ...)" directly after the number;
+    # the window is generous because argparse line-wraps this string at narrow
+    # terminal widths.
+    return m.group(1), ("editable" in text[m.end():m.end() + _EDITABLE_WINDOW])
+
+
+def _run_version(exe: str) -> str | None:
+    """`<exe> --version`, bounded in both time and memory, or None.
+
+    Two separate hazards, two separate bounds -- an earlier version of this
+    fixed one and reintroduced the other:
+
+    Memory: read nothing until the child exits, so a flooding child blocks on
+    a full pipe buffer (65536 bytes, measured on macOS) rather than ballooning
+    us. subprocess.run(capture_output=True) buffers without limit and does NOT
+    bound this -- measured hitting 18.5GB RSS over 21s despite timeout=5.
+
+    Time: the read must not block either. wait() succeeding spends the whole
+    timeout, and a child that exits fast while leaving a grandchild holding
+    the inherited pipe write-end never yields EOF -- a blocking read then
+    waits out the grandchild's entire life (measured: 20s for a 20s
+    grandchild). Note a flood is what *saves* the flooding case: it makes
+    wait() time out, so the read is never reached. The dangerous shape is the
+    inverse -- fast exit plus a survivor. Since the child has exited by the
+    time we read, its bytes are already in the pipe, so one non-blocking read
+    gets everything there is and cannot wait on anyone.
+    """
+    try:
+        proc = subprocess.Popen(
+            [exe, "--version"],
+            stdout=subprocess.PIPE,
+            # NOT stderr=STDOUT: folding stderr in here is what let an
+            # unrelated warning mentioning "editable" silence the check.
+            # argparse writes --version to stdout; anything else is noise.
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,  # never let a child eat OUR stdin
+            env={**os.environ, "NO_COLOR": "1"},
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+    try:
+        try:
+            proc.wait(timeout=_SUBPROCESS_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            return None
+        return _ANSI_RE.sub("", _read_available(proc))
+    except (OSError, ValueError):
+        return None
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+        try:
+            if proc.stdout:
+                proc.stdout.close()
+        except OSError:
+            pass
+        proc.wait()
+
+
+def _read_available(proc: subprocess.Popen) -> str:
+    """Whatever the exited child left in the pipe, without blocking.
+
+    Called only after the child has exited, so everything it wrote is already
+    buffered and a non-blocking read returns it all in one go. The point of
+    not blocking is a grandchild that inherited the write end: it keeps the
+    pipe open forever, so a blocking read waits for an EOF that never comes.
+    """
+    if not proc.stdout:
+        return ""
+    fd = proc.stdout.fileno()
+    os.set_blocking(fd, False)
+    try:
+        data = os.read(fd, _MAX_OUTPUT)
+    except OSError:
+        # Covers BlockingIOError (a subclass) -- nothing in the pipe because
+        # the child printed nothing -- and any real read error. Both mean the
+        # same thing to us: no opinion.
+        return ""
+    return data.decode("utf-8", "replace")
+
+
+def main() -> int:
+    # Claude Code always supplies stdin, but a closed fd 0 makes sys.stdin
+    # None and a tty makes read() block to EOF -- burning the hook's whole
+    # timeout on every session start. The sibling relay-inbox.py already
+    # guards this; don't relearn it.
+    if sys.stdin is not None and not sys.stdin.isatty():
+        try:
+            sys.stdin.read()
+        except (OSError, ValueError):
+            pass
+
+    want = plugin_version()
+    have, editable = cli_report()
+    if not want or not have:
+        return 0
+
+    if editable:
+        # The number is a fossil; comparing it would cry wolf every session.
+        return 0
+    if have == want:
+        return 0
+
+    # Drift is symmetric -- the CLI can be ahead of the plugin just as easily,
+    # e.g. after a `uv tool upgrade` with no plugin update. Blaming "your CLI"
+    # in that direction points at the newer artifact and reads as nonsense.
+    sys.stdout.write(json.dumps({
+        "systemMessage": (
+            f"**downbeat: your CLI and this plugin have drifted apart.**\n\n"
+            f"- plugin: `{want}`\n"
+            f"- `downbeat` on your PATH: `{have}`\n\n"
+            f"The two update separately — a Claude Code plugin can't ship a "
+            f"terminal command, so `claude plugin update` moves the plugin "
+            f"only. Bring both in line with one command:\n\n"
+            f"    /downbeat:update\n\n"
+            f"Until then the TUI you launch runs `{have}`, whatever this "
+            f"plugin's hooks and commands say."
+        )
+    }) + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except Exception:
+        # Last resort. A non-zero exit surfaces a "hook error" banner plus a
+        # stderr line in the transcript on every single session start; a
+        # version check is never worth that.
+        sys.exit(0)
