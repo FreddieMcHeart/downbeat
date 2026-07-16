@@ -855,3 +855,55 @@ async def test_mount_renders_the_thread_the_tab_bar_is_pointing_at(relay_dir):
             f"{screen.active_peer!r}"
         )
         assert stream._peer == screen.active_peer
+
+
+@pytest.mark.asyncio
+async def test_two_refreshes_in_one_tick_do_not_empty_the_thread(relay_dir):
+    """Regression for #21. ChatStream.refresh_thread used to decide what to
+    mount by reading self.children -- but mount()/remove() are deferred, so a
+    second refresh in the same message-pump tick saw the first refresh's
+    doomed bubbles still there, concluded the new thread was already rendered,
+    mounted nothing, and the pending removal then wiped it. Empty thread over
+    non-empty data.
+
+    The trigger in production was #24's phantom tab-switch (now fixed), so
+    this is latent -- but it re-arms the moment anything legitimately changes
+    the peer twice in a tick. Driven at the unit level because that's the
+    only place the one-tick timing is reproducible; a real keystroke pumps
+    the loop between refreshes and papers over it."""
+    from downbeat.core import store
+    store.register_peer(name="CCO", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="A", session_id="s2", cwd="/tmp", role="child",
+                        parent="CCO")
+    store.register_peer(name="B", session_id="s3", cwd="/tmp", role="child",
+                        parent="CCO")
+    # Both addressed to CCO, so own-inbox shows both and the two peer threads
+    # share ids with it -- the overlap that fooled the stale-tree diff.
+    store.send_message(from_peer="A", to_peer="CCO", subject="x", body="1")
+    store.send_message(from_peer="B", to_peer="CCO", subject="y", body="2")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        stream = screen.query_one("#chat-stream")
+
+        screen.acting_as = "CCO"
+        screen.active_peer = "__own_inbox__"
+        stream.refresh_thread("CCO", "__own_inbox__")
+        for _ in range(4):
+            await pilot.pause()
+
+        # Two peer changes in ONE tick, no pump between them.
+        stream.refresh_thread("CCO", "A")
+        stream.refresh_thread("CCO", "B")
+        for _ in range(4):
+            await pilot.pause()
+
+        rendered = {c._msg.id for c in stream.children
+                    if getattr(c, "_msg", None) is not None}
+        expected = {m.id for m in store.list_thread("CCO", "B")}
+        assert rendered == expected, (
+            f"thread emptied: rendered {len(rendered)} bubbles, "
+            f"data has {len(expected)}"
+        )

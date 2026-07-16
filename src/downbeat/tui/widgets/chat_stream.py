@@ -52,6 +52,15 @@ class ChatStream(VerticalScroll):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._messages: list[Message] = []
+        # id -> bubble, maintained SYNCHRONOUSLY as we mount and remove. It is
+        # the source of truth for "what is rendered", NOT self.children --
+        # Textual's mount()/remove() are deferred, so self.children lags a
+        # tick behind our intent. Two refresh_thread calls in one tick (a
+        # peer change followed immediately by another) used to read that
+        # stale tree, conclude the new thread's messages were already
+        # rendered, mount nothing, and then let the pending removal wipe
+        # everything -- an empty thread over non-empty data. See #21.
+        self._bubbles: dict[str, Static] = {}
         self._cursor: int = 0  # index into _messages; the "focused" bubble
         self._me: str | None = None
         self._peer: str | None = None
@@ -91,12 +100,15 @@ class ChatStream(VerticalScroll):
         full_rebuild = peer_changed
         if full_rebuild:
             self.remove_children()
+            self._bubbles.clear()   # forget them NOW, not a tick from now
             self._messages = []
 
         self._me = new_me
         self._peer = new_peer
 
         if not new_messages:
+            self._bubbles.clear()
+            self.remove_children()
             self._messages = []
             return
 
@@ -104,49 +116,40 @@ class ChatStream(VerticalScroll):
         new_by_id: dict[str, Message] = {m.id: m for m in new_messages}
 
         # --- 1. Remove bubbles whose id is no longer present ---
-        for child in list(self.children):
-            msg = getattr(child, "_msg", None)
-            if msg is not None and msg.id not in new_by_id:
-                child.remove()
+        for mid, bubble in list(self._bubbles.items()):
+            if mid not in new_by_id:
+                bubble.remove()
+                del self._bubbles[mid]
 
         # --- 2. Update bubbles that exist in both sets but whose state changed ---
-        for child in list(self.children):
-            msg = getattr(child, "_msg", None)
-            if msg is None:
-                continue
-            new_version = new_by_id.get(msg.id)
-            if new_version is None:
-                continue
-            if (
-                new_version.state != msg.state
-                or new_version.body != msg.body
-                or new_version.subject != msg.subject
-                or new_version.read_at != msg.read_at
+        for mid, bubble in self._bubbles.items():
+            new_version = new_by_id[mid]  # membership guaranteed by step 1
+            old = getattr(bubble, "_msg", None)
+            if old is not None and (
+                new_version.state != old.state
+                or new_version.body != old.body
+                or new_version.subject != old.subject
+                or new_version.read_at != old.read_at
             ):
-                child._msg = new_version
-                self._render_bubble_into(child, new_version, new_me, is_selected=False)
+                bubble._msg = new_version
+                self._render_bubble_into(bubble, new_version, new_me, is_selected=False)
 
         # --- 3. Mount bubbles for ids that are new (preserving order) ---
-        children_by_id: dict[str, Static] = {
-            c._msg.id: c
-            for c in self.children
-            if getattr(c, "_msg", None) is not None
-        }
         prev_widget: Static | None = None
         for idx, m in enumerate(new_messages):
-            if m.id in children_by_id:
-                prev_widget = children_by_id[m.id]
+            existing = self._bubbles.get(m.id)
+            if existing is not None:
+                prev_widget = existing
                 continue
             bubble = self._render_bubble(m, new_me, idx)
             if prev_widget is not None:
                 self.mount(bubble, after=prev_widget)
+            elif self._bubbles:
+                # New oldest message ahead of ones we already track.
+                self.mount(bubble, before=next(iter(self._bubbles.values())))
             else:
-                existing = list(self.children)
-                if existing:
-                    self.mount(bubble, before=existing[0])
-                else:
-                    self.mount(bubble)
-            children_by_id[m.id] = bubble
+                self.mount(bubble)
+            self._bubbles[m.id] = bubble
             prev_widget = bubble
 
         # --- 4. Update internal message list ---
@@ -243,7 +246,12 @@ class ChatStream(VerticalScroll):
 
     def _highlight_cursor_diff(self, old_idx: int | None) -> None:
         """Update bubble styling for ONLY the cursor positions that changed."""
-        children_list = list(self.children)
+        # Ordered by message, from our synchronous bubble map -- NOT
+        # self.children, which lags mounts by a tick (see #21). _cursor
+        # indexes into _messages, so this list must be in the same order.
+        children_list = [
+            self._bubbles[m.id] for m in self._messages if m.id in self._bubbles
+        ]
         if not children_list or self._me is None:
             return
 
