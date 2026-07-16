@@ -120,14 +120,34 @@ def _real_version_output(monkeypatch, prov):
     return buf.getvalue()
 
 
-def test_the_real_output_actually_contains_ansi(monkeypatch):
-    """Guards the guard: if rich_argparse ever stops colourising, the ANSI
-    stripping becomes untested dead weight and this test says so out loud."""
+def test_version_output_is_ansi_coloured_unless_no_color_is_set(monkeypatch):
+    """Pins the two facts the hook's parsing is built on, and is honest about
+    which one carries the load.
+
+    The hook sets NO_COLOR=1, and NO_COLOR beats FORCE_COLOR in rich, so in
+    practice the CLI answers in plain text and _ANSI_RE never fires. The
+    stripping is defence-in-depth against a CLI that ignores NO_COLOR -- real
+    but currently dormant, and worth saying so rather than letting a future
+    reader assume it's what makes this work.
+
+    What actually carries the load is _VERSION_RE having no leading \\b:
+    that's what a colourised '\\x1b[39mdownbeat 0.9.2' needs, and getting it
+    wrong is what made this hook silently inert once already.
+    """
     from downbeat.core.provenance import Provenance
     text = _real_version_output(monkeypatch, Provenance(version="0.9.2"))
     assert "\x1b[" in text, (
         "the real --version no longer emits ANSI — the hook's stripping is now "
-        "belt-without-braces; re-check whether it's still needed"
+        "dead weight; re-check whether it's still needed"
+    )
+    # And the belt, on that same colourised string.
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_vc_re", HOOK)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod._VERSION_RE.search(text), (
+        "the regex cannot match colourised output — this is the exact shape "
+        "that shipped inert; the NO_COLOR request must not be the only defence"
     )
 
 

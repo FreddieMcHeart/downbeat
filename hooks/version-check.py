@@ -41,19 +41,38 @@ import subprocess
 import sys
 
 # rich_argparse renders --version through the help formatter and emits colour
-# even into a pipe, so the real output is '\x1b[39mdownbeat 0.9.2\x1b[0m'.
-# We ask for plain text via NO_COLOR *and* strip ANSI anyway: relying on
-# either alone once made this hook silently unable to fire at all.
+# even into a pipe, so an unprepared read gets '\x1b[39mdownbeat 0.9.2\x1b[0m'.
+#
+# Dormant in practice: we ask for NO_COLOR, and NO_COLOR beats FORCE_COLOR in
+# rich, so the CLI answers in plain text and this never fires. Kept anyway,
+# for a CLI that ignores NO_COLOR -- but don't mistake it for what makes this
+# work. The belt below is what carries the load.
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
-# No \b before 'downbeat': the char before it is 'm' (end of an ANSI escape)
-# whenever stripping is bypassed, and word-char->word-char is not a boundary,
-# which is precisely how this regex used to never match.
+# No \b before 'downbeat'. THIS is the load-bearing part: with colour present
+# the preceding char is the 'm' ending an escape, and word-char->word-char is
+# not a word boundary, so \bdownbeat cannot match. That one character made
+# this hook silently unable to fire at all, through a full review round.
 _VERSION_RE = re.compile(r"downbeat\s+(\d+\.\d+\.\d+(?:[.\w+-]*)?)")
 
-# --version prints ~100 bytes. Anything beyond this is a broken or hostile
-# binary and we want none of it in memory: an unbounded capture of a
-# `yes`-style flooder was measured allocating 13 GB before its timeout fired.
+# DO NOT LOWER THIS. It is not a comfort limit -- it is load-bearing, and the
+# reason is not obvious.
+#
+# It must be >= the OS pipe capacity (65536 on macOS and Linux). That equality
+# is what makes _read_available's single read safe: a child that EXITED cannot
+# have written more than the pipe holds, because it would have blocked on a
+# full pipe and been killed by the wait() timeout instead. So one read always
+# gets that child's entire output, and truncation is structurally impossible.
+#
+# Lower it -- to 4096, say, because "--version only prints ~100 bytes" -- and
+# truncation comes back, and truncation here does not fail loudly: it mints a
+# valid-looking WRONG version. `downbeat 0.7.15` clipped mid-number parses as
+# `0.7.1` and the hook then nags about a version that does not exist. Silence
+# would be safer than that, and this constant is the only thing preventing it.
 _MAX_OUTPUT = 64 * 1024
+
+# Bounds a child that never exits. Sits under the 8s hooks.json timeout so we
+# always return silence ourselves rather than being killed mid-write. The real
+# CLI answers in ~0.11s; the headroom is for a cold FS cache, not for hope.
 _SUBPROCESS_TIMEOUT = 5
 # How far past the version number to look for "(editable ...)". Wide enough to
 # survive argparse line-wrapping the version string at narrow terminal widths,
@@ -168,8 +187,10 @@ def _read_available(proc: subprocess.Popen) -> str:
     os.set_blocking(fd, False)
     try:
         data = os.read(fd, _MAX_OUTPUT)
-    except (BlockingIOError, OSError):
-        # BlockingIOError: nothing there (child printed nothing).
+    except OSError:
+        # Covers BlockingIOError (a subclass) -- nothing in the pipe because
+        # the child printed nothing -- and any real read error. Both mean the
+        # same thing to us: no opinion.
         return ""
     return data.decode("utf-8", "replace")
 
@@ -196,9 +217,12 @@ def main() -> int:
     if have == want:
         return 0
 
+    # Drift is symmetric -- the CLI can be ahead of the plugin just as easily,
+    # e.g. after a `uv tool upgrade` with no plugin update. Blaming "your CLI"
+    # in that direction points at the newer artifact and reads as nonsense.
     sys.stdout.write(json.dumps({
         "systemMessage": (
-            f"**downbeat: your CLI is out of step with the plugin.**\n\n"
+            f"**downbeat: your CLI and this plugin have drifted apart.**\n\n"
             f"- plugin: `{want}`\n"
             f"- `downbeat` on your PATH: `{have}`\n\n"
             f"The two update separately — a Claude Code plugin can't ship a "
