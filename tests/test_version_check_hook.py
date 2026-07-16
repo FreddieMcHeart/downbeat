@@ -120,40 +120,57 @@ def _real_version_output(monkeypatch, prov):
     return buf.getvalue()
 
 
-def test_version_output_is_ansi_coloured_unless_no_color_is_set(monkeypatch):
-    """Pins the two facts the hook's parsing is built on, and is honest about
-    which one carries the load.
-
-    The hook sets NO_COLOR=1, and NO_COLOR beats FORCE_COLOR in rich, so in
-    practice the CLI answers in plain text and _ANSI_RE never fires. The
-    stripping is defence-in-depth against a CLI that ignores NO_COLOR -- real
-    but currently dormant, and worth saying so rather than letting a future
-    reader assume it's what makes this work.
-
-    What actually carries the load is _VERSION_RE having no leading \\b:
-    that's what a colourised '\\x1b[39mdownbeat 0.9.2' needs, and getting it
-    wrong is what made this hook silently inert once already.
-    """
-    from downbeat.core.provenance import Provenance
-    text = _real_version_output(monkeypatch, Provenance(version="0.9.2"))
-    assert "\x1b[" in text, (
-        "the real --version no longer emits ANSI — the hook's stripping is now "
-        "dead weight; re-check whether it's still needed"
-    )
-    # And the belt, on that same colourised string.
+def _hook_module():
     import importlib.util
     spec = importlib.util.spec_from_file_location("_vc_re", HOOK)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    assert mod._VERSION_RE.search(text), (
+    return mod
+
+
+def test_version_regex_matches_colourised_output(monkeypatch):
+    """The regex must handle a colourised version line. Colour is FORCED here
+    rather than hoped for.
+
+    rich_argparse renders --version to a *string*, so it decides on colour
+    from the environment, not from isatty -- which is why the real CLI emits
+    ANSI into a pipe on a developer's machine (TERM is set) and plain text in
+    CI (it isn't). An earlier version of this test just asserted "the real
+    output contains ANSI" and so encoded the author's own terminal: green
+    locally, red on every CI runner, and testing nothing either way.
+
+    That environment-dependence is also why the original bug was insidious --
+    the inert regex only failed where someone had a TERM.
+    """
+    monkeypatch.setenv("FORCE_COLOR", "1")
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.delenv("TERM", raising=False)  # TERM=dumb defeats FORCE_COLOR
+
+    from downbeat.core.provenance import Provenance
+    text = _real_version_output(monkeypatch, Provenance(version="0.9.2"))
+    assert "\x1b[" in text, "FORCE_COLOR no longer forces colour; test is moot"
+    assert _hook_module()._VERSION_RE.search(text), (
         "the regex cannot match colourised output — this is the exact shape "
-        "that shipped inert; the NO_COLOR request must not be the only defence"
+        "that shipped inert. Do not let NO_COLOR become the only defence."
     )
+
+
+def test_no_color_is_what_the_hook_actually_relies_on(monkeypatch):
+    """The companion fact: with NO_COLOR the CLI answers plain, which is why
+    _ANSI_RE is dormant in production. Pinned so the two defences stay
+    honestly labelled -- the stripping is the spare, not the engine."""
+    monkeypatch.setenv("NO_COLOR", "1")
+    monkeypatch.setenv("FORCE_COLOR", "1")  # NO_COLOR must still win
+
+    from downbeat.core.provenance import Provenance
+    text = _real_version_output(monkeypatch, Provenance(version="0.9.2"))
+    assert "\x1b[" not in text, "NO_COLOR no longer wins; _ANSI_RE is now load-bearing"
 
 
 # --- integration: the real hook, a real CLI, a real PATH ---------------------
 
-def _rich_cli(tmp_path, version, editable=False, grandchild_sleep=None):
+def _rich_cli(tmp_path, version, editable=False, grandchild_sleep=None,
+               ignores_no_color=False):
     """A `downbeat` on PATH whose --version goes through the REAL argparse +
     rich_argparse path -- ANSI and all -- rather than `echo`.
 
@@ -167,10 +184,19 @@ def _rich_cli(tmp_path, version, editable=False, grandchild_sleep=None):
     prov = (f'Provenance(version="{version}", editable=True, '
             f'editable_path="/w/tree")' if editable
             else f'Provenance(version="{version}")')
+    # ignores_no_color: a CLI that colours its output regardless of what we
+    # ask. That is the ONLY scenario in which _ANSI_RE earns its place -- with
+    # a compliant CLI the hook's NO_COLOR request means the stripping never
+    # runs, so without this the defence-in-depth is entirely untested and the
+    # branch would rot unnoticed.
+    force = ('import os\nos.environ["FORCE_COLOR"] = "1"\n'
+             'os.environ.pop("NO_COLOR", None)\nos.environ.pop("TERM", None)\n'
+             if ignores_no_color else "")
     pyfile = tmp_path / "fake_downbeat.py"
     pyfile.write_text(
         "import sys\n"
-        f'sys.path.insert(0, "{src}")\n'
+        + force
+        + f'sys.path.insert(0, "{src}")\n'
         "from downbeat.core import provenance as p\n"
         "from downbeat.core.provenance import Provenance\n"
         f"p.detect = lambda: {prov}\n"
@@ -251,3 +277,25 @@ def test_stderr_mentioning_editable_cannot_silence_the_hook(tmp_path):
                       'echo "downbeat 0.7.1"\n')
     script.chmod(0o755)
     assert _run_hook(tmp_path, bindir, plugin_version="0.9.2") != ""
+
+
+def test_end_to_end_against_a_cli_that_ignores_no_color(tmp_path):
+    """The scenario _ANSI_RE exists for, and the one nothing covered until now.
+
+    The hook asks for NO_COLOR and the real CLI complies, so every other test
+    here -- including the "real CLI" ones -- goes down the plain-text path.
+    That means the ANSI stripping, added precisely because a colourised line
+    once made this hook permanently inert, had no test at all. A CLI that
+    ignores NO_COLOR is exactly what the spare tyre is for.
+    """
+    bindir = _rich_cli(tmp_path, "0.7.1", ignores_no_color=True)
+    out = _run_hook(tmp_path, bindir, plugin_version="0.9.2")
+    assert out, "hook went silent against a colourised CLI — inert all over again"
+    assert "0.7.1" in json.loads(out)["systemMessage"]
+
+
+def test_end_to_end_editable_detected_even_when_colourised(tmp_path):
+    """Same path, opposite expectation: the '(editable' sniff must survive the
+    ANSI too, or an editable install gets nagged every session."""
+    bindir = _rich_cli(tmp_path, "0.7.1", editable=True, ignores_no_color=True)
+    assert _run_hook(tmp_path, bindir, plugin_version="0.9.2") == ""
