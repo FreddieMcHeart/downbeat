@@ -6,7 +6,7 @@
 |----------------------------------------------- | -------: | -------: | ------: | --------: |
 | src/downbeat/\_\_init\_\_.py                   |        1 |        0 |    100% |           |
 | src/downbeat/cli/\_\_init\_\_.py               |        0 |        0 |    100% |           |
-| src/downbeat/cli/\_\_main\_\_.py               |      111 |        3 |     97% |33-34, 214 |
+| src/downbeat/cli/\_\_main\_\_.py               |      108 |        1 |     99% |       214 |
 | src/downbeat/cli/commands/\_\_init\_\_.py      |        0 |        0 |    100% |           |
 | src/downbeat/cli/commands/init\_cmd.py         |      293 |       17 |     94% |98, 115-120, 176-177, 252, 264, 268-269, 310-311, 330, 341 |
 | src/downbeat/cli/commands/relay\_cmds.py       |      193 |       58 |     70% |17-19, 51-53, 90-92, 98-106, 113-114, 133-134, 143-160, 167-172, 175, 200-207, 244-246, 250-253, 257-258 |
@@ -17,6 +17,7 @@
 | src/downbeat/core/models.py                    |       84 |        0 |    100% |           |
 | src/downbeat/core/notify.py                    |       17 |        0 |    100% |           |
 | src/downbeat/core/paths.py                     |       17 |        0 |    100% |           |
+| src/downbeat/core/provenance.py                |       61 |        5 |     92% |93-94, 136-138 |
 | src/downbeat/core/session.py                   |       82 |       30 |     63% |26-27, 77, 94-103, 109-110, 115-116, 131-145, 152 |
 | src/downbeat/core/state.py                     |       57 |        8 |     86% |49, 56, 60-65, 81 |
 | src/downbeat/core/store.py                     |      520 |       55 |     89% |36-38, 53-54, 172, 221, 236, 240-241, 259, 263, 271, 296-297, 334, 343-344, 370-371, 384-386, 411-413, 440, 496, 503-504, 520, 523, 527-528, 530, 533-534, 600, 603, 607-608, 618, 631, 710-711, 727-728, 759-763, 821, 824, 830-831 |
@@ -48,7 +49,7 @@
 | src/downbeat/tui/widgets/peer\_tabs.py         |       54 |        2 |     96% |    41, 89 |
 | src/downbeat/tui/widgets/rebind\_modal.py      |       33 |       33 |      0% |      2-52 |
 | src/downbeat/tui/widgets/switch\_acting\_as.py |       33 |        6 |     82% | 39-43, 46 |
-| **TOTAL**                                      | **2949** |  **780** | **74%** |           |
+| **TOTAL**                                      | **3007** |  **783** | **74%** |           |
 
 
 ## Setup coverage badge
