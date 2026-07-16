@@ -145,8 +145,13 @@ class ChatStream(VerticalScroll):
             if prev_widget is not None:
                 self.mount(bubble, after=prev_widget)
             elif self._bubbles:
-                # New oldest message ahead of ones we already track.
-                self.mount(bubble, before=next(iter(self._bubbles.values())))
+                # A message older than everything we already track: it belongs
+                # at the very top. Anchor on DOM index 0, NOT on the first
+                # entry of _bubbles -- a prior head-insert appends its id to
+                # the end of _bubbles, so the dict's first entry stops being
+                # the visually-first widget and a second head-insert would
+                # anchor on the wrong one (rendered A/Z/B instead of Z/A/B).
+                self.mount(bubble, before=0)
             else:
                 self.mount(bubble)
             self._bubbles[m.id] = bubble
