@@ -305,3 +305,71 @@ def test_poll_new_excludes_non_new_states(relay_dir):
     assert m_new.id in ids
     assert m_delivered.id not in ids
     assert m_acked.id not in ids
+
+
+def test_reply_never_leaves_the_message_nowhere_on_disk(relay_dir):
+    """#20: reply_to unlinked the original before writing its archived copy,
+    so a concurrent reader (or a crash) in that window found the message in
+    no directory at all. Write first, unlink second -- the duplicate window
+    that creates is already deduped by list_inbox's `seen` set."""
+    _peers("a", "b")
+    m = store.send_message(from_peer="b", to_peer="a", subject="s", body="x")
+
+    seen_mid_operation = {}
+    real_write = store._write_message
+
+    def spy(msg):
+        # reply_to writes twice -- the archived original, then the reply
+        # itself. Only the FIRST call sits in the window this guards; by the
+        # second the original is already back on disk and would mask the bug.
+        seen_mid_operation.setdefault(
+            "found", bool(store.find_message_by_id_prefix(m.id))
+        )
+        return real_write(msg)
+
+    store._write_message = spy
+    try:
+        store.reply_to(m.id, body="r", from_peer="a")
+    finally:
+        store._write_message = real_write
+
+    assert seen_mid_operation["found"], (
+        "message was on disk nowhere mid-reply -- a reader or a crash there loses it"
+    )
+
+
+def test_archive_never_leaves_the_message_nowhere_on_disk(relay_dir):
+    """#20: same window in archive_messages."""
+    _peers("a", "b")
+    m = store.send_message(from_peer="b", to_peer="a", subject="s", body="x")
+
+    seen_mid_operation = {}
+    real_write = store._write_message
+
+    def spy(msg):
+        seen_mid_operation["found"] = bool(store.find_message_by_id_prefix(m.id))
+        return real_write(msg)
+
+    store._write_message = spy
+    try:
+        store.archive_messages([m.id])
+    finally:
+        store._write_message = real_write
+
+    assert seen_mid_operation["found"], (
+        "message was on disk nowhere mid-archive"
+    )
+
+
+def test_archiving_an_already_archived_message_does_not_delete_it(relay_dir):
+    """Guard for the write-then-unlink inversion: an already-archived message
+    routes to the same processed/ path it already occupies, so an
+    unconditional unlink-after-write would delete it outright."""
+    _peers("a", "b")
+    m = store.send_message(from_peer="b", to_peer="a", subject="s", body="x")
+    store.archive_messages([m.id])
+    assert store.get_message(m.id).archived is True
+
+    store.archive_messages([m.id])          # archive it a second time
+    assert store.get_message(m.id).archived is True, "second archive lost the message"
+    assert bool(store.find_message_by_id_prefix(m.id)), "message gone from disk"
