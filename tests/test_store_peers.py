@@ -388,3 +388,39 @@ def test_acting_as_candidates_no_duplicate_for_parent_role_with_children(relay_d
     candidates = store.acting_as_candidates()
     names = [p.name for p in candidates]
     assert names.count("Root") == 1
+
+
+def test_remove_heals_a_corrupt_cycle_instead_of_forwarding_it(relay_dir):
+    """remove_peer is the one tree mutator with no _check_no_cycle gate, so a
+    hand-corrupted sessions.json is the only way a cycle reaches it. Rather
+    than forwarding the corruption (a 2-cycle A<->B would mint a self-parent
+    B->B when A is removed), promotion to a vanished grandparent falls back to
+    root. Removal heals."""
+    import json
+
+    from downbeat.core import paths
+    paths.SESSIONS_FILE.write_text(json.dumps({
+        "A": {"name": "A", "session_id": "s1", "cwd": "/tmp", "role": "parent",
+              "registered_at": "t", "last_seen": "t", "parent": "B"},
+        "B": {"name": "B", "session_id": "s2", "cwd": "/tmp", "role": "parent",
+              "registered_at": "t", "last_seen": "t", "parent": "A"},
+    }))
+    store.remove_peer("A")
+    # B must NOT end up its own parent; it becomes a root.
+    assert _parent_of("B") is None
+
+
+def test_remove_heals_a_dangling_grandparent(relay_dir):
+    """If the removed node's own parent already points at a gone name, the
+    orphans fall back to root rather than inheriting a fresh dangling pointer."""
+    import json
+
+    from downbeat.core import paths
+    paths.SESSIONS_FILE.write_text(json.dumps({
+        "Mid": {"name": "Mid", "session_id": "s1", "cwd": "/tmp", "role": "parent",
+                "registered_at": "t", "last_seen": "t", "parent": "GHOST"},
+        "W": {"name": "W", "session_id": "s2", "cwd": "/tmp", "role": "child",
+              "registered_at": "t", "last_seen": "t", "parent": "Mid"},
+    }))
+    store.remove_peer("Mid")
+    assert _parent_of("W") is None

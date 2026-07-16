@@ -216,19 +216,28 @@ def remove_peer(name: str) -> None:
     out of every acting-as / children_of view while still living on disk and
     accepting messages (#19). Reattaching each child to the removed node's
     parent -- grandparent promotion -- keeps the tree connected; removing a
-    root (parent=None) leaves its children as roots. This can't create a
-    cycle: the new parent is an ancestor of the removed node and therefore of
-    the orphans, and an ancestor is never a descendant. Runs for every caller
-    (CLI gc, the TUI remove, GcStaleModal's sweep), so a multi-peer sweep
-    stays a forest whatever order the peers come off in."""
+    root (parent=None) leaves its children as roots. For any forest the store
+    API can produce this cannot create a cycle: the new parent is an ancestor
+    of the removed node and therefore of the orphans, and an ancestor is never
+    a descendant. Runs for every caller (CLI gc, the TUI remove, GcStaleModal's
+    sweep), so a multi-peer sweep stays a forest whatever order the peers come
+    off in."""
     sessions = _load_sessions()
     removed = sessions.pop(name, None)
     if removed is None:
         return
     grandparent = removed.get("parent")  # None if the removed peer was a root
-    for peer in sessions.values():
+    # Two corrupt-input guards so removal HEALS a hand-edited sessions.json
+    # instead of forwarding its damage (neither is reachable via the store
+    # API, which gates every edge through _check_no_cycle):
+    #   - a grandparent that no longer exists (dangling pointer) -> root.
+    #   - promoting a child to ITSELF (a 2-cycle A<->B: removing A would
+    #     repoint B to grandparent B) -> root, per child.
+    if grandparent is not None and grandparent not in sessions:
+        grandparent = None
+    for child_name, peer in sessions.items():
         if peer.get("parent") == name:
-            peer["parent"] = grandparent
+            peer["parent"] = None if grandparent == child_name else grandparent
     _save_sessions(sessions)
 
 
