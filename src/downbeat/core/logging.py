@@ -2,13 +2,17 @@
 
 Three loggers — downbeat.core, downbeat.tui, downbeat.watcher —
 all attach to a single rotating handler on ~/.claude/relay/logs/downbeat.log."""
+
 from __future__ import annotations
 
 import logging
+import time
 from logging.handlers import RotatingFileHandler
 
 from . import paths
 
+# Trailing Z means UTC (RFC 3339 / ISO 8601); Formatter.converter must be gmtime
+# so %(asctime)s is not local wall time with a false Zulu suffix.
 _FORMAT = "%(asctime)sZ [%(levelname)-5s] %(name)-22s %(message)s"
 _DATEFMT = "%Y-%m-%dT%H:%M:%S"
 _ROOT_LOGGER = "downbeat"
@@ -34,9 +38,9 @@ def setup(level: str = "INFO") -> None:
         if isinstance(h, RotatingFileHandler):
             h.close()
             root.removeHandler(h)
-    handler = RotatingFileHandler(
-        target, maxBytes=1_048_576, backupCount=7, encoding="utf-8"
-    )
-    handler.setFormatter(logging.Formatter(_FORMAT, datefmt=_DATEFMT))
+    handler = RotatingFileHandler(target, maxBytes=1_048_576, backupCount=7, encoding="utf-8")
+    formatter = logging.Formatter(_FORMAT, datefmt=_DATEFMT)
+    formatter.converter = time.gmtime
+    handler.setFormatter(formatter)
     root.addHandler(handler)
     root.propagate = False

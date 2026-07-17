@@ -1,4 +1,7 @@
 import logging
+import re
+import time
+from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
 
 from downbeat.core import logging as relay_logging
@@ -34,7 +37,34 @@ def test_setup_idempotent(relay_dir):
     # be attached to this logger by unrelated tests and aren't setup()'s to
     # clean up.
     handlers = [
-        h for h in logging.getLogger("downbeat").handlers
-        if isinstance(h, RotatingFileHandler)
+        h for h in logging.getLogger("downbeat").handlers if isinstance(h, RotatingFileHandler)
     ]
     assert len(handlers) == 1
+
+
+def test_log_timestamps_use_utc_with_z_suffix(relay_dir):
+    """%(asctime)sZ must be UTC, not local time with a literal Z (#30)."""
+    relay_logging.setup(level="INFO")
+    handlers = [
+        h for h in logging.getLogger("downbeat").handlers if isinstance(h, RotatingFileHandler)
+    ]
+    assert len(handlers) == 1
+    formatter = handlers[0].formatter
+    assert formatter is not None
+    assert formatter.converter is time.gmtime
+
+    before = datetime.now(UTC).replace(microsecond=0)
+    log = logging.getLogger("downbeat.core")
+    log.info("utc-stamp-probe")
+    for h in handlers:
+        h.flush()
+    after = datetime.now(UTC).replace(microsecond=0)
+
+    contents = paths.LOG_FILE.read_text()
+    match = re.search(
+        r"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})Z \[INFO \] downbeat\.core\s+utc-stamp-probe",
+        contents,
+    )
+    assert match, contents
+    stamped = datetime.strptime(match.group(1), "%Y-%m-%dT%H:%M:%S").replace(tzinfo=UTC)
+    assert before <= stamped <= after
