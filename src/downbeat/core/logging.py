@@ -5,6 +5,7 @@ all attach to a single rotating handler on ~/.claude/relay/logs/downbeat.log."""
 from __future__ import annotations
 
 import logging
+import time
 from logging.handlers import RotatingFileHandler
 
 from . import paths
@@ -17,7 +18,7 @@ _ROOT_LOGGER = "downbeat"
 def setup(level: str = "INFO") -> None:
     """Configure rotating handler on the package root logger.
 
-    Idempotent: repeated calls don't add duplicate handlers.
+    Idempotent: repeated calls do not add duplicate handlers.
     When the log path changes (e.g. in tests), old handlers are replaced."""
     from pathlib import Path
 
@@ -37,6 +38,8 @@ def setup(level: str = "INFO") -> None:
     handler = RotatingFileHandler(
         target, maxBytes=1_048_576, backupCount=7, encoding="utf-8"
     )
-    handler.setFormatter(logging.Formatter(_FORMAT, datefmt=_DATEFMT))
+    formatter = logging.Formatter(_FORMAT, datefmt=_DATEFMT)
+    formatter.converter = time.gmtime
+    handler.setFormatter(formatter)
     root.addHandler(handler)
     root.propagate = False
