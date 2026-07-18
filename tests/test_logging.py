@@ -26,6 +26,39 @@ def test_setup_respects_debug_level(relay_dir):
     assert "fs event=created" in paths.LOG_FILE.read_text()
 
 
+def test_log_timestamps_are_utc_not_local(relay_dir):
+    """The format appends a literal 'Z' (UTC); the timestamp must actually be
+    UTC, not local time wearing a UTC label. Regression for #30."""
+    import os
+    import time
+
+    epoch = 1_700_000_000  # 2023-11-14T22:13:20Z
+    old_tz = os.environ.get("TZ")
+    os.environ["TZ"] = "America/New_York"  # never equal to UTC
+    time.tzset()
+    try:
+        relay_logging.setup(level="INFO")
+        handler = next(
+            h for h in logging.getLogger("downbeat").handlers
+            if isinstance(h, RotatingFileHandler)
+        )
+        record = logging.LogRecord(
+            "downbeat.core", logging.INFO, __file__, 1, "msg", None, None
+        )
+        record.created = epoch
+        rendered = handler.formatter.format(record)
+        expected_utc = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(epoch)) + "Z"
+        local_wrong = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(epoch)) + "Z"
+        assert local_wrong != expected_utc, "TZ not applied — test is not meaningful"
+        assert expected_utc in rendered, f"{expected_utc!r} not in {rendered!r}"
+    finally:
+        if old_tz is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = old_tz
+        time.tzset()
+
+
 def test_setup_idempotent(relay_dir):
     relay_logging.setup(level="INFO")
     relay_logging.setup(level="INFO")
