@@ -163,5 +163,6 @@ downbeat uninstall    # removes skill + shim + hooks + commands + relay
 - Bundled runtime assets: `src/downbeat/assets/{hooks/,commands/,hooks_manifest.json}`
 - Tests: `tests/`
 - Examples: [`examples/`](./examples/)
+- Roadmap: [`ROADMAP.md`](./ROADMAP.md) — where downbeat is headed
 - Docs site: [freddiemcheart.github.io/downbeat](https://freddiemcheart.github.io/downbeat/) ([source](./docs/))
 - State: `~/.claude/relay/{sessions.json, inbox/, processed/, logs/, groups.json}`

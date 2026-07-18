@@ -32,6 +32,8 @@ Horizons are ordered by confidence, not calendar:
   diverge silently" bugs — empty-thread-on-tab-switch, peer removal orphaning
   its children, a message-archival write/unlink race, and inbox/tab desync.
 
+See [CHANGELOG.md](CHANGELOG.md) for the full, versioned release history.
+
 ---
 
 ## Now — open, ready to pick up
@@ -56,6 +58,12 @@ Both are labelled **good first issue**.
   identity key (session id / UUID) with the name as a pure display alias, **or**
   an official `downbeat peers rename` that migrates history atomically. Either
   way, renaming must stop being a data-corrupting operation.
+- **Per-peer autonomy control.** A peer's relay-monitor autonomy (auto-execute
+  vs. surface-and-ask) is fixed at registration by `role` and can't be changed
+  afterward. Now that any node can be both a parent and a child, autonomy no
+  longer follows from tree position — it's a value the human should set
+  consciously per peer. Expose it: view and change a peer's autonomy after
+  registration, independent of its structure.
 - **Message-store hardening.** Schema versioning on message files, so future
   format changes are migratable instead of manual.
 

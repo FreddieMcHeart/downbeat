@@ -67,6 +67,7 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Roadmap: roadmap.md
   - Claude Code plugin: plugin.md
   - Contributing: contributing.md
   - Code of Conduct: CODE_OF_CONDUCT.md
