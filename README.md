@@ -13,7 +13,7 @@
 | src/downbeat/core/\_\_init\_\_.py              |        0 |        0 |    100% |           |
 | src/downbeat/core/errors.py                    |        8 |        0 |    100% |           |
 | src/downbeat/core/groups.py                    |       22 |        0 |    100% |           |
-| src/downbeat/core/logging.py                   |       24 |        0 |    100% |           |
+| src/downbeat/core/logging.py                   |       27 |        0 |    100% |           |
 | src/downbeat/core/models.py                    |       84 |        0 |    100% |           |
 | src/downbeat/core/notify.py                    |       17 |        0 |    100% |           |
 | src/downbeat/core/paths.py                     |       17 |        0 |    100% |           |
@@ -21,7 +21,7 @@
 | src/downbeat/core/session.py                   |       82 |       30 |     63% |26-27, 77, 94-103, 109-110, 115-116, 131-145, 152 |
 | src/downbeat/core/state.py                     |       57 |        8 |     86% |49, 56, 60-65, 81 |
 | src/downbeat/core/store.py                     |      532 |       56 |     89% |36-38, 53-54, 172, 228, 247, 262, 266-267, 285, 289, 297, 322-323, 360, 369-370, 396-397, 410-412, 444-446, 473, 532, 539-540, 556, 559, 563-564, 566, 569-570, 636, 639, 643-644, 654, 667, 746-747, 763-764, 795-799, 857, 860, 866-867 |
-| src/downbeat/core/watcher.py                   |       87 |       12 |     86% |37, 41-42, 52-53, 89, 93-94, 131, 134-136 |
+| src/downbeat/core/watcher.py                   |       87 |       14 |     84% |37, 41-42, 52-53, 89, 93-94, 118-120, 131, 134-136 |
 | src/downbeat/skill/\_\_init\_\_.py             |        0 |        0 |    100% |           |
 | src/downbeat/tui/\_\_init\_\_.py               |        0 |        0 |    100% |           |
 | src/downbeat/tui/app.py                        |       94 |       27 |     71% |37-41, 47-56, 67-68, 85, 92-103, 106-107, 117-118 |
@@ -41,7 +41,7 @@
 | src/downbeat/tui/widgets/composer.py           |       64 |       64 |      0% |      2-87 |
 | src/downbeat/tui/widgets/confirm.py            |       20 |        1 |     95% |        35 |
 | src/downbeat/tui/widgets/edit\_modal.py        |       34 |       20 |     41% |22-25, 28-35, 38-46, 49 |
-| src/downbeat/tui/widgets/find\_message.py      |       39 |        3 |     92% | 51-52, 57 |
+| src/downbeat/tui/widgets/find\_message.py      |       52 |        3 |     94% | 77-78, 83 |
 | src/downbeat/tui/widgets/inbox\_list.py        |       47 |       47 |      0% |      2-61 |
 | src/downbeat/tui/widgets/log\_viewer.py        |       48 |       14 |     71% |     47-61 |
 | src/downbeat/tui/widgets/message\_view.py      |       46 |       46 |      0% |      2-62 |
@@ -49,7 +49,7 @@
 | src/downbeat/tui/widgets/peer\_tabs.py         |       54 |        2 |     96% |    41, 89 |
 | src/downbeat/tui/widgets/rebind\_modal.py      |       33 |       33 |      0% |      2-52 |
 | src/downbeat/tui/widgets/switch\_acting\_as.py |       33 |        6 |     82% | 39-43, 46 |
-| **TOTAL**                                      | **3023** |  **782** | **74%** |           |
+| **TOTAL**                                      | **3039** |  **784** | **74%** |           |
 
 
 ## Setup coverage badge
