@@ -5,6 +5,7 @@ all attach to a single rotating handler on ~/.claude/relay/logs/downbeat.log."""
 from __future__ import annotations
 
 import logging
+import time
 from logging.handlers import RotatingFileHandler
 
 from . import paths
@@ -37,6 +38,11 @@ def setup(level: str = "INFO") -> None:
     handler = RotatingFileHandler(
         target, maxBytes=1_048_576, backupCount=7, encoding="utf-8"
     )
-    handler.setFormatter(logging.Formatter(_FORMAT, datefmt=_DATEFMT))
+    formatter = logging.Formatter(_FORMAT, datefmt=_DATEFMT)
+    # The format ends the timestamp with a literal 'Z' (UTC). Make that honest:
+    # render times in UTC, not the machine's local zone (logging.Formatter
+    # defaults to time.localtime).
+    formatter.converter = time.gmtime
+    handler.setFormatter(formatter)
     root.addHandler(handler)
     root.propagate = False
