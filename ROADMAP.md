@@ -16,8 +16,12 @@ Horizons are ordered by confidence, not calendar:
 
 ---
 
-## Recently shipped (through v0.10.3)
+## Recently shipped (through v0.10.4)
 
+- **Honest UTC logs + keyboard-navigable message finder.** Log timestamps are now
+  real UTC (the trailing `Z` was previously local time wearing a UTC label), and
+  the find-message modal hands keyboard focus from the search box to the results
+  so a match can be picked without the mouse. (v0.10.4)
 - **General peer tree.** Any peer can be both a child and a parent — arbitrary
   depth in the data model, with a bounded cycle check. `role` no longer gates
   structure; it only sets the relay-monitor autonomy default.
@@ -38,15 +42,10 @@ See [CHANGELOG.md](CHANGELOG.md) for the full, versioned release history.
 
 ## Now — open, ready to pick up
 
-Both are labelled **good first issue**.
-
-- **[#30](https://github.com/FreddieMcHeart/downbeat/issues/30) — logs stamp local
-  time with a literal `Z`.** The formatter appends `Z` (Zulu/UTC) but has no UTC
-  converter, so timestamps are local time wearing a UTC label. Misleads during
-  investigations. One-line fix.
-- **[#31](https://github.com/FreddieMcHeart/downbeat/issues/31) — `find_message`
-  focus hand-off.** After typing a query, focus stays on the input; Enter never
-  reaches the results table, so keyboard-only selection doesn't work.
+Nothing open right now — the two good-first-issues (#30, #31) shipped in v0.10.4.
+The **Next** items below are the strongest near-term candidates; if you'd like to
+take one, opening an issue (or a PR) is the way in — see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
@@ -121,7 +120,7 @@ The message-system rework — one coherent redesign of how sessions exchange mai
 
 ## Contributing
 
-New contributors: the **Now** section is the best entry point — both items are
-labelled *good first issue*. See
+New contributors: with the good-first-issues shipped, the **Next** section holds
+the strongest near-term candidates — open an issue or PR to claim one. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for setup, and please check open issues **and**
 PRs before starting so effort isn't duplicated.
