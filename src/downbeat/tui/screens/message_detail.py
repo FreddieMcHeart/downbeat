@@ -152,11 +152,11 @@ class MessageDetailScreen(Screen):
         event.stop()
 
     def action_yank_body(self) -> None:
-        from ..widgets.clipboard import copy_to_clipboard
         msg = store.get_message(self.msg_id)
-        ok = copy_to_clipboard(msg.body or "")
-        if ok:
-            self.notify(f"Copied body ({len(msg.body or '')} chars)", timeout=2)
+        body = msg.body or ""
+        # Routes through RelayApp.copy_to_clipboard: OSC 52 + local clipboard.
+        if self.app.copy_to_clipboard(body):
+            self.notify(f"Copied body ({len(body)} chars)", timeout=2)
         else:
             self.notify(
                 "Clipboard tool not available — install pyperclip or use pbcopy/xclip.",
@@ -164,8 +164,7 @@ class MessageDetailScreen(Screen):
             )
 
     def action_copy_id(self) -> None:
-        from ..widgets.clipboard import copy_to_clipboard
-        if copy_to_clipboard(self.msg_id):
+        if self.app.copy_to_clipboard(self.msg_id):
             self.notify(f"Copied id {self.msg_id} to clipboard", timeout=2)
         else:
             self.notify(f"id: {self.msg_id}", timeout=5)

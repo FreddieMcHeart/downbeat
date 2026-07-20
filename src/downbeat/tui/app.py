@@ -10,6 +10,7 @@ from ..core import logging as relay_logging
 from ..core import notify, state, store, watcher
 from .messages import StoreChanged
 from .screens.chat import ChatScreen
+from .widgets import clipboard as _clipboard
 
 _HEARTBEAT_INTERVAL_SECONDS = 30
 
@@ -28,6 +29,37 @@ class RelayApp(App):
         super().__init__()
         self._watcher = None
         self._notify_seen: dict[str, set[str]] = {}
+
+    def copy_to_clipboard(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self, text: str
+    ) -> bool:
+        """Copy ``text`` via BOTH OSC 52 and the local OS clipboard.
+
+        The bool return intentionally widens the base's ``-> None`` so the
+        ``c``/``y`` key handlers can report whether the local write landed;
+        Textual's own callers (``Screen.action_copy_text``) ignore the return.
+
+        Textual's base implementation emits only an OSC 52 escape sequence.
+        That is SSH-safe but silently drops on terminals that don't honour
+        OSC 52 clipboard writes (macOS Terminal.app being the common one), so
+        a mouse-selection copy or the ``c``/``y`` keys appear to do nothing.
+        Emitting OSC 52 *and* writing the local clipboard (pbcopy/xclip/
+        pyperclip) makes copy land in the system clipboard everywhere: local
+        terminals via the OS tool, remote sessions via OSC 52.
+
+        This single override also upgrades Textual's built-in
+        mouse-selection copy — Screen binds ``ctrl+c``/``super+c`` to
+        ``screen.copy_text``, which routes the selection through
+        ``app.copy_to_clipboard`` — so drag-select + Ctrl+C now works too.
+
+        Returns whether the local clipboard write succeeded.
+        """
+        try:
+            super().copy_to_clipboard(text)  # OSC 52 escape sequence
+        except Exception:
+            # No active driver (headless/tests) — the local path still applies.
+            pass
+        return _clipboard.copy_to_clipboard(text)
 
     def on_mount(self) -> None:
         relay_logging.setup(level="INFO")
