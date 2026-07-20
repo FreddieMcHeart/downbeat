@@ -108,6 +108,24 @@ jobs:
       - run: uv run ruff check .
       - run: uv run pytest -q
 
+  min-versions:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    # Exercises the DECLARED dependency floors (the pyproject specifiers), not
+    # the locked versions every other job pins — so a floor set below what the
+    # code actually needs fails HERE, instead of only in a user's fresh
+    # `pip install`. --resolution lowest-direct installs the lowest version
+    # satisfying each direct dependency's floor. Python is pinned to the
+    # minimum supported (3.11) to make it a true lowest-everything check.
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.11"
+      - run: uv sync --resolution lowest-direct --extra dev
+      - run: uv run pytest -q
+
   # Single required-check target instead of the 6 expanded "test (os, python)"
   # contexts. A job-level `if:` on `test` above means a skipped run never
   # creates those per-matrix contexts at all, which would leave doc-only PRs
@@ -119,7 +137,7 @@ jobs:
   # job's name, not at the matrix legs.
   ci-required:
     runs-on: ubuntu-latest
-    needs: [pre-commit, typecheck, coverage, test]
+    needs: [pre-commit, typecheck, coverage, test, min-versions]
     if: ${{ always() && (cancelled() || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'failure')) }}
     steps:
       - run: |
