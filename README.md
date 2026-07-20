@@ -24,13 +24,13 @@
 | src/downbeat/core/watcher.py                   |       87 |       12 |     86% |37, 41-42, 52-53, 89, 93-94, 131, 134-136 |
 | src/downbeat/skill/\_\_init\_\_.py             |        0 |        0 |    100% |           |
 | src/downbeat/tui/\_\_init\_\_.py               |        0 |        0 |    100% |           |
-| src/downbeat/tui/app.py                        |       94 |       27 |     71% |37-41, 47-56, 67-68, 85, 92-103, 106-107, 117-118 |
+| src/downbeat/tui/app.py                        |      101 |       27 |     73% |69-73, 79-88, 99-100, 117, 124-135, 138-139, 149-150 |
 | src/downbeat/tui/messages.py                   |        4 |        0 |    100% |           |
 | src/downbeat/tui/screens/\_\_init\_\_.py       |        0 |        0 |    100% |           |
 | src/downbeat/tui/screens/broadcast\_status.py  |       20 |       20 |      0% |      2-30 |
 | src/downbeat/tui/screens/chat.py               |      206 |       49 |     76% |137-138, 147-148, 151-152, 165, 176-186, 201-204, 210, 226-229, 232-237, 266, 269-270, 274, 283, 293-303, 310 |
 | src/downbeat/tui/screens/help.py               |       12 |        0 |    100% |           |
-| src/downbeat/tui/screens/message\_detail.py    |      113 |       62 |     45% |46-53, 56, 61-67, 88, 90, 92, 94-95, 101-114, 117-121, 127-132, 137-142, 147-148, 151-152, 155-161, 167-171 |
+| src/downbeat/tui/screens/message\_detail.py    |      111 |       44 |     60% |61-67, 90, 92, 94-95, 101-114, 117-121, 127-132, 137-142, 147-148, 151-152, 161, 170 |
 | src/downbeat/tui/screens/peers.py              |       85 |       32 |     62% |74-75, 90-97, 100, 111-120, 125, 129-138 |
 | src/downbeat/tui/screens/quarantine.py         |       73 |       73 |      0% |     2-115 |
 | src/downbeat/tui/widgets/\_\_init\_\_.py       |        0 |        0 |    100% |           |
@@ -49,7 +49,7 @@
 | src/downbeat/tui/widgets/peer\_tabs.py         |       54 |        2 |     96% |    41, 89 |
 | src/downbeat/tui/widgets/rebind\_modal.py      |       33 |       33 |      0% |      2-52 |
 | src/downbeat/tui/widgets/switch\_acting\_as.py |       33 |        6 |     82% | 39-43, 46 |
-| **TOTAL**                                      | **3039** |  **782** | **74%** |           |
+| **TOTAL**                                      | **3044** |  **764** | **75%** |           |
 
 
 ## Setup coverage badge
