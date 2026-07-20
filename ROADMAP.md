@@ -70,7 +70,8 @@ take one, opening an issue (or a PR) is the way in — see
 
 ## Later — direction set, design open
 
-The message-system rework — one coherent redesign of how sessions exchange mail:
+**The message-system rework** — one coherent redesign of how sessions exchange
+mail:
 
 - **A single source of truth** for cross-session messages, so "read/unread" and
   "processed" state can't disagree between channels.
@@ -81,6 +82,20 @@ The message-system rework — one coherent redesign of how sessions exchange mai
   and filters on top).
 - **Lossless migration** from the current on-disk layout, with no thread history
   dropped.
+
+Alongside it, two narrower directions:
+
+- **Kind-aware message reconciliation.** `reconcile()` today re-queues and
+  eventually quarantines any unacked message purely by age — including status
+  reports and closing replies that were absorbed the moment they arrived and
+  have no natural ack path. They churn through redeliveries and pile into
+  quarantine (a real backlog we've had to hand-clear). Teach reconcile the
+  difference: auto-ack terminal messages, re-queue only genuine tasks. A focused
+  precursor to — or part of — the rework above.
+- **Copy anywhere in the TUI.** The copy affordance (`c` id / `y` body) lives
+  only on the message-detail screen, and mouse-selection copy (drag-select +
+  `Ctrl+C`) isn't surfaced anywhere. Extend copy to the chat and peers views and
+  make the selection-copy path discoverable.
 
 ---
 
