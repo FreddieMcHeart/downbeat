@@ -16,8 +16,23 @@ Horizons are ordered by confidence, not calendar:
 
 ---
 
-## Recently shipped (through v0.10.4)
+## Recently shipped (through v0.11.1)
 
+- **Atomic peer rename.** `downbeat peers rename <old> <new>` migrates a peer's
+  full on-disk identity in one shot — `from`/`to` across every message, all four
+  per-peer directories, `sessions.json` (key + parent pointers), and group
+  membership — so renaming is no longer a data-corrupting operation. Resumable
+  via an in-progress marker; validates names against path traversal. (v0.11.0,
+  hardened in v0.11.1 — issue #40 Option B.)
+- **Honest relay CLI for background sessions.** When a session can't
+  auto-identify, the error now names the flag the subcommand actually accepts
+  (`--peer`, not a hardcoded `--from`), `whoami` gained a `--peer` override, and
+  `ack` explains why a message couldn't be acked instead of failing silently.
+  (v0.10.8)
+- **Clipboard that works on Terminal.app + honest dependency floors.** The TUI
+  copies via OSC 52 **and** the local clipboard (⌘C / `c` / `y` all work now),
+  and a `min-versions` CI job exercises the declared dependency floors so they
+  can't silently drift below what the code needs. (v0.10.5 / v0.10.6)
 - **Honest UTC logs + keyboard-navigable message finder.** Log timestamps are now
   real UTC (the trailing `Z` was previously local time wearing a UTC label), and
   the find-message modal hands keyboard focus from the search box to the results
