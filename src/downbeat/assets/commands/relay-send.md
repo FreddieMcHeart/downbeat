@@ -7,10 +7,10 @@ Send a relay message. Arguments: $ARGUMENTS
 
 Parse `$ARGUMENTS` as: `<to> <subject> <body...>` where `<to>` is the peer name, `<subject>` is a single token (use quotes if multi-word), and everything after is the body.
 
-If the body is long or multi-line, write it to a temp file first and pass via shell substitution:
+If the body is long or multi-line, pass it via a heredoc — naive quoting breaks on backticks, quotes, and `$`:
 
 ```
-~/.claude/relay/relay.py send <to> "<subject>" "$(cat <<'EOF'
+downbeat send <to> "<subject>" "$(cat <<'EOF'
 <body>
 EOF
 )"
@@ -19,7 +19,9 @@ EOF
 Otherwise call directly:
 
 ```
-~/.claude/relay/relay.py send <to> "<subject>" "<body>"
+downbeat send <to> "<subject>" "<body>"
 ```
 
 Report the CLI's output (it includes the message id). The peer will receive the message on their next prompt or session start, prepended as system context by the `relay-inbox` hook.
+
+<!-- Legacy alias: `~/.claude/relay/relay.py send …` (a shim `downbeat init` installs) still works, but `downbeat` is canonical — prefer it. -->
