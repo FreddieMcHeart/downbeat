@@ -192,3 +192,71 @@ def test_cli_peers_rename_collision_returns_1(relay_dir, capsys, monkeypatch):
     assert rc == 1
     err = capsys.readouterr().err
     assert "B" in err
+
+
+# ── review hardening (findings #1–#4) ────────────────────────────────────────
+
+def test_rename_missing_old_to_existing_new_raises(relay_dir):
+    # #1: a typo in old_name must NOT silently "succeed" by returning the
+    # unrelated existing peer named new_name.
+    from downbeat.core import store
+    _peers(store, "RealPeer")
+    with pytest.raises(PeerNotFound):
+        store.rename_peer("typo-name", "RealPeer")
+
+
+def test_rename_into_stale_removed_peer_dir_rejected(relay_dir):
+    # #2: renaming to the name of a REMOVED peer whose message dirs still sit on
+    # disk must not merge the two peers' mail.
+    from downbeat.core import store
+    _peers(store, "A", "X")
+    store.send_message(from_peer="A", to_peer="X", subject="s", body="x")  # inbox/X/
+    store.remove_peer("X")  # pops sessions but leaves inbox/X/ on disk
+    assert (relay_dir / "inbox" / "X").exists()
+
+    with pytest.raises(PeerNameCollision):
+        store.rename_peer("A", "X")
+    # A untouched by the rejected rename.
+    assert store.get_peer("A").name == "A"
+
+
+def test_rename_rejects_path_separator_and_dotdot(relay_dir):
+    # #3: new_name becomes a directory + sessions key; reject path traversal.
+    from downbeat.core import store
+    _peers(store, "A")
+    for bad in ("a/b", "..", ".", "x\\y", "  "):
+        with pytest.raises(InvalidPeerName):
+            store.rename_peer("A", bad)
+    # And nothing escaped the relay tree.
+    assert not (relay_dir.parent / "b").exists()
+
+
+def test_register_rejects_path_separator_name(relay_dir):
+    # #3 at the shared root: register_peer validates too.
+    from downbeat.core import store
+    with pytest.raises(InvalidPeerName):
+        store.register_peer(name="../evil", session_id="s", cwd="/tmp", role="child")
+
+
+def test_rename_skips_corrupt_unrelated_message(relay_dir):
+    # #4: a corrupt file in an unrelated peer's dir must not abort the rename.
+    from downbeat.core import store
+    _peers(store, "A", "B", "C")
+    m1 = store.send_message(from_peer="B", to_peer="A", subject="s", body="x")
+    m2 = store.send_message(from_peer="A", to_peer="B", subject="s", body="x")
+    store.send_message(from_peer="B", to_peer="C", subject="s", body="x")  # inbox/C/ exists
+    corrupt = relay_dir / "inbox" / "C" / "deadbeefdeadbeef.json"
+    corrupt.write_text("{ this is not valid json")
+
+    store.rename_peer("A", "A2")  # must not raise
+
+    assert {m.id for m in store.list_thread("A2", "B")} == {m1.id, m2.id}
+    assert corrupt.exists()  # untouched, not deleted
+
+
+def test_rename_clears_marker_on_success(relay_dir):
+    from downbeat.core import store
+    _peers(store, "A", "B")
+    store.send_message(from_peer="B", to_peer="A", subject="s", body="x")
+    store.rename_peer("A", "A2")
+    assert not (relay_dir / ".rename-in-progress.json").exists()
