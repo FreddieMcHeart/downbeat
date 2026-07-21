@@ -1,6 +1,9 @@
 # Stable peer identity, separate from display name
 
-**Status:** design — recommendation, pending maintainer decision
+**Status:** decided (2026-07-21) — **Option B shipped**, Option A is the accepted
+target architecture, deferred until #42 (message-store schema versioning) lands.
+Maintainer chose "B now + schedule A later" per the fork in "Open decisions" below;
+the rename operation is resumable (idempotent per-file), not fully transactional.
 **Issue:** [#40 — Stable peer identity, separate from display name](https://github.com/FreddieMcHeart/downbeat/issues/40)
 **Related:** [#42 — Message-store schema versioning](https://github.com/FreddieMcHeart/downbeat/issues/42) (dependency for a clean Option A migration, see below)
 
