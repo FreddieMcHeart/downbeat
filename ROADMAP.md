@@ -51,12 +51,14 @@ take one, opening an issue (or a PR) is the way in — see
 
 ## Next — planned, shape is clear
 
-- **Stable peer identity, separate from display name.** Today a peer's name is
-  baked into every message file's `from`/`to`, so renaming a peer breaks thread
-  continuity unless ~100 files are migrated by hand. Fix is one of: a stable
-  identity key (session id / UUID) with the name as a pure display alias, **or**
-  an official `downbeat peers rename` that migrates history atomically. Either
-  way, renaming must stop being a data-corrupting operation.
+- **Stable peer identity, separate from display name.** _Option B shipped:_
+  `downbeat peers rename` now migrates a peer's full history atomically
+  (messages, directories, parent pointers, groups), so renaming is no longer a
+  data-corrupting operation. What remains is _Option A_ — a stable identity key
+  (UUID) with the name as a pure display alias, so no code path ever compares a
+  stored historical name against a live one. Option A rewrites what every
+  message's `from`/`to` field *means*, so it's gated on message-store schema
+  versioning (below) landing first.
 - **Per-peer autonomy control.** A peer's relay-monitor autonomy (auto-execute
   vs. surface-and-ask) is fixed at registration by `role` and can't be changed
   afterward. Now that any node can be both a parent and a child, autonomy no

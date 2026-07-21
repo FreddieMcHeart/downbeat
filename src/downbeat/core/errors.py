@@ -10,6 +10,14 @@ class MessageNotFound(RelayError):
     """Raised when an operation references an unknown message id."""
 
 
+class PeerNameCollision(RelayError):
+    """Raised when renaming a peer to a name that is already registered."""
+
+
+class InvalidPeerName(RelayError):
+    """Raised when a peer name is empty or whitespace-only."""
+
+
 class MessageLocked(RelayError):
     """Raised when an edit is attempted on a message past its NEW state."""
 

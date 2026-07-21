@@ -11,13 +11,15 @@ import tempfile
 from datetime import UTC
 from pathlib import Path
 
-from . import paths
+from . import groups, paths
 from .errors import (
     AmbiguousParent,
     CycleDetected,
     InvalidParent,
+    InvalidPeerName,
     MessageLocked,
     MessageNotFound,
+    PeerNameCollision,
     PeerNotFound,
     StoreCorrupt,
 )
@@ -239,6 +241,103 @@ def remove_peer(name: str) -> None:
         if peer.get("parent") == name:
             peer["parent"] = None if grandparent == child_name else grandparent
     _save_sessions(sessions)
+
+
+def _rename_in_groups(old_name: str, new_name: str) -> None:
+    """Rewrite old_name → new_name in every groups.json membership list.
+    Idempotent: a group already listing new_name (not old_name) is untouched."""
+    for gname, members in groups.list_groups().items():
+        if old_name in members:
+            groups.save_group(gname, [new_name if m == old_name else m
+                                      for m in members])
+
+
+def rename_peer(old_name: str, new_name: str) -> Peer:
+    """Atomically rename a peer, migrating ALL of its on-disk identity:
+
+    - rewrites `from`/`to` on every message file across inbox/, delivered/,
+      processed/, quarantine/ (both mail sent BY and TO the peer);
+    - relocates each of the four per-peer message directories
+      `<base>/<old_name>/` → `<base>/<new_name>/`;
+    - re-keys the sessions.json entry (dict key + the entry's own `name`
+      field) and repoints every OTHER peer whose `parent == old_name`;
+    - updates groups.json membership.
+
+    Not transactional but **resumable**: every step is idempotent, so
+    re-running the same (old_name, new_name) after an interrupted run
+    converges to the fully-renamed state. Per-file writes go through the
+    store's atomic write-then-replace, so a crash never tears an individual
+    file — it can only leave some references migrated and others not, which a
+    second call finishes. Chosen over true multi-file rollback deliberately
+    (issue #40, Option B): the store's atomicity primitive is per-file, so
+    real rollback would be new machinery.
+    """
+    new_name = (new_name or "").strip()
+    if not new_name:
+        raise InvalidPeerName("new peer name must be non-empty")
+    sessions = _load_sessions()
+    if old_name not in sessions:
+        # Resume path: a prior run already re-keyed sessions.json. Finish any
+        # groups.json rewrite it might not have reached, then report success.
+        if new_name in sessions:
+            _rename_in_groups(old_name, new_name)
+            return Peer.from_dict(sessions[new_name])
+        raise PeerNotFound(old_name)
+    if new_name == old_name:
+        return Peer.from_dict(sessions[old_name])
+    if new_name in sessions:
+        raise PeerNameCollision(new_name)
+
+    bases = (paths.INBOX_DIR, paths.DELIVERED_DIR,
+             paths.PROCESSED_DIR, paths.QUARANTINE_DIR)
+
+    # 1+2. Per message file: rewrite from/to (old→new), and relocate every file
+    # that lives in old's own per-peer dir into new's dir. Idempotent — a second
+    # pass finds nothing matching old, and a file already at the new path is
+    # simply rewritten with identical content.
+    for base in bases:
+        if not base.exists():
+            continue
+        for peer_dir in list(base.iterdir()):
+            if not peer_dir.is_dir():
+                continue
+            owned_by_old = peer_dir.name == old_name
+            for f in list(peer_dir.glob("*.json")):
+                msg = _read_message_at(f)
+                d = msg.to_dict()
+                changed = False
+                if d["from"] == old_name:
+                    d["from"] = new_name
+                    changed = True
+                if d["to"] == old_name:
+                    d["to"] = new_name
+                    changed = True
+                if owned_by_old:
+                    # Write to new dir first, then drop the old copy (same
+                    # write-then-unlink order as deliver_messages/ack_messages).
+                    dest = base / new_name / f.name
+                    _atomic_write_text(dest, Message.from_dict(d).to_json())
+                    f.unlink()
+                elif changed:
+                    _atomic_write_text(f, Message.from_dict(d).to_json())
+        old_dir = base / old_name
+        if old_dir.exists() and old_dir.is_dir() and not any(old_dir.iterdir()):
+            old_dir.rmdir()
+
+    # 3. sessions.json: re-key, fix the entry's own name, repoint parents.
+    entry = sessions.pop(old_name)
+    entry["name"] = new_name
+    sessions[new_name] = entry
+    for peer in sessions.values():
+        if peer.get("parent") == old_name:
+            peer["parent"] = new_name
+    _save_sessions(sessions)
+
+    # 4. groups.json membership.
+    _rename_in_groups(old_name, new_name)
+
+    _log.info("rename peer %s -> %s", old_name, new_name)
+    return Peer.from_dict(sessions[new_name])
 
 
 def touch_peer(name: str) -> None:

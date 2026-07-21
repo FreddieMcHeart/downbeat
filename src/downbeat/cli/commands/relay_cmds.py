@@ -6,7 +6,14 @@ import sys
 from datetime import UTC, datetime, timedelta
 
 from ...core import session, store
-from ...core.errors import AmbiguousParent, InvalidParent, MessageNotFound, PeerNotFound
+from ...core.errors import (
+    AmbiguousParent,
+    InvalidParent,
+    InvalidPeerName,
+    MessageNotFound,
+    PeerNameCollision,
+    PeerNotFound,
+)
 
 
 def _detect_peer_or_error(name: str | None, *, flag: str = "--peer") -> str:
@@ -132,6 +139,15 @@ def cmd_peers(args: argparse.Namespace) -> int:
             print(f"error: {e}", file=sys.stderr)
             return 1
         print(f"{peer.name}: parent set to {peer.parent}")
+        return 0
+    if getattr(args, "peers_action", None) == "rename":
+        try:
+            peer = store.rename_peer(args.old_name, args.new_name)
+        except (PeerNotFound, PeerNameCollision, InvalidPeerName) as e:
+            print(f"error: {e}", file=sys.stderr)
+            return 1
+        print(f"renamed: {args.old_name} → {peer.name} "
+              "(messages, directories, parent pointers, and groups migrated)")
         return 0
     peers = store.list_peers()
     if not peers:

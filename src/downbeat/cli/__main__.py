@@ -100,6 +100,12 @@ def build_parser() -> argparse.ArgumentParser:
         parents=[debug_parent])
     sp_peers_setparent.add_argument("child_name")
     sp_peers_setparent.add_argument("parent_name")
+    sp_peers_rename = sp_peers_sub.add_parser(
+        "rename",
+        help="rename a peer, atomically migrating all message history + directories",
+        parents=[debug_parent])
+    sp_peers_rename.add_argument("old_name")
+    sp_peers_rename.add_argument("new_name")
     sp_peers.set_defaults(func=relay_cmds.cmd_peers)
 
     sp_gc = sub.add_parser("gc-stale", help="prune stale sessions",
