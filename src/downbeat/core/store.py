@@ -135,6 +135,7 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
                   claude_pid: int | None = None,
                   claude_pid_start: str | None = None,
                   parent: str | None = None) -> Peer:
+    name = _validate_peer_name(name)
     sessions = _load_sessions()
     existing = sessions.get(name)
     registered_at = existing["registered_at"] if existing else now_iso()
@@ -243,6 +244,35 @@ def remove_peer(name: str) -> None:
     _save_sessions(sessions)
 
 
+def _validate_peer_name(name: str) -> str:
+    """Return the stripped name, or raise InvalidPeerName. A peer name becomes
+    a filesystem directory (`inbox/<name>/`) and a sessions.json key, so it may
+    not be empty, `.`/`..`, or contain a path separator or NUL — otherwise a
+    name like `../evil` would write message files outside the relay tree."""
+    name = (name or "").strip()
+    if not name:
+        raise InvalidPeerName("peer name must be non-empty")
+    if name in (".", "..") or "\x00" in name or "/" in name or "\\" in name:
+        raise InvalidPeerName(
+            f"invalid peer name {name!r}: must not be '.'/'..' or contain "
+            "path separators")
+    return name
+
+
+def _rename_marker() -> Path:
+    return paths.RELAY_DIR / ".rename-in-progress.json"
+
+
+def _read_rename_marker() -> dict | None:
+    p = _rename_marker()
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
 def _rename_in_groups(old_name: str, new_name: str) -> None:
     """Rewrite old_name → new_name in every groups.json membership list.
     Idempotent: a group already listing new_name (not old_name) is untouched."""
@@ -263,24 +293,34 @@ def rename_peer(old_name: str, new_name: str) -> Peer:
       field) and repoints every OTHER peer whose `parent == old_name`;
     - updates groups.json membership.
 
-    Not transactional but **resumable**: every step is idempotent, so
-    re-running the same (old_name, new_name) after an interrupted run
-    converges to the fully-renamed state. Per-file writes go through the
-    store's atomic write-then-replace, so a crash never tears an individual
-    file — it can only leave some references migrated and others not, which a
-    second call finishes. Chosen over true multi-file rollback deliberately
-    (issue #40, Option B): the store's atomicity primitive is per-file, so
-    real rollback would be new machinery.
+    Not transactional but **resumable**: a `.rename-in-progress.json` marker is
+    written before the first move and cleared on success, so re-running the same
+    (old_name, new_name) after an interrupted run is recognized as a resume and
+    converges to the fully-renamed state (per-file writes go through the store's
+    atomic write-then-replace, so a crash never tears an individual file). The
+    marker also lets a fresh rename reject a `new_name` whose message directory
+    already exists on disk (a stale removed-peer dir) without mistaking a
+    legitimate resume for that collision. Chosen over true multi-file rollback
+    deliberately (issue #40, Option B): the store's atomicity primitive is
+    per-file, so real rollback would be new machinery.
+
+    Raises PeerNotFound (old_name absent and not a resume), PeerNameCollision
+    (new_name already registered, or a stale on-disk dir), or InvalidPeerName.
     """
-    new_name = (new_name or "").strip()
-    if not new_name:
-        raise InvalidPeerName("new peer name must be non-empty")
+    new_name = _validate_peer_name(new_name)
     sessions = _load_sessions()
+    marker = _read_rename_marker()
+    resuming = (marker is not None
+                and marker.get("from") == old_name
+                and marker.get("to") == new_name)
+
     if old_name not in sessions:
-        # Resume path: a prior run already re-keyed sessions.json. Finish any
-        # groups.json rewrite it might not have reached, then report success.
-        if new_name in sessions:
+        # old is gone. Only a genuine in-progress rename (matching marker) may
+        # be finished here; otherwise old simply never existed. Without this
+        # gate, `rename('typo', an_existing_peer)` silently "succeeds".
+        if resuming and new_name in sessions:
             _rename_in_groups(old_name, new_name)
+            _rename_marker().unlink(missing_ok=True)
             return Peer.from_dict(sessions[new_name])
         raise PeerNotFound(old_name)
     if new_name == old_name:
@@ -290,6 +330,20 @@ def rename_peer(old_name: str, new_name: str) -> Peer:
 
     bases = (paths.INBOX_DIR, paths.DELIVERED_DIR,
              paths.PROCESSED_DIR, paths.QUARANTINE_DIR)
+
+    if not resuming:
+        # A per-peer directory already existing for an unregistered new_name is
+        # a stale removed-peer directory (remove_peer leaves message dirs on
+        # disk); migrating into it would merge two peers' mail under one name.
+        # A genuine resume (marker matches) legitimately has partial new dirs.
+        for base in bases:
+            if (base / new_name).exists():
+                raise PeerNameCollision(
+                    f"{new_name}: a message directory for this name already "
+                    "exists on disk (left by a removed peer); remove it first")
+
+    _atomic_write_text(_rename_marker(),
+                       json.dumps({"from": old_name, "to": new_name}))
 
     # 1+2. Per message file: rewrite from/to (old→new), and relocate every file
     # that lives in old's own per-peer dir into new's dir. Idempotent — a second
@@ -303,7 +357,15 @@ def rename_peer(old_name: str, new_name: str) -> Peer:
                 continue
             owned_by_old = peer_dir.name == old_name
             for f in list(peer_dir.glob("*.json")):
-                msg = _read_message_at(f)
+                try:
+                    msg = _read_message_at(f)
+                except StoreCorrupt:
+                    # One unreadable file (even in an unrelated peer's dir, which
+                    # this full-tree scan must visit to catch from==old) must not
+                    # abort — and block every resume of — the whole rename.
+                    _log.warning("rename %s->%s: skipping unreadable %s",
+                                 old_name, new_name, f)
+                    continue
                 d = msg.to_dict()
                 changed = False
                 if d["from"] == old_name:
@@ -336,6 +398,7 @@ def rename_peer(old_name: str, new_name: str) -> Peer:
     # 4. groups.json membership.
     _rename_in_groups(old_name, new_name)
 
+    _rename_marker().unlink(missing_ok=True)
     _log.info("rename peer %s -> %s", old_name, new_name)
     return Peer.from_dict(sessions[new_name])
 
