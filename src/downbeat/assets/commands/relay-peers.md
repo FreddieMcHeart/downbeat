@@ -6,7 +6,7 @@ argument-hint: (no arguments)
 List all registered relay sessions. Run:
 
 ```
-~/.claude/relay/relay.py peers
+downbeat peers
 ```
 
 Liveness column meaning:
@@ -14,4 +14,6 @@ Liveness column meaning:
 - `idle(Ns)` — peer hasn't written to its transcript for N seconds
 - `gone` — JSONL no longer exists (the session was deleted/cleaned)
 
-If you suspect stale entries, run `~/.claude/relay/relay.py gc-stale` to prune.
+If you suspect stale entries, run `downbeat gc-stale` to prune.
+
+<!-- Legacy alias: `~/.claude/relay/relay.py peers` / `… gc-stale` (a shim `downbeat init` installs) still works, but `downbeat` is canonical — prefer it. -->

@@ -24,7 +24,7 @@ This composes two existing primitives: the `/loop` skill (re-fires a prompt on a
 4. **Start the loop** — `/loop <interval> "<prompt>"`:
 
    - **role == child** (autonomous executor — consent-at-startup per constitution Art. 11):
-     > Process your relay inbox now. The relay-inbox hook has injected any new messages as context above. For each NEW message: execute the task per your role briefing (you are an executor — route reads through reader sub-agents, follow cost discipline, no [TICKET] in this repo's commits), then `~/.claude/relay/relay.py reply <id> "<results>"` (replying auto-acks). If there are NO new messages this tick, do nothing and stay quiet. Never re-do an already-handled message. If a task is ambiguous or carries irreversible/destructive risk, do NOT auto-execute it — surface it and wait for the human instead.
+     > Process your relay inbox now. The relay-inbox hook has injected any new messages as context above. For each NEW message: execute the task per your role briefing (you are an executor — route reads through reader sub-agents, follow cost discipline, no [TICKET] in this repo's commits), then `downbeat reply <id> "<results>"` (replying auto-acks). If there are NO new messages this tick, do nothing and stay quiet. Never re-do an already-handled message. If a task is ambiguous or carries irreversible/destructive risk, do NOT auto-execute it — surface it and wait for the human instead.
 
    - **role == parent** (gated — surface only):
      > Check your relay inbox. If the hook injected new messages, surface them concisely (from / subject / id) and ask me how to handle each. Do NOT auto-execute, reply, or act on my behalf. If nothing new, stay quiet.
@@ -35,3 +35,5 @@ This composes two existing primitives: the `/loop` skill (re-fires a prompt on a
 
 - This is the **in-session self-driver**. For a passive nudge instead — a native OS notification when mail arrives for an idle peer — no separate command is needed: `downbeat tui` notifies automatically while open, and a Claude Code session's own hook covers the headless case.
 - The child autonomy here is **consent-at-startup**: you explicitly started the monitor on an executor session. It is scoped to executors, never auto-executes for a parent, and is stoppable. See `docs/platform/constitution.md` Art. 11.
+
+<!-- Legacy alias: `~/.claude/relay/relay.py <cmd>` (a shim `downbeat init` installs) still works, but `downbeat` is canonical — prefer it. -->

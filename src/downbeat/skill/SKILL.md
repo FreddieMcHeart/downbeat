@@ -1,11 +1,29 @@
 ---
 name: downbeat
-description: Use when handing off work between parallel Claude Code sessions on this machine — Parent (planning/Opus) sending implementation prompts to a Child (executing) session, Child replying with results, or the user asking "did the other terminal receive/reply." Triggers on phrases like "send to other terminal", "hand off this phase", "ask the other Claude session", "send this to my child session", "relay message", and any /relay-* slash command. Invokes the local CLI `downbeat`.
+description: Use when coordinating or handing off work between parallel Claude Code sessions on one machine — sending a task or prompt to another running session, replying with results, or checking whether the other terminal received or answered. Triggers on phrasings like "send this to the other terminal/session/tab/window/pane", "hand off this task/phase", "ask/tell the other Claude session", "send to my child/parent session", "did the other session receive/reply?", "what did the other terminal say?", "check the relay inbox", "is my other session done?", "relay message", and any /relay-* slash command. Runs the local `downbeat` CLI.
 ---
 
 # Claude Relay
 
 Local file-based message broker for handing off work between parallel Claude Code sessions on the same machine.
+
+## Quick reference
+
+The CLI is `downbeat` (the `/relay-*` slash commands wrap these):
+
+| Need | Command |
+|---|---|
+| Who am I here? | `downbeat whoami` (`--json` for `{name, role}`) |
+| Who can I reach? | `downbeat peers` |
+| Send work to a peer | `downbeat send <peer> "<subject>" "<body>"` |
+| Reply to a message | `downbeat reply <id> "<body>"` (auto-acks the original) |
+| Check my mail | `downbeat inbox` |
+| Confirm consumption | `downbeat ack <id>…` (only if you won't reply) |
+| Full management UI | `downbeat tui` |
+
+> Legacy alias: `~/.claude/relay/relay.py <cmd>` is a shim `downbeat init` installs so
+> old slash commands keep working. `downbeat` is canonical — a fresh install that skipped
+> `downbeat init` has no shim, so always prefer `downbeat`.
 
 ## When to use
 
@@ -42,7 +60,7 @@ When you DO offer, use AskUserQuestion with:
 
 Options:
 - "Yes, poll every 3 min" — invoke /loop with:
-  `/loop 3m Check the relay inbox via ~/.claude/relay/relay.py inbox. If there are new messages addressed to a peer I'm registered as, surface them concisely (sender, subject, id) and ask the user how to handle each. If the inbox is empty, stay silent — do not interrupt with "no messages".`
+  `/loop 3m Check the relay inbox via downbeat inbox. If there are new messages addressed to a peer I'm registered as, surface them concisely (sender, subject, id) and ask the user how to handle each. If the inbox is empty, stay silent — do not interrupt with "no messages".`
 - "Yes, poll every 5 min" — same instruction, /loop 5m
 - "No, I'll check manually" — do not start a loop. Record this choice so we don't re-offer in this session.
 
@@ -114,7 +132,7 @@ When you process a Relay inbox banner (the `### Relay inbox — N new message(s)
 block), after you've taken action on the messages (replied, internalized, or
 decided to ignore), run:
 
-    ~/.claude/relay/relay.py ack <id1> <id2> ...
+    downbeat ack <id1> <id2> ...
 
 This confirms consumption. Without an ack, the relay's reconciler re-queues
 unacknowledged messages after 30 minutes (up to 3 redeliveries, then

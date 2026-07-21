@@ -7,7 +7,9 @@ Reply to a previously received relay message. Arguments: $ARGUMENTS
 
 ## If `$ARGUMENTS` is EMPTY — treat this as an INBOX CHECK, not a reply
 
-A bare `/relay-reply` (no `<msg_id>`) is the user's inbox-check shortcut. Do this:
+**This command is overloaded on purpose:** with no `<msg_id>` it does NOT reply —
+it checks your inbox. (There is deliberately no separate `/relay-inbox` command;
+a bare `/relay-reply` is the inbox-check shortcut.) Do this:
 
 1. Look at the CURRENT turn's context for a `### Relay inbox — N new message(s)` banner (the hook drains the inbox into context on each prompt). That block IS your pending mail.
 2. If none is in context, verify directly: run `downbeat inbox --peer <me>` (peer name from `downbeat whoami` if unknown). Do NOT `ls`/read raw JSON under `inbox/<me>/` or `delivered/<me>/` by hand — the default view already excludes `processed/` (archived-on-reply) and is the correct "still genuinely open" set; manually inspecting only `inbox/<me>/` misses messages the relay-inbox hook already drained into `delivered/<me>/`, which are unreplied but not "new."
@@ -21,7 +23,7 @@ Parse `$ARGUMENTS` as: `<msg_id> <body...>` where `<msg_id>` is the 16-char hex 
 If the body is long or multi-line:
 
 ```
-~/.claude/relay/relay.py reply <msg_id> "$(cat <<'EOF'
+downbeat reply <msg_id> "$(cat <<'EOF'
 <body>
 EOF
 )"
@@ -30,7 +32,9 @@ EOF
 Otherwise:
 
 ```
-~/.claude/relay/relay.py reply <msg_id> "<body>"
+downbeat reply <msg_id> "<body>"
 ```
 
-The reply is routed to the original sender's inbox using the `from` field of the message stored under `~/.claude/relay/processed/<your_name>/<msg_id>.json`. If the CLI errors with "msg_id not found", the message was either never received here or already replied to in a way that moved it.
+The reply is routed to the original sender's inbox using the `from` field of the message stored under `~/.claude/relay/processed/<your_name>/<msg_id>.json` (that path is the relay's on-disk data dir, not a CLI). If the CLI errors with "msg_id not found", the message was either never received here or already replied to in a way that moved it.
+
+<!-- Legacy alias: `~/.claude/relay/relay.py reply …` (a shim `downbeat init` installs) still works, but `downbeat` is canonical — prefer it. -->
