@@ -151,6 +151,11 @@ def build_parser() -> argparse.ArgumentParser:
                                parents=[debug_parent])
     sp_whoami.add_argument("--json", action="store_true",
                            help='output as JSON {"name": ..., "role": ...}')
+    sp_whoami.add_argument("--peer", default=None,
+                           help="peer name to report; use when auto-detect "
+                                "can't identify this session (e.g. background "
+                                "sessions whose session_id differs from the one "
+                                "registered)")
     sp_whoami.set_defaults(func=relay_cmds.cmd_whoami)
 
     sp_tui = sub.add_parser("tui", help="launch the TUI",

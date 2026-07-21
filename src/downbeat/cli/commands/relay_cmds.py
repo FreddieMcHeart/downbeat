@@ -9,12 +9,17 @@ from ...core import session, store
 from ...core.errors import AmbiguousParent, InvalidParent, MessageNotFound, PeerNotFound
 
 
-def _detect_peer_or_error(name: str | None) -> str:
+def _detect_peer_or_error(name: str | None, *, flag: str = "--peer") -> str:
+    # `flag` is the override option the CALLING subcommand exposes for passing
+    # the peer name explicitly — `--peer` for inbox/quarantine/whoami, `--from`
+    # for send/reply. It only names the right escape hatch in the error text;
+    # a shared hardcoded flag would tell an inbox caller to "pass --from", which
+    # inbox doesn't accept (the exact trap a background session fell into).
     if name:
         return name
     sid = session.detect_session_id()
     if not sid:
-        print("error: could not detect session id; pass --from explicitly",
+        print(f"error: could not detect session id; pass {flag} explicitly",
               file=sys.stderr)
         raise SystemExit(2)
     # Fast path: direct session_id match
@@ -40,7 +45,7 @@ def _detect_peer_or_error(name: str | None) -> str:
     if len(candidates) > 1:
         names = [c.name for c in candidates]
         print(f"error: multiple peers ({names}) share claude_pid={claude_pid}; "
-              "pass --from explicitly to disambiguate", file=sys.stderr)
+              f"pass {flag} explicitly to disambiguate", file=sys.stderr)
         raise SystemExit(2)
     print(f"error: session {sid} is not registered; run "
           "`downbeat register`", file=sys.stderr)
@@ -82,7 +87,7 @@ def cmd_register(args: argparse.Namespace) -> int:
 
 
 def cmd_send(args: argparse.Namespace) -> int:
-    sender = _detect_peer_or_error(args.from_peer)
+    sender = _detect_peer_or_error(args.from_peer, flag="--from")
     try:
         msg = store.send_message(from_peer=sender, to_peer=args.to,
                                  subject=args.subject, body=args.body,
@@ -95,7 +100,7 @@ def cmd_send(args: argparse.Namespace) -> int:
 
 
 def cmd_reply(args: argparse.Namespace) -> int:
-    sender = _detect_peer_or_error(args.from_peer)
+    sender = _detect_peer_or_error(args.from_peer, flag="--from")
     try:
         reply = store.reply_to(args.msg_id, body=args.body, from_peer=sender,
                                kind=args.kind)
@@ -107,7 +112,7 @@ def cmd_reply(args: argparse.Namespace) -> int:
 
 
 def cmd_inbox(args: argparse.Namespace) -> int:
-    peer = _detect_peer_or_error(args.peer)
+    peer = _detect_peer_or_error(args.peer, flag="--peer")
     msgs = store.list_inbox(peer, include_archived=args.all)
     if not msgs:
         print(f"inbox empty for {peer}")
@@ -187,12 +192,31 @@ def cmd_drain(args: argparse.Namespace) -> int:
 
 
 def cmd_ack(args: argparse.Namespace) -> int:
+    # ack only acts on delivered/. When it can't ack an id, say WHY — a bare
+    # "· <id>" reads as a mystery failure. The common background-session case
+    # is mail still sitting in inbox/ (never drained to delivered/), which ack
+    # legitimately can't touch; without this the recipient thinks ack is broken.
     results = store.ack_messages(args.ids)
     okay = sum(1 for v in results.values() if v)
     print(f"acked {okay}/{len(args.ids)}")
     for mid, ok in results.items():
-        marker = "✓" if ok else "·"
-        print(f"  {marker} {mid}")
+        if ok:
+            print(f"  ✓ {mid}")
+            continue
+        loc = store.locate_message(mid)
+        if loc == "inbox":
+            reason = ("still in inbox — never delivered, so there is nothing to "
+                      "ack. Replying auto-acks; or drain it from the recipient "
+                      "session (a turn there, or its TUI)")
+        elif loc == "processed":
+            reason = "already processed/acked"
+        elif loc == "quarantine":
+            reason = "in quarantine — `downbeat quarantine requeue` first"
+        elif loc is None:
+            reason = "not found in this relay"
+        else:
+            reason = f"in {loc}"
+        print(f"  · {mid} — {reason}")
     return 0 if okay == len(args.ids) else 2
 
 
@@ -208,7 +232,7 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
 
 
 def cmd_quarantine(args: argparse.Namespace) -> int:
-    peer = _detect_peer_or_error(args.peer)
+    peer = _detect_peer_or_error(args.peer, flag="--peer")
     action = args.quarantine_action
     if action == "list":
         msgs = store.list_quarantined(peer)
@@ -231,7 +255,7 @@ def cmd_quarantine(args: argparse.Namespace) -> int:
 
 def cmd_whoami(args: argparse.Namespace) -> int:
     import json
-    name = _detect_peer_or_error(None)
+    name = _detect_peer_or_error(args.peer, flag="--peer")
     peer = store.get_peer(name)
     if args.json:
         print(json.dumps({"name": peer.name, "role": peer.role}))
