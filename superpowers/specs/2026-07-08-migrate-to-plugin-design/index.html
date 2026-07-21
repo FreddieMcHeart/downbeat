@@ -1,0 +1,786 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine">
+      
+      
+      
+        <link rel="canonical" href="https://freddiemcheart.github.io/downbeat/superpowers/specs/2026-07-08-migrate-to-plugin-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>downbeat init --migrate-to-plugin — design draft - downbeat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#downbeat-init-migrate-to-plugin-design-draft" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="downbeat" class="md-header__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            downbeat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              downbeat init --migrate-to-plugin — design draft
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="downbeat" class="md-nav__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    downbeat
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-already-exists-and-is-reusable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What already exists and is reusable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#proposed-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Proposed design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hooks_manifestjson-hookshooksjson-parity-new-test-separate-from-migration-itself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        hooks_manifest.json / hooks/hooks.json parity — new test, separate from migration itself
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-does-not-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What this does NOT change
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#review-feedback-incorporated-2026-07-08-from-claude-cost-optimazingopus-review" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Review feedback incorporated (2026-07-08, from Claude-Cost-Optimazing/Opus review)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/FreddieMcHeart/downbeat/edit/main/docs/superpowers/specs/2026-07-08-migrate-to-plugin-design.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="downbeat-init-migrate-to-plugin-design-draft"><code>downbeat init --migrate-to-plugin</code> — design draft<a class="headerlink" href="#downbeat-init-migrate-to-plugin-design-draft" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Status: DRAFT, not implemented. Scoped per relay request from <code>Claude-Cost-Optimazing</code>
+(2026-07-08), who is doing the equivalent for <code>claude-core-hooks</code>/<code>install.sh</code> in parallel.
+Revised after their full review (<code>d5159d102bb7</code>, 2026-07-08) — see "Review feedback
+incorporated" at the bottom for what changed and why.</p>
+</blockquote>
+<h2 id="problem">Problem<a class="headerlink" href="#problem" title="Permanent link">&para;</a></h2>
+<p><code>downbeat init</code>'s hand-merge (<code>_register_hooks</code> in <code>init_cmd.py</code>) idempotently writes relay
+hook registrations directly into <code>~/.claude/settings.json</code>. Since PR #4 (v0.4.0), a Claude Code
+plugin (<code>.claude-plugin/</code> + <code>hooks/hooks.json</code>) exists as a second, preferred registration path.
+<code>_is_plugin_enabled()</code> now makes <code>init</code> skip the hand-merge when the plugin is active — but a
+user who ran <code>init</code> <strong>before</strong> ever installing the plugin still has the old hand-merged entries
+sitting in <code>settings.json</code>. Once they install the plugin, both fire on every event
+(<code>docs/plugin.md</code> currently documents this as a manual fix-up with an explicit WARNING — see
+<code>decisions.md</code> row #15 correction). <code>--migrate-to-plugin</code> is the automated replacement for that
+manual step.</p>
+<h2 id="what-already-exists-and-is-reusable">What already exists and is reusable<a class="headerlink" href="#what-already-exists-and-is-reusable" title="Permanent link">&para;</a></h2>
+<p><code>_unregister_hooks()</code> (used today by <code>downbeat uninstall</code>) already implements the <strong>drop-empty-
+groups</strong> logic correctly:
+- removes a hook object from an entry's <code>hooks: [...]</code> list
+- if that empties the list, drops the whole entry from the event's list
+- if that empties the event's list, deletes the event key from <code>settings["hooks"]</code>
+- never touches entries/hooks that don't match, so non-relay neighbours (e.g. a
+  <code>cost-discipline</code> hook sharing the same <code>PostToolUse</code> entry) survive untouched</p>
+<p><strong>What's unsafe about reusing it as-is for <code>--migrate-to-plugin</code>:</strong> its match predicate is
+<code>n in (h.get("command") or "")</code> — a <strong>substring</strong> check against <code>HOOK_NAMES = ("relay-inbox.py",
+"relay-poll-offer.py")</code>. That's fine for <code>uninstall</code>, whose job is "remove everything downbeat
+ever wrote, no matter the exact form" — but wrong for a migration that must remove <em>only</em> the
+specific entries <code>_register_hooks</code> itself wrote, and leave alone anything else that happens to
+contain the same filename substring (a third-party hook wrapping <code>relay-inbox.py</code> in a shell
+one-liner, a differently-pathed copy from a previous <code>~/mama/claude-relay</code> install, etc.).</p>
+<h2 id="proposed-design">Proposed design<a class="headerlink" href="#proposed-design" title="Permanent link">&para;</a></h2>
+<p><strong>New matching primitive: exact command string, not substring.</strong> <code>_register_hooks</code> writes each
+hook's <code>command</code> as <code>str(hooks_dir / cmd_name)</code> — a fully deterministic absolute path given
+<code>hooks_manifest.json</code>'s <code>(event, matcher, command)</code> triples. <code>--migrate-to-plugin</code> computes that
+<em>exact</em> expected string per manifest entry and only removes a hook object whose <code>command</code> field
+is byte-identical to it, scoped to the matching <code>(event, matcher)</code> slot. This makes migration the
+precise inverse of registration — same manifest, same path-resolution function, opposite
+direction — rather than a second, drift-prone definition of "what counts as a relay hook."</p>
+<p><strong>Shared drop-empty-groups helper (not a re-implementation).</strong> Peer review correctly flagged
+that a standalone <code>_migrate_to_plugin</code> re-implementing drop-empty-groups with its own control
+flow would be untested by the existing <code>_unregister_hooks</code> suite — a second definition that can
+silently drift from the first. Fix: extract the group-pruning logic into one predicate-
+parameterized helper, and have <em>both</em> callers use it:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_remove_matching_hooks</span><span class="p">(</span><span class="n">hooks</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">match</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">],</span> <span class="nb">bool</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove every hook object for which match(hook_obj) is True, dropping</span>
+<span class="sd">    now-empty entries and now-empty event keys. Mutates `hooks` in place.</span>
+<span class="sd">    Returns event labels for the removed hooks (dupes = one removal each).&quot;&quot;&quot;</span>
+    <span class="n">removed</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">hooks</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="n">new_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">hooks</span><span class="p">[</span><span class="n">event</span><span class="p">]:</span>
+            <span class="n">ehooks</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hooks&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">kept</span> <span class="o">=</span> <span class="p">[</span><span class="n">h</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">ehooks</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">(</span><span class="n">h</span><span class="p">)]</span>
+            <span class="n">removed</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">event</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ehooks</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">kept</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="s2">&quot;hooks&quot;</span> <span class="ow">in</span> <span class="n">entry</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">kept</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;hooks&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kept</span>
+                    <span class="n">new_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+                <span class="c1"># else: drop-empty-groups, entry level</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">new_list</span><span class="p">:</span>
+            <span class="n">hooks</span><span class="p">[</span><span class="n">event</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_list</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">hooks</span><span class="p">[</span><span class="n">event</span><span class="p">]</span>           <span class="c1"># drop-empty-groups, event level</span>
+    <span class="k">return</span> <span class="n">removed</span>
+</code></pre></div>
+<p><code>_unregister_hooks</code> becomes a thin caller passing the existing substring predicate:
+<code>match=lambda h: any(n in (h.get("command") or "") for n in names)</code>. <code>_migrate_to_plugin</code> passes
+an exact-match predicate built from the manifest, scoped per <code>(event, matcher)</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_migrate_to_plugin</span><span class="p">(</span><span class="n">manifest</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">hooks_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">settings_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+                        <span class="n">backup_suffix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Remove exactly the hand-merged entries `_register_hooks` would have</span>
+<span class="sd">    written for this manifest+hooks_dir, via _remove_matching_hooks. Returns</span>
+<span class="sd">    {removed: [...], backup}. Raises SettingsParseError on malformed JSON —</span>
+<span class="sd">    see &quot;malformed settings.json&quot; note below; caller must catch it.&quot;&quot;&quot;</span>
+    <span class="n">settings</span><span class="p">,</span> <span class="n">raw</span> <span class="o">=</span> <span class="n">_load_settings</span><span class="p">(</span><span class="n">settings_path</span><span class="p">)</span>  <span class="c1"># raises SettingsParseError</span>
+    <span class="k">if</span> <span class="n">raw</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>                                  <span class="c1"># on bad JSON; raw is None</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;removed&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;backup&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>        <span class="c1"># only for file-not-found</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s2">&quot;event&quot;</span><span class="p">],</span> <span class="n">e</span><span class="p">[</span><span class="s2">&quot;matcher&quot;</span><span class="p">]):</span> <span class="nb">str</span><span class="p">(</span><span class="n">hooks_dir</span> <span class="o">/</span> <span class="n">e</span><span class="p">[</span><span class="s2">&quot;command&quot;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">manifest</span><span class="p">[</span><span class="s2">&quot;events&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+    <span class="n">hooks</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hooks&quot;</span><span class="p">,</span> <span class="p">{})</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">match</span><span class="p">(</span><span class="n">h</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="c1"># Scope by (event, matcher) is implicit: _remove_matching_hooks already</span>
+        <span class="c1"># iterates per-event, and matcher-scoping happens by only checking</span>
+        <span class="c1"># commands present in slots this manifest actually targets — a hook</span>
+        <span class="c1"># object&#39;s own command is either byte-identical to some manifest</span>
+        <span class="c1"># entry&#39;s expected string or it isn&#39;t, regardless of which slot it&#39;s</span>
+        <span class="c1"># physically sitting in, since exact-match already can&#39;t false-positive</span>
+        <span class="c1"># across (event, matcher) pairs the way substring match could.</span>
+        <span class="k">return</span> <span class="n">h</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;command&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="n">expected</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+
+    <span class="n">removed</span> <span class="o">=</span> <span class="n">_remove_matching_hooks</span><span class="p">(</span><span class="n">hooks</span><span class="p">,</span> <span class="n">match</span><span class="p">)</span>
+    <span class="n">changed</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">removed</span><span class="p">)</span>
+    <span class="n">backup</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">changed</span><span class="p">:</span>
+        <span class="n">backup</span> <span class="o">=</span> <span class="n">settings_path</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;settings.json.bak-</span><span class="si">{</span><span class="n">backup_suffix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">backup</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">raw</span><span class="p">)</span>
+        <span class="n">_atomic_write_json</span><span class="p">(</span><span class="n">settings_path</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;removed&quot;</span><span class="p">:</span> <span class="n">removed</span><span class="p">,</span> <span class="s2">&quot;backup&quot;</span><span class="p">:</span> <span class="n">backup</span><span class="p">}</span>
+</code></pre></div>
+<p>This reuses <code>_load_settings</code>/<code>_atomic_write_json</code> as-is, and now genuinely reuses drop-empty-
+groups (not a parallel copy) via <code>_remove_matching_hooks</code>. <code>_unregister_hooks</code>'s own tests keep
+covering that shared logic; <code>_migrate_to_plugin</code> only needs new tests for its match predicate
+and the safety gate below.</p>
+<p><strong>Malformed <code>settings.json</code>: migrate raises, it does not silently skip.</strong> <code>_load_settings</code>
+returns <code>raw=None</code> only when the file doesn't exist; it <strong>raises <code>SettingsParseError</code></strong> on
+invalid JSON (confirmed against current code — the earlier draft's comment describing this was
+wrong, per review). <code>uninstall</code> swallows that case (<code>_unregister_hooks</code> catches
+<code>json.JSONDecodeError</code> itself and no-ops rather than touching a malformed file). <code>migrate</code> should
+<strong>not</strong> silently swallow it the same way: the CLI wiring must catch <code>SettingsParseError</code>
+explicitly and mirror what <code>run_init</code> already does for the hand-merge path today — back up the
+offending file, print an error, exit 1, touch nothing. Defensible (a migration silently no-oping
+on unparsable settings would be a worse surprise than a loud failure), but it needs to be visible
+in the CLI wiring, not left implicit.</p>
+<p><strong>Exact-match is precision-over-recall by design — document this explicitly.</strong> If a legacy
+command string doesn't byte-match today's derivation (e.g. <code>$HOME</code> changed since the original
+<code>init</code> run, a symlink got resolved differently, hand-editing), <code>--migrate-to-plugin</code> will
+silently leave that entry in place rather than guess. Safe (nothing breaks, no double-fire risk
+is <em>introduced</em> by migrate itself), but not a guaranteed-100%-clean result. <code>downbeat uninstall</code>'s
+substring match remains the real fallback for a stubborn leftover; the CLI's summary output
+should say so when <code>removed</code> is empty despite the plugin being enabled.</p>
+<p><strong>Safety gate: refuse to run unless the plugin is actually active.</strong> <code>--migrate-to-plugin</code> calls
+<code>_is_plugin_enabled()</code> first; if <code>False</code>, print an error and exit 1 without touching
+<code>settings.json</code>. Removing the legacy entries when the plugin <em>isn't</em> installed/enabled would
+leave the user with no working hooks at all — the one failure mode migration must never cause.
+Fails open-to-<code>False</code> on any <code>_is_plugin_enabled()</code> error (missing <code>claude</code> binary, bad JSON,
+timeout) — same as today, no change needed there per review.</p>
+<p><strong>CLI wiring.</strong> <code>downbeat init --migrate-to-plugin</code>:
+1. Runs the existing <code>_is_plugin_enabled()</code> gate (hard-fail if not enabled).
+2. Calls <code>_migrate_to_plugin(...)</code>, catching <code>SettingsParseError</code> explicitly (see above).
+3. Prints a summary (<code>removed: [...]</code>, backup path), or <code>"nothing to migrate"</code> if the legacy
+   entries were never there, or a note pointing at <code>downbeat uninstall</code> if <code>removed</code> came back
+   empty but hand-merged entries plausibly still exist under a non-matching command string.
+4. Does <strong>not</strong> also run the rest of <code>init</code>'s asset-install steps (skill/shim/hooks/commands
+   installation) — those are plugin-irrelevant once the plugin owns hook registration, and
+   re-running them would just be redundant work. <code>--migrate-to-plugin</code> is a standalone mode of
+   <code>init</code>, not a modifier layered on top of a full init run.</p>
+<p><strong>Orphaned files: leave them — scope boundary, not risk-aversion.</strong> <code>--migrate-to-plugin</code>'s one
+job is de-duplicating <code>settings.json</code>; file cleanup (<code>~/.claude/hooks/relay-*.py</code>,
+<code>commands/relay-*.md</code>) is <code>uninstall</code>'s job already, and these aren't even inferred orphans — the
+same <code>HOOK_NAMES</code>/manifest already names them precisely, so removing them would be easy to add.
+The reason not to is scope, not uncertainty: migrate and uninstall should each do one thing.
+Print one hint line on migrate's success output ("stale hook/command files can be removed with
+<code>downbeat uninstall</code>") for discoverability. If file purge is ever wanted as part of migration
+itself, make it an explicit opt-in <code>--purge-files</code> flag later, not a default side effect.</p>
+<h2 id="hooks_manifestjson-hookshooksjson-parity-new-test-separate-from-migration-itself"><code>hooks_manifest.json</code> / <code>hooks/hooks.json</code> parity — new test, separate from migration itself<a class="headerlink" href="#hooks_manifestjson-hookshooksjson-parity-new-test-separate-from-migration-itself" title="Permanent link">&para;</a></h2>
+<p>Peer review's most important structural finding: <code>_register_hooks</code> and <code>_migrate_to_plugin</code> both
+derive from <code>hooks_manifest.json</code>, so they can't drift from <em>each other</em> — but nothing enforces
+parity between <code>hooks_manifest.json</code> (hand-merge source of truth) and <code>hooks/hooks.json</code> (the
+plugin's own source of truth). These are two independently hand-maintained files today; they
+happen to agree (<code>UserPromptSubmit</code>/<code>SessionStart(startup|resume)</code>/<code>PostToolUse(Bash)</code>, same two
+scripts), but nothing would catch it if a third relay hook binding were added to one and not the
+other — exactly the class of bug the peer's own <code>claude-core</code> work just hit for real (a
+<code>UserPromptSubmit</code> gap between their two lists). Add one test asserting both files enumerate the
+same <code>(event, matcher, command-basename)</code> set — cheap, and it directly targets this failure mode.
+Not part of <code>--migrate-to-plugin</code> itself, but should land in the same PR since it's the direct
+mitigation for the risk migration's design surfaced.</p>
+<h2 id="what-this-does-not-change">What this does NOT change<a class="headerlink" href="#what-this-does-not-change" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>_unregister_hooks</code>'s own substring-based "remove everything downbeat-ish" semantics for
+  <code>uninstall</code> are unchanged in behavior — only its internals now call the shared
+  <code>_remove_matching_hooks</code> helper instead of doing its own loop.</li>
+<li>No change to <code>_register_hooks</code>, <code>_is_plugin_enabled</code>, or the plugin's own <code>hooks/hooks.json</code>.</li>
+<li>No change to <code>hooks_manifest.json</code>'s schema — <code>_migrate_to_plugin</code> reads it as-is.</li>
+</ul>
+<h2 id="review-feedback-incorporated-2026-07-08-from-claude-cost-optimazingopus-review">Review feedback incorporated (2026-07-08, from <code>Claude-Cost-Optimazing</code>/Opus review)<a class="headerlink" href="#review-feedback-incorporated-2026-07-08-from-claude-cost-optimazingopus-review" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Confirmed <strong>not</strong> vulnerable to the manifest-drift bug in the migration logic itself (one
+   manifest, one derivation, migrate is a re-traversal not a second list) — but the same bug
+   class exists one layer up between <code>hooks_manifest.json</code> and <code>hooks/hooks.json</code>; added the
+   parity-test section above as the direct mitigation.</li>
+<li>"Reuse <code>_unregister_hooks</code> unchanged" was inaccurate — the original draft re-implemented
+   drop-empty-groups with separate control flow, untested by the existing suite. Fixed by
+   extracting <code>_remove_matching_hooks(hooks, match_fn)</code> as the one shared implementation.</li>
+<li>Corrected the malformed-<code>settings.json</code> handling claim to match actual <code>_load_settings</code>
+   behavior (raises <code>SettingsParseError</code> on bad JSON; <code>raw is None</code> is file-not-found only) and
+   made the CLI's catch-and-report responsibility explicit instead of implicit.</li>
+<li>Added the precision-over-recall note for exact-match, with <code>uninstall</code> named as the fallback.</li>
+<li>Reframed "leave orphaned files" around scope boundary (migrate de-dupes settings, uninstall
+   cleans files) rather than "riskier to infer" — same conclusion, more accurate reasoning — and
+   added the hint-line + future-<code>--purge-files</code> suggestions.</li>
+<li>Confirmed symmetric with claude-core's independent implementation (exact-match table,
+   drop-empty-groups, backup-on-write, same orphaned-files lean) — no design changes needed on
+   that front, just cross-validation.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.top", "navigation.footer", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

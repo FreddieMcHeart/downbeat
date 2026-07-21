@@ -1,0 +1,1097 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine">
+      
+      
+      
+        <link rel="canonical" href="https://freddiemcheart.github.io/downbeat/superpowers/specs/2026-07-19-message-system-rework-spec/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Message-system rework (single source of truth, semantic states) - downbeat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#message-system-rework-single-source-of-truth-semantic-states" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="downbeat" class="md-header__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            downbeat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Message-system rework (single source of truth, semantic states)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="downbeat" class="md-nav__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    downbeat
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Context">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-two-independent-implementations-of-the-same-state-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The two independent implementations of the same state machine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#every-function-that-moves-a-message-between-directories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Every function that moves a message between directories
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#directory-location-is-almost-never-read-as-a-signal-except-once" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Directory location is (almost) never read as a signal — except once
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#target-model-per-goal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target model per goal
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Target model per goal">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#goal-1-single-source-of-truth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goal 1 — single source of truth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#goal-2-explicit-semantic-states-inbox-relayed-processed-completed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goal 2 — explicit semantic states (inbox → relayed → processed → completed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#goal-3-layered-separation-of-concerns-transport-relay-inbox-downbeat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goal 3 — layered separation of concerns (transport / relay / inbox / downbeat)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#goal-4-lossless-migration-from-the-current-on-disk-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goal 4 — lossless migration from the current on-disk layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites-sequencing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prerequisites &amp; sequencing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-decomposes-into-sub-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What decomposes into sub-issues
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-strategy-sketch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration strategy sketch
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/FreddieMcHeart/downbeat/edit/main/docs/superpowers/specs/2026-07-19-message-system-rework-spec.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="message-system-rework-single-source-of-truth-semantic-states">Message-system rework (single source of truth, semantic states)<a class="headerlink" href="#message-system-rework-single-source-of-truth-semantic-states" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> design — exploration, NOT ready to implement; pending maintainer direction.
+<strong>Issue:</strong> <a href="https://github.com/FreddieMcHeart/downbeat/issues/43">#43</a> — "Message-system rework (single source of truth, semantic states)" (roadmap: Later, design-open tracking issue, milestone "Message-system rework")
+<strong>Prerequisites (design-open, do not start before):</strong> <a href="https://github.com/FreddieMcHeart/downbeat/issues/40">#40</a> "Stable peer identity, separate from display name", <a href="https://github.com/FreddieMcHeart/downbeat/issues/42">#42</a> "Message-store schema versioning"
+<strong>Background:</strong> <code>~/dev/claude-core-wiki/ideas/downbeat/cloud-relay-downbeat-inbox-rework.md</code> (living design note, read for history — this spec does not restate it)</p>
+<p>This document is a problem analysis and a target-model sketch, not a build plan.
+Issue #43 itself says "design is not yet settled ... sub-work will be split out as
+the design firms up. Not ready-to-implement." Everything below should be read in
+that spirit: it names the current implicit state machine precisely, sketches what
+"done" could look like for each of the four goals, and lays out what has to happen
+<em>before</em> any of this is buildable. Where a decision is genuinely open, it is
+flagged as open rather than pre-decided.</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>downbeat's message store (<code>src/downbeat/core/store.py</code>) has no explicit,
+persisted <code>state</code> field on a message. State is <em>computed</em>, twice, from a
+handful of nullable timestamp/boolean fields on the <code>Message</code> dataclass, and
+those same fields also determine which of four on-disk directories a
+message's JSON file physically lives in. The directories are defined in
+<code>src/downbeat/core/paths.py:9-13</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">RELAY_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CLAUDE_RELAY_DIR&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.claude&quot;</span> <span class="o">/</span> <span class="s2">&quot;relay&quot;</span><span class="p">)))</span>
+<span class="n">INBOX_DIR</span> <span class="o">=</span> <span class="n">RELAY_DIR</span> <span class="o">/</span> <span class="s2">&quot;inbox&quot;</span>
+<span class="n">PROCESSED_DIR</span> <span class="o">=</span> <span class="n">RELAY_DIR</span> <span class="o">/</span> <span class="s2">&quot;processed&quot;</span>
+<span class="n">DELIVERED_DIR</span> <span class="o">=</span> <span class="n">RELAY_DIR</span> <span class="o">/</span> <span class="s2">&quot;delivered&quot;</span>
+<span class="n">QUARANTINE_DIR</span> <span class="o">=</span> <span class="n">RELAY_DIR</span> <span class="o">/</span> <span class="s2">&quot;quarantine&quot;</span>
+</code></pre></div>
+<p>Each message is a file at <code>&lt;dir&gt;/&lt;to_peer&gt;/&lt;msg_id&gt;.json</code>. There is no fifth
+"relayed" directory and no <code>state</code> column in any of these files — <code>state</code>
+does not exist as a field on <code>Message</code> at all.</p>
+<h3 id="the-two-independent-implementations-of-the-same-state-machine">The two independent implementations of the same state machine<a class="headerlink" href="#the-two-independent-implementations-of-the-same-state-machine" title="Permanent link">&para;</a></h3>
+<p><code>Message.state</code> (<code>src/downbeat/core/models.py:54-64</code>) is a computed property:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@property</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MessageState</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">quarantined_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">MessageState</span><span class="o">.</span><span class="n">QUARANTINED</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">archived</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">MessageState</span><span class="o">.</span><span class="n">ARCHIVED</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">delivered_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">delivery_ack_at</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">MessageState</span><span class="o">.</span><span class="n">DELIVERED</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">read_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">MessageState</span><span class="o">.</span><span class="n">READ</span>
+    <span class="k">return</span> <span class="n">MessageState</span><span class="o">.</span><span class="n">NEW</span>
+</code></pre></div>
+<p><code>_message_path</code> (<code>src/downbeat/core/store.py:283-292</code>) is a second function
+that checks the <em>same four fields, in the same precedence order</em>, to decide
+which directory a file belongs in:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_message_path</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">quarantined_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">paths</span><span class="o">.</span><span class="n">QUARANTINE_DIR</span>
+    <span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">archived</span><span class="p">:</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">paths</span><span class="o">.</span><span class="n">PROCESSED_DIR</span>
+    <span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">delivered_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">msg</span><span class="o">.</span><span class="n">delivery_ack_at</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">paths</span><span class="o">.</span><span class="n">DELIVERED_DIR</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">paths</span><span class="o">.</span><span class="n">INBOX_DIR</span>
+    <span class="k">return</span> <span class="n">base</span> <span class="o">/</span> <span class="n">msg</span><span class="o">.</span><span class="n">to_peer</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">msg</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">.json&quot;</span>
+</code></pre></div>
+<p>These two functions agree today. Nothing enforces that they keep agreeing —
+they are hand-synchronized, not derived from one shared source. Add a fifth
+state, change one precedence check, or add a field that should gate a new
+directory, and it is a silent two-file edit with no compiler or test forcing
+both sides to move together. This is exactly what issue #43's second goal
+("explicit semantic states ... rather than state inferred from which
+directory a file sits in") is naming, and what the first goal ("single source
+of truth ... so read/unread and processed can't disagree") is naming from the
+consumer's side.</p>
+<p>The <code>MessageState</code> enum itself (<code>models.py:21-26</code>) only has five values —
+<code>NEW</code>, <code>READ</code>, <code>DELIVERED</code>, <code>QUARANTINED</code>, <code>ARCHIVED</code> — none of which are the
+four states issue #43 actually asks for (<code>inbox → relayed → processed →
+completed</code>). The current enum is a snapshot of <em>delivery</em> mechanics
+(has it landed in the recipient's queue, has it been acked); the requested
+enum is a snapshot of <em>conversational</em> mechanics (has the recipient dealt
+with it). These are related but not the same axis, and today's code only
+models the first axis explicitly.</p>
+<h3 id="every-function-that-moves-a-message-between-directories">Every function that moves a message between directories<a class="headerlink" href="#every-function-that-moves-a-message-between-directories" title="Permanent link">&para;</a></h3>
+<p>There is no single <code>transition(msg, event)</code> chokepoint. Nine different
+<code>store.py</code> functions each independently read/write the same handful of
+fields and independently write-then-unlink across directories:</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>file:line</th>
+<th>Transition</th>
+<th>Fields mutated</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>send_message</code></td>
+<td><code>store.py:330-351</code></td>
+<td>(new) → inbox</td>
+<td>all defaults → <code>state == NEW</code></td>
+</tr>
+<tr>
+<td><code>deliver_messages</code></td>
+<td><code>store.py:354-384</code></td>
+<td>inbox → delivered</td>
+<td><code>delivered_at</code>, <code>delivered_to_session_id</code></td>
+</tr>
+<tr>
+<td><code>mark_read</code></td>
+<td><code>store.py:450-459</code></td>
+<td>no move, in place</td>
+<td><code>read_at</code> (no-op if <code>state != NEW</code>)</td>
+</tr>
+<tr>
+<td><code>ack_messages</code></td>
+<td><code>store.py:387-413</code></td>
+<td>delivered → processed</td>
+<td><code>delivery_ack_at</code>, <code>archived</code></td>
+</tr>
+<tr>
+<td><code>archive_messages</code></td>
+<td><code>store.py:416-447</code></td>
+<td>inbox/delivered → processed</td>
+<td><code>archived</code> (+<code>delivery_ack_at</code> if was delivered)</td>
+</tr>
+<tr>
+<td><code>edit_message</code></td>
+<td><code>store.py:462-479</code></td>
+<td>no move, in place</td>
+<td><code>body</code>/<code>subject</code>/<code>edited_at</code> (raises <code>MessageLocked</code> if <code>state != NEW</code>)</td>
+</tr>
+<tr>
+<td><code>reply_to</code></td>
+<td><code>store.py:487-520</code></td>
+<td>archives original + inbox (new msg)</td>
+<td><code>archived</code>, <code>delivery_ack_at</code> on original; fresh <code>Message</code> for the reply</td>
+</tr>
+<tr>
+<td><code>reconcile</code></td>
+<td><code>store.py:548-607</code></td>
+<td>delivered → inbox (requeue) OR delivered → quarantine</td>
+<td><code>delivered_at=None</code>/<code>redelivery_count+=1</code> OR <code>quarantined_at</code>/<code>quarantine_reason</code></td>
+</tr>
+<tr>
+<td><code>requeue_quarantined</code></td>
+<td><code>store.py:752-782</code></td>
+<td>quarantine → inbox</td>
+<td>resets <code>quarantined_at</code>, <code>quarantine_reason</code>, <code>delivered_at</code>, <code>delivered_to_session_id</code>, <code>redelivery_count</code></td>
+</tr>
+</tbody>
+</table>
+<p>Every mover follows the same write-then-unlink pattern (write the new file to
+the destination directory, then <code>path.unlink()</code> the source) — <code>archive_messages</code>
+even documents <em>why</em> that order matters at <code>store.py:431-435</code>, citing
+<code>list_inbox</code>'s dedup-by-id <code>seen</code> set as the reason a reversed unlink-then-write
+would produce a visible gap. That's a real, working safety property of the
+current design worth preserving, not just an artifact of implicit-state sloppiness.</p>
+<p>Two read-only functions are also part of the picture: <code>list_inbox</code>
+(<code>store.py:523-545</code>) scans <code>INBOX_DIR</code> + <code>DELIVERED_DIR</code> always, adding
+<code>PROCESSED_DIR</code> + <code>QUARANTINE_DIR</code> only under <code>include_archived=True</code>, and
+<code>list_thread</code> (<code>store.py:829-841</code>) reconstructs two-party history by filtering
+on the literal <code>from_peer</code>/<code>to_peer</code> strings baked into each message at
+send-time — the exact mechanism issue #40 says breaks on peer rename.</p>
+<h3 id="directory-location-is-almost-never-read-as-a-signal-except-once">Directory location is (almost) never read as a signal — except once<a class="headerlink" href="#directory-location-is-almost-never-read-as-a-signal-except-once" title="Permanent link">&para;</a></h3>
+<p>Because <code>_message_path</code> deterministically recomputes the directory from the
+same fields <code>Message.state</code> reads, directory-membership is not, today, an
+<em>independent</em> source of truth in the strict sense — it is a redundant,
+physically-real third encoding of the same four fields. One exception:
+<code>find_message_by_id_prefix</code>'s <code>location_label</code> (<code>"inbox"</code>/<code>"delivered"</code>/
+<code>"processed"</code>/<code>"quarantine"</code>) is set from which base directory the scan loop
+is currently in, not derived from message fields — a second parallel,
+directory-derived encoding used only for that one function's return value.
+So the honest description of goal 1 is not "state currently lives in two
+disagreeing places" (it doesn't disagree today) but "state is defined twice,
+by convention, with no mechanism preventing the two definitions from
+drifting apart as the schema grows" — which is precisely the kind of bug that
+shows up only after a schema change, i.e. exactly where issue #42 (schema
+versioning) becomes load-bearing.</p>
+<h2 id="target-model-per-goal">Target model per goal<a class="headerlink" href="#target-model-per-goal" title="Permanent link">&para;</a></h2>
+<p>Each of the four goals below is sketched independently. None of these
+sketches is a final schema — they are starting shapes for a maintainer
+conversation, written to be concrete enough to argue with.</p>
+<h3 id="goal-1-single-source-of-truth">Goal 1 — single source of truth<a class="headerlink" href="#goal-1-single-source-of-truth" title="Permanent link">&para;</a></h3>
+<p>Collapse the two independent implementations (<code>Message.state</code> property,
+<code>_message_path</code>) into one. The shape of the fix is not in question — derive
+<code>_message_path</code> from <code>Message.state</code> (or vice versa) instead of maintaining
+parallel precedence chains — the open question is <em>whether the on-disk
+directory should keep being the storage mechanism at all</em>, or whether
+directory-as-storage should be replaced by a single message store (e.g. one
+JSON-lines file per peer, or a SQLite file) with an explicit <code>state</code> column
+and the four current directories demoted to a pure read-side/debugging view
+(or removed). Directories are simple, <code>git</code>-diffable, and manually
+inspectable/recoverable by hand (an operational property visible throughout
+<code>store.py</code>'s "heals a hand-edited <code>sessions.json</code>" comments, e.g.
+<code>store.py:230-235</code>) — that property should not be thrown away casually.</p>
+<h3 id="goal-2-explicit-semantic-states-inbox-relayed-processed-completed">Goal 2 — explicit semantic states (inbox → relayed → processed → completed)<a class="headerlink" href="#goal-2-explicit-semantic-states-inbox-relayed-processed-completed" title="Permanent link">&para;</a></h3>
+<p>The four states named in the issue are a <em>different axis</em> from the current
+<code>MessageState</code> enum, and the two axes need to be reconciled, not merged
+blindly:</p>
+<ul>
+<li><strong>inbox</strong> — message exists, addressed to a peer, not yet delivered to a live
+  session. Roughly today's <code>NEW</code> + "not yet delivered."</li>
+<li><strong>relayed</strong> — delivered to a session (today's <code>DELIVERED</code>, i.e.
+  <code>delivered_at is not None and delivery_ack_at is None</code>), or possibly
+  delivered <em>and</em> read but not yet acted on (today's <code>READ</code> sits ambiguously
+  between "relayed" and "processed" — read is not the same as acted-on).</li>
+<li><strong>processed</strong> — the recipient has acted on it (replied, archived,
+  explicitly acked). Roughly today's <code>ARCHIVED</code>.</li>
+<li><strong>completed</strong> — not represented at all today. Issue #43 introduces a
+  distinction between "the recipient dealt with it" (processed) and "the
+  underlying task/thread this message was part of is finished" (completed) —
+  this maps loosely onto the existing <code>kind</code> field's forward-looking
+  <code>"backflow-ready"</code> / <code>"workflow-request"</code> / <code>"workflow-result"</code> values
+  (<code>models.py:49-52</code>) and onto <code>broadcast_status</code>'s (<code>store.py:648-673</code>)
+  ad hoc <code>replied</code>/<code>read</code>/<code>pending</code> per-target rollup, but neither of those
+  is currently a state on the message itself.</li>
+</ul>
+<h3 id="goal-3-layered-separation-of-concerns-transport-relay-inbox-downbeat">Goal 3 — layered separation of concerns (transport / relay / inbox / downbeat)<a class="headerlink" href="#goal-3-layered-separation-of-concerns-transport-relay-inbox-downbeat" title="Permanent link">&para;</a></h3>
+<p><code>store.py</code> today is one file doing all four jobs at once: physical
+write/move/unlink (transport), routing by <code>to_peer</code>/<code>broadcast_id</code>/<code>in_reply_to</code>
+(relay), a peer's personal view with <code>include_archived</code> filtering (inbox),
+and TUI-facing conveniences the <code>tui/</code> layer builds on top of directly. A
+layered target model would draw explicit seams:</p>
+<ul>
+<li><strong>Transport</strong> — atomic write/move/unlink of a message record. No opinion on
+  meaning. Candidate ownership: today's <code>_atomic_write_text</code>,
+  <code>_message_path</code>, and the unlink-after-write pattern, generalized.
+  <code>core/state.py</code> already reaches across this seam informally (per the
+  comment at <code>store.py:255-260</code> describing it as reusing
+  <code>_atomic_write_text</code> "same reuse pattern" as another module) — a real
+  layering pass has to decide whether that's promoted to a shared primitive
+  or left as an acceptable internal reuse.</li>
+<li><strong>Relay</strong> — routing/addressing: <code>send_message</code>, broadcast fan-out,
+  <code>reply_to</code>'s auto-ack-original-then-send-new two-step, <code>reconcile</code>'s
+  requeue/quarantine policy. This is "where does a message go and when does
+  it get retried or given up on."</li>
+<li><strong>Inbox</strong> — a single peer's queue and its state transitions:
+  <code>deliver_messages</code>, <code>mark_read</code>, <code>ack_messages</code>, <code>archive_messages</code>,
+  <code>list_inbox</code>. This is "what does <em>this</em> peer see and what can they do to a
+  message they own."</li>
+<li><strong>downbeat (UI + filters)</strong> — <code>tui/</code> widgets/screens consuming the above
+  through a read/command surface, plus CLI commands in
+  <code>cli/commands/relay_cmds.py</code>. Should not itself know about directories,
+  <code>_message_path</code>, or precedence-chain state derivation — it already mostly
+  doesn't, but the wiki note (<code>cloud-relay-downbeat-inbox-rework.md</code>, per the
+  "skills that call the CLI, not reinvent the filter" finding around PR #15)
+  documents at least one case where a skill re-implemented store filtering
+  logic in the wrong layer instead of calling <code>downbeat inbox --peer &lt;me&gt;</code>.</li>
+</ul>
+<p>The open question here is not "should there be layers" but <em>where exactly
+the transport/relay boundary sits</em> and whether it is worth a real module
+split (<code>core/transport.py</code>, <code>core/relay.py</code>, <code>core/inbox.py</code>) versus staying
+one file with clearer internal boundaries and doc comments. A premature
+module split before goal 2's schema is settled risks a second migration on
+top of the first.</p>
+<h3 id="goal-4-lossless-migration-from-the-current-on-disk-layout">Goal 4 — lossless migration from the current on-disk layout<a class="headerlink" href="#goal-4-lossless-migration-from-the-current-on-disk-layout" title="Permanent link">&para;</a></h3>
+<p>See "Migration strategy sketch" below — this goal is large enough, and
+different enough in kind (it's an operational/data-safety concern, not a
+design-shape concern), that it gets its own section rather than a short
+paragraph here.</p>
+<h2 id="prerequisites-sequencing">Prerequisites &amp; sequencing<a class="headerlink" href="#prerequisites-sequencing" title="Permanent link">&para;</a></h2>
+<p>Issue #43 should <strong>not</strong> start before #40 and #42 land. Both are already
+tracked as narrower, independently-actionable issues under a different
+milestone ("Peer identity &amp; autonomy," vs #43's own "Message-system rework"
+milestone) — that separation is not incidental, it reflects that they are
+smaller, more concrete, and structurally <em>load-bearing</em> for #43:</p>
+<ul>
+<li><strong>#40 (stable peer identity, separate from display name) must land first</strong>
+  because <code>list_thread</code> (<code>store.py:829-841</code>) and every message's frozen
+  <code>from_peer</code>/<code>to_peer</code> strings are exactly the mechanism goal 2's semantic
+  states and goal 3's layering would be built on top of. If a peer rename can
+  still silently orphan message history after the rework, the rework has
+  built a cleaner state machine on top of a broken addressing layer — worse,
+  a schema migration (goal 4) run before identity is stabilized risks baking
+  the <em>current</em> fragile addressing assumption into a versioned, "migrated"
+  format, making a later identity fix harder, not easier.</li>
+<li><strong>#42 (message-store schema versioning) must land first</strong> because every
+  target-model sketch above (a <code>state</code> field replacing the two computed
+  functions, new semantic-state values, <code>completed</code> as a new value, any
+  storage-mechanism change) <em>is itself</em> a schema change to the <code>Message</code>
+  dataclass. Without a schema version field and a migration mechanism
+  already in place and tested, goal 4 (lossless migration) has no
+  infrastructure to run on top of — #43 would have to build ad hoc,
+  one-off migration code for its own change, which is precisely the
+  "manual, unscripted, no-error-protection... surgery" issue #42 exists to
+  replace. Building #43's migration before #42 means throwing away #42's
+  work, or duplicating it under time pressure inside a bigger issue.</li>
+</ul>
+<p>Recommended order: <strong>#40 → #42 → (design firms up here, this spec gets
+revisited) → #43 sub-issues, smallest/lowest-risk first.</strong></p>
+<h2 id="what-decomposes-into-sub-issues">What decomposes into sub-issues<a class="headerlink" href="#what-decomposes-into-sub-issues" title="Permanent link">&para;</a></h2>
+<p>Issue #43 is explicitly a tracking issue, not a buildable unit — its own
+body says sub-work will be split out. Candidate splits, once #40/#42 land
+and the design actually firms up:</p>
+<ol>
+<li><strong>Schema/state-field design</strong> — collapse <code>Message.state</code> and
+   <code>_message_path</code> into one derivation; decide the four-vs-five-state
+   question from "Target model per goal 2" above. This is a pure design
+   decision and should probably be its own spec before any code, since it's
+   the one every other sub-issue depends on.</li>
+<li><strong>Storage-mechanism decision</strong> — directories-as-storage vs. a single
+   store file vs. SQLite. Independent of (1) in principle but heavily
+   informs migration cost (goal 4), so should be decided alongside it, not
+   after.</li>
+<li><strong><code>completed</code> state + its relationship to <code>kind</code>/backflow/broadcast
+   rollup</strong> — this touches <code>broadcast_status</code> (<code>store.py:648-673</code>) and the
+   Phase-3 <code>kind</code> values already anticipated in <code>models.py:49-52</code>; likely
+   deserves its own issue since it's genuinely new behavior, not a rename of
+   existing behavior.</li>
+<li><strong>Layering/module split</strong> (transport/relay/inbox) — a refactor issue,
+   should follow (1)-(3) rather than lead them, since splitting modules
+   around a state model that's about to change is wasted motion.</li>
+<li><strong>Migration implementation</strong> — depends on #42's versioning mechanism
+   existing; see next section. Should be its own issue with its own
+   acceptance criteria (no thread history dropped, verified against a real
+   populated <code>~/.claude/relay/</code> directory, not a fixture).</li>
+<li><strong>downbeat/TUI + skill-layer consumers updated to the new state names</strong> —
+   <code>tui/</code> widgets, <code>assets/hooks/relay-inbox.py</code>,
+   <code>assets/hooks/relay-poll-offer.py</code>, <code>assets/commands/relay-monitor.md</code>,
+   and any skill text that filters on <code>MessageState</code> values directly. This
+   is mechanical once (1)-(3) are settled but easy to undercount — there are
+   at least 8 consumer files identified during this spec's research (TUI
+   widgets/screens, two hooks, one command, plus <code>core/watcher.py</code> and
+   <code>core/state.py</code>), and each is a place old state semantics can leak
+   through if not tracked explicitly.</li>
+</ol>
+<h2 id="migration-strategy-sketch">Migration strategy sketch<a class="headerlink" href="#migration-strategy-sketch" title="Permanent link">&para;</a></h2>
+<p>Not a plan — a sketch of the shape a plan would take, to be superseded by</p>
+<h1 id="42s-actual-mechanism-once-it-exists">42's actual mechanism once it exists.<a class="headerlink" href="#42s-actual-mechanism-once-it-exists" title="Permanent link">&para;</a></h1>
+<ul>
+<li><strong>Baseline requirement</strong>: every existing message file in
+  <code>inbox/</code>, <code>delivered/</code>, <code>processed/</code>, <code>quarantine/</code> under a real
+  <code>~/.claude/relay/</code> tree must end up addressable in the new model with its
+  full history intact — this is issue #43's fourth goal verbatim, and
+  matches the wiki note's own "no thread history dropped" framing.
+  <code>Message.to_dict</code>/serialization already has a documented backward-compat
+  property worth preserving as a design constraint: <code>models.py:1-3</code>'s module
+  docstring states "backward-compatible JSON serialization (legacy messages
+  missing the new fields still parse)" — any new field added by this rework
+  should keep that property, not break it.</li>
+<li><strong>Depends on #42 for</strong>: the version-tag-on-read/write mechanism. Without
+  it, migration is a one-shot destructive rewrite with no rollback path and
+  no way to distinguish "not yet migrated" from "migrated but old-shaped" if
+  the migration is interrupted partway (a real risk — <code>store.py</code>'s existing
+  "heals a hand-edited <code>sessions.json</code>" comments at <code>store.py:230-235</code> show
+  the codebase already anticipates partially-corrupt on-disk state as a
+  normal operating condition, not an edge case).</li>
+<li><strong>Verification approach</strong> (per this org's own stated principle of
+  verifying against the real artifact, not a stand-in): migration
+  correctness should be checked by running it against a real, populated
+  <code>~/.claude/relay/</code> directory (or a faithful copy of one) and diffing
+  <code>list_thread</code>/<code>list_inbox</code> output before and after — not only against a
+  synthetic fixture. The existing dual-implementation bug pattern (two
+  functions independently agreeing today, silently able to drift) is exactly
+  the kind of thing a fixture-only test suite would not catch, since a
+  fixture is usually built to match what the code already does.</li>
+<li><strong>Rollback</strong>: open question — is the old on-disk layout kept read-only
+  as a fallback for some period, or is the migration considered one-way once
+  run? Directories-as-storage's operational recoverability (grep-able,
+  <code>git</code>-diffable, hand-editable) is a property worth deciding whether to
+  keep even after a schema/storage change, precisely because it has already
+  saved this codebase once (the "heals... instead of forwarding... damage"
+  comments in <code>remove_peer</code>, <code>store.py:230-235</code>).</li>
+</ul>
+<h2 id="risks">Risks<a class="headerlink" href="#risks" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Building goal 2/3 before #40/#42 land</strong> bakes today's fragile
+  addressing (string-frozen <code>from_peer</code>/<code>to_peer</code>) and unversioned schema
+  into whatever new shape gets chosen, doubling migration work later.</li>
+<li><strong>Losing the write-then-unlink safety property</strong> during a storage-mechanism
+  change. <code>archive_messages</code>' documented ordering rationale
+  (<code>store.py:431-435</code>) exists because of a specific <code>list_inbox</code> dedup
+  interaction — any new storage mechanism needs an equivalent atomicity
+  argument, not just "it's a database now so it's fine."
+  Concurrent access from multiple sessions (a live design constraint of
+  this whole project) makes this non-optional.</li>
+<li><strong>Under-scoping the consumer surface.</strong> At least 8 files outside
+  <code>core/store.py</code> read <code>Message.state</code> or directory membership directly
+  (TUI widgets/screens, two hooks, one CLI command module, <code>watcher.py</code>,
+  <code>state.py</code>). A migration that only touches <code>core/</code> and misses these will
+  produce a codebase that "compiles" but silently disagrees with itself in
+  the UI — the exact failure mode goal 1 exists to eliminate, reintroduced
+  at a different layer.</li>
+<li><strong>Scope creep from the four-state model absorbing unrelated future work</strong>
+  (backflow/<code>kind</code>, workflow-request/result Phase-3 values already
+  anticipated in <code>models.py:49-52</code>). These are real and related, but pulling
+  them into #43 before the core state model is settled risks turning a
+  "later, design-open" issue into an unbounded one.</li>
+<li><strong>Treating this spec's line-number citations as durable.</strong> As with the
+  house convention in the general-peer-tree spec, every <code>file:line</code>
+  reference above should be re-verified at implementation time, not trusted
+  as-is — <code>store.py</code> and <code>models.py</code> are both actively changing.</li>
+</ul>
+<h2 id="open-decisions-for-the-maintainer">Open decisions for the maintainer<a class="headerlink" href="#open-decisions-for-the-maintainer" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Is the four-state model (<code>inbox → relayed → processed → completed</code>)
+   meant to <em>replace</em> <code>MessageState</code>, or sit alongside it as a second,
+   independent axis?</strong> This spec's reading is "replace, with <code>relayed</code>
+   roughly absorbing today's <code>DELIVERED</code>+<code>READ</code>," but that's a judgment
+   call, not a confirmed decision — <code>READ</code> genuinely straddles "relayed" and
+   "processed" and could go either way.</li>
+<li><strong>Does directory-as-storage survive this rework, or does the store move
+   to a single file/SQLite?</strong> This is probably the single highest-leverage
+   decision in the whole rework — it changes the shape of goal 1, goal 3,
+   and the entire migration strategy. Directories currently buy real,
+   demonstrated recoverability (see the <code>remove_peer</code> healing comments);
+   a database buys transactional consistency and removes the two-function
+   duplication problem structurally. Worth deciding explicitly rather than
+   defaulting to either.</li>
+<li><strong>What exactly does <code>completed</code> mean, and does it belong on the message
+   or on something above the message (a thread/task)?</strong> Right now nothing
+   in the codebase models a thread or task as a first-class object —
+   <code>list_thread</code> reconstructs one on the fly by filtering two peers' history.
+   If <code>completed</code> is a per-thread/task concept rather than a per-message
+   one, goal 2 may need a data-model addition beyond just a new enum value.</li>
+<li><strong>How much of goal 3's layering is a real module split vs. a
+   documentation/boundary-discipline pass?</strong> A full <code>transport.py</code>/
+   <code>relay.py</code>/<code>inbox.py</code> split is a bigger, riskier change than clarifying
+   boundaries within the existing <code>store.py</code>. Given #43 is explicitly
+   "design not yet settled," it may be worth doing the smaller version first
+   and revisiting the module split as a separate, later issue.</li>
+<li><strong>Rollback/cutover strategy for goal 4</strong> — one-way migration with a
+   backup snapshot, or a dual-read period where both old and new formats are
+   understood by the code simultaneously? The latter is safer but means
+   carrying two implementations of state-derivation for a transition window,
+   which cuts against goal 1's whole point.</li>
+<li><strong>Sequencing confirmation</strong> — this spec recommends #40 then #42 then
+   #43's sub-issues. Is that maintainer-approved, or does the maintainer see
+   a reason to interleave (e.g. start #42's versioning mechanism in parallel
+   with #40 rather than strictly serially, since they touch different parts
+   of <code>Message</code>)?</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.top", "navigation.footer", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

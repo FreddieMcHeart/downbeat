@@ -1,0 +1,895 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine">
+      
+      
+      
+        <link rel="canonical" href="https://freddiemcheart.github.io/downbeat/superpowers/specs/2026-07-19-message-schema-versioning-spec/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Message-store schema versioning - downbeat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#message-store-schema-versioning" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="downbeat" class="md-header__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            downbeat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Message-store schema versioning
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="downbeat" class="md-nav__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    downbeat
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#stance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/FreddieMcHeart/downbeat/edit/main/docs/superpowers/specs/2026-07-19-message-schema-versioning-spec.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="message-store-schema-versioning">Message-store schema versioning<a class="headerlink" href="#message-store-schema-versioning" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> design — recommendation, pending maintainer decision
+<strong>Issue:</strong> <a href="https://github.com/FreddieMcHeart/downbeat/issues/42">#42 Message-store schema versioning</a>
+<strong>Branch:</strong> none yet — this is analysis, not an approved plan (see "Stance" below)
+<strong>Tip at time of writing:</strong> <code>c459e49</code> (<code>main</code>, v0.10.4)</p>
+<h2 id="stance">Stance<a class="headerlink" href="#stance" title="Permanent link">&para;</a></h2>
+<p>This document analyzes the problem and recommends one option. It does not
+commit downbeat to a design the way the peer-tree spec
+(<code>2026-07-15-general-peer-tree-design.md</code>) does — that one carries <strong>Status:
+approved, ready for implementation plan</strong>; this one does not, on purpose. Open
+questions are called out explicitly in "Open decisions for the maintainer" at
+the end, and none of the code changes described here should be implemented
+until those are resolved.</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>Message JSON files carry no schema version field today. Every message on disk
+is just whatever shape <code>Message.to_dict()</code> happened to produce at write time,
+and there is nothing in the file itself that says which shape that was. Issue</p>
+<h1 id="42-names-the-consequence-directly-the-manual-rename-surgery-in-the">42 names the consequence directly: "the manual rename surgery in the<a class="headerlink" href="#42-names-the-consequence-directly-the-manual-rename-surgery-in-the" title="Permanent link">&para;</a></h1>
+<p>peer-identity issue is a symptom of this" — issue #40 documents a real
+instance of exactly that problem, where a peer rename requires "manually
+rewriting <code>from</code>/<code>to</code> across ~100 files in
+<code>inbox/delivered/processed/quarantine/*/*.json</code>" by hand, because there is no
+mechanism to apply a structural transform to existing files as part of a
+schema change.</p>
+<h3 id="the-existing-tolerance-the-seam-this-design-exploits">The existing tolerance (the seam this design exploits)<a class="headerlink" href="#the-existing-tolerance-the-seam-this-design-exploits" title="Permanent link">&para;</a></h3>
+<p><code>Message.from_dict</code> (<code>src/downbeat/core/models.py:91-112</code>) already tolerates
+files missing fields that were added after those files were written:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">:</span>
+    <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+        <span class="nb">id</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+        <span class="n">from_peer</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">],</span>
+        <span class="n">to_peer</span><span class="o">=</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;to&quot;</span><span class="p">],</span>
+        <span class="n">subject</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subject&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+        <span class="n">body</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+        <span class="n">created_at</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;created_at&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ts&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">read_at</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;read_at&quot;</span><span class="p">),</span>
+        <span class="n">edited_at</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;edited_at&quot;</span><span class="p">),</span>
+        <span class="n">broadcast_id</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;broadcast_id&quot;</span><span class="p">),</span>
+        <span class="n">archived</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;archived&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="n">delivered_at</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;delivered_at&quot;</span><span class="p">),</span>
+        <span class="n">delivered_to_session_id</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;delivered_to_session_id&quot;</span><span class="p">),</span>
+        <span class="n">redelivery_count</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;redelivery_count&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">delivery_ack_at</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;delivery_ack_at&quot;</span><span class="p">),</span>
+        <span class="n">in_reply_to</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;in_reply_to&quot;</span><span class="p">),</span>
+        <span class="n">quarantined_at</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;quarantined_at&quot;</span><span class="p">),</span>
+        <span class="n">quarantine_reason</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;quarantine_reason&quot;</span><span class="p">),</span>
+        <span class="n">kind</span><span class="o">=</span><span class="n">d</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;kind&quot;</span><span class="p">,</span> <span class="s2">&quot;task&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+</code></pre></div>
+<p>Only <code>id</code>, <code>from</code>, and <code>to</code> are hard-required (<code>d["id"]</code>, <code>d["from"]</code>,
+<code>d["to"]</code> — a <code>KeyError</code> on any of those is caught by <code>_read_message_at</code> and
+re-raised as <code>StoreCorrupt</code>, see below). Every field added since the original
+shape — the whole "Phase 0 schema additions" and "Phase 2 schema additions"
+blocks in the <code>Message</code> dataclass (<code>models.py:41-52</code>) — uses <code>.get()</code> with a
+default. This is <em>already</em> a de facto additive-field migration mechanism; it
+has silently carried the store through at least two rounds of schema growth
+(<code>created_at</code> even falls back to a legacy <code>ts</code> key at <code>d.get("created_at") or
+d.get("ts") or ""</code>, which is a rename tolerated the same way). What it cannot
+do is a <strong>structural</strong> change — renaming a key, changing a value's meaning
+(e.g. re-keying <code>from</code>/<code>to</code> from a display name to a stable identity, per
+issue #40), or dropping/splitting a field. Those need code that runs once per
+file, on a known "this file predates version N" condition — and today there
+is no such condition to test, because there is no version.</p>
+<h3 id="the-choke-points">The choke points<a class="headerlink" href="#the-choke-points" title="Permanent link">&para;</a></h3>
+<p>Every message read and write in the store funnels through two single
+functions:</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">_write_message</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">_message_path</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">_atomic_write_text</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">msg</span><span class="o">.</span><span class="n">to_json</span><span class="p">())</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_read_message_at</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Message</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">StoreCorrupt</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> is not a valid message: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+</code></pre></div>
+<p>(<code>src/downbeat/core/store.py:314-323</code>) Every store function that touches a
+message file goes through one or the other: <code>get_message</code>, <code>deliver_messages</code>,
+<code>list_inbox</code>, <code>list_thread</code>, <code>ack_messages</code>, <code>archive_messages</code>, <code>mark_read</code>,
+<code>edit_message</code>, <code>reply_to</code>, <code>reconcile</code>, <code>list_quarantined</code>,
+<code>requeue_quarantined</code>, <code>_scan_all_messages</code> (feeding <code>broadcast_status</code>), and
+<code>find_message_by_id_prefix</code> all call <code>_read_message_at</code> (directly or via
+<code>get_message</code>); every path that persists a message (<code>send_message</code>,
+<code>deliver_messages</code>, <code>ack_messages</code>, <code>archive_messages</code>, <code>mark_read</code>,
+<code>edit_message</code>, <code>reply_to</code>, <code>reconcile</code>, <code>requeue_quarantined</code>) calls
+<code>_write_message</code> or the equivalent <code>_atomic_write_text(path, msg.to_json())</code>
+inline. <code>list_inbox</code> (<code>store.py:523-545</code>) and <code>list_thread</code>
+(<code>store.py:829-841</code>) are two of the highest-traffic read paths — <code>list_thread</code>
+in particular is what issue #40 identifies as the code that breaks on stale
+identity — and both are just callers of <code>_read_message_at</code> via a <code>glob()</code>
+loop; neither has any per-file version awareness today. This concentration is
+the whole reason a versioning scheme is tractable here: there are exactly two
+places to hook a migration, not one per call site.</p>
+<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h3 id="option-a-recommended-in-file-schema_version-int-upgrade-on-read-migration-ladder">Option A (recommended) — in-file <code>schema_version</code> int + upgrade-on-read migration ladder<a class="headerlink" href="#option-a-recommended-in-file-schema_version-int-upgrade-on-read-migration-ladder" title="Permanent link">&para;</a></h3>
+<p>Add an integer field to the message JSON, <code>"schema_version": N</code>, defaulted to
+the current version on write. On read, <code>_read_message_at</code> checks the stored
+version against <code>CURRENT_SCHEMA_VERSION</code>; if it's older, it runs the file's
+dict through an ordered chain of small migration functions
+(<code>_migrate_v0_to_v1</code>, <code>_migrate_v1_to_v2</code>, …) before constructing the
+<code>Message</code>. Each migration function takes and returns a plain <code>dict</code>, so it can
+apply structural changes (<code>.pop()</code>, <code>.get()</code> with a rename, restructuring
+nested values) that <code>from_dict</code>'s field-level <code>.get()</code> defaults cannot express.
+On the next write of that message (any of the mutating store calls above), the
+now-current-version dict gets persisted, so the file self-heals in place —
+"upgrade on read, stamp on write," matching the acceptance criteria in #42
+verbatim ("A documented, tested migration mechanism upgrades older files on
+read/write").</p>
+<p>This is the natural extension of the tolerance <code>from_dict</code> already has: rather
+than every field individually guessing its own default forever, the version
+number tells you <em>exactly</em> which migrations to run, and the migration ladder
+is where structural (not just additive) transforms live. It directly enables
+issue #40's stable-identity fix: option (a) in #40 ("give each peer a
+<code>session_id</code>/UUID that never changes... Messages reference the stable key")
+is exactly a structural transform of <code>from</code>/<code>to</code> — re-keying from a
+mutable display name to a stable identifier — that a bare <code>.get()</code> default
+cannot express, but a <code>_migrate_vN_to_vN+1(d: dict) -&gt; dict</code> function can,
+because it runs once, deterministically, keyed off the file's own recorded
+version, with full access to whatever mapping table the identity migration
+needs.</p>
+<p><strong>Where the registry lives:</strong> a small ordered list/dict in <code>core/models.py</code>,
+next to <code>Message</code> (the migrations operate on <code>Message</code>'s wire format, so they
+belong beside the dataclass that owns it, not in <code>store.py</code> which only calls
+<code>from_dict</code>/<code>to_dict</code>) — e.g.:</p>
+<div class="highlight"><pre><span></span><code><span class="n">CURRENT_SCHEMA_VERSION</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="n">_MIGRATIONS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">dict</span><span class="p">],</span> <span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="n">_migrate_v0_to_v1</span><span class="p">,</span>
+    <span class="c1"># 1: _migrate_v1_to_v2,   # add here when v2 ships</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>Message.from_dict</code> applies the ladder before constructing the dataclass:
+read <code>d.get("schema_version", 0)</code>, then <code>while v &lt; CURRENT_SCHEMA_VERSION:
+d = _MIGRATIONS[v](d); v += 1</code>. <code>Message.to_dict</code> always stamps
+<code>"schema_version": CURRENT_SCHEMA_VERSION</code>. This keeps <code>_read_message_at</code> and
+<code>_write_message</code> in <code>store.py</code> completely unchanged — they already just call
+<code>Message.from_json</code>/<code>msg.to_json()</code>, so the migration ladder is invisible to
+the two choke points identified above; it lives entirely inside the model
+layer, which is the right layer since it's a wire-format concern.</p>
+<p><strong>Testing:</strong> each migration function gets a direct unit test — construct a
+"v0-shaped" dict by hand (the current shape minus <code>schema_version</code>, per the
+bootstrap rule below), run it through <code>_migrate_v0_to_v1</code>, assert the result.
+Plus two integration-level tests against the real choke points (see
+"Testing" section below): a round-trip test and an old-file-upgrade test.</p>
+<p><strong>How v0 (unversioned) bootstraps to v1:</strong> every message file that exists on
+disk today has no <code>schema_version</code> key at all. That absence <em>is</em> the v0
+marker — <code>d.get("schema_version", 0)</code> reads exactly the files this codebase
+has been writing all along as version 0, with no separate backfill pass
+needed. <code>_migrate_v0_to_v1</code> for the first ship of this feature is therefore
+close to a no-op in content (there's no structural change bundled with the
+versioning feature itself) — its job is just to prove the ladder mechanism
+works end-to-end on a real pre-existing file shape, so the harder structural
+migrations (e.g. issue #40's identity rekey, whenever it ships) land on
+already-proven infrastructure rather than untested infrastructure and a
+data-model change at the same time.</p>
+<h3 id="option-b-alternatives-considered-and-rejected">Option B — alternatives considered and rejected<a class="headerlink" href="#option-b-alternatives-considered-and-rejected" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Versioned directories or filenames</strong> (e.g. <code>inbox/v1/&lt;peer&gt;/&lt;id&gt;.json</code>, or
+  <code>&lt;id&gt;.v1.json</code>). Rejected: every one of the ~15 call sites listed under "The
+  choke points" above constructs paths via <code>_message_path</code>/<code>_find_message_in</code>/
+  glob patterns over <code>inbox/ delivered/ processed/ quarantine/</code>; a version
+  segment in the path multiplies every one of those glob patterns and
+  <code>_find_message_in</code>'s directory walk by the number of live versions, and
+  requires <em>every</em> call site to know about version directories forever, not
+  just the two functions that already gate every read/write. It also doesn't
+  actually solve the problem: a v1 <em>directory</em> still doesn't tell you how to
+  transform a v1 file into a v2 shape — you'd still need an in-file version
+  or a parallel migration ladder, so this option pays the path-fragmentation
+  cost for no corresponding win over Option A.</li>
+<li><strong>No in-file version, detect shape by field presence</strong> (i.e. keep doing what
+  <code>from_dict</code>'s <code>.get()</code> defaults already do, forever). Rejected: this is
+  exactly the status quo issue #42 is filed against. It works for adding
+  optional fields but cannot express a structural change like a rename or a
+  value re-keying (the <code>from</code>/<code>to</code> display-name → stable-id transform issue
+  #40 needs) without ambiguity — <code>.get("old_key") or .get("new_key")</code>-style
+  guessing breaks down as soon as two schema generations could plausibly both
+  have populated the same key with different meanings, and there's no way to
+  stamp the file as "already migrated" so the guess-and-fallback code can ever
+  be retired.</li>
+<li><strong>A one-shot batch migration script (<code>downbeat migrate</code>) instead of
+  upgrade-on-read.</strong> Rejected as the <em>sole</em> mechanism (a <code>--migrate</code> CLI
+  entry point is fine as a convenience layered on top of upgrade-on-read, not
+  a replacement for it): message files live across four directories
+  (<code>inbox/ delivered/ processed/ quarantine/</code>) and the store's own docstring
+  states "Read operations tolerate missing files and return empty
+  containers" as a design principle (<code>store.py:3-4</code>) — a batch script the
+  human must remember to run reintroduces exactly the kind of manual,
+  easy-to-forget operational step issue #42 is trying to eliminate, and
+  quarantined/archived files that a user never actively touches again would
+  simply never get migrated. Upgrade-on-read guarantees every file gets
+  current the moment anything reads it, with no separate step to forget.</li>
+</ul>
+<h2 id="recommendation">Recommendation<a class="headerlink" href="#recommendation" title="Permanent link">&para;</a></h2>
+<p><strong>Option A</strong> — in-file <code>schema_version: int</code>, migration ladder registered in
+<code>core/models.py</code>, applied inside <code>Message.from_dict</code> (equivalently reachable
+from <code>_read_message_at</code>, since that's the only place <code>from_json</code> is called on
+disk-sourced text), stamped to <code>CURRENT_SCHEMA_VERSION</code> on every <code>to_dict</code>.
+Rationale: it's the direct generalization of the tolerance mechanism the
+codebase already trusts (<code>from_dict</code>'s <code>.get()</code> defaults), it requires zero
+changes to <code>store.py</code>'s two choke points or any of their ~15 callers, it
+gives a real backfill-free bootstrap from every existing unversioned file
+(v0 by absence), and it is the concrete prerequisite issue #40's stable-identity
+fix needs — without a version field and a ladder, that fix has no clean way to
+express "rewrite <code>from</code>/<code>to</code> for files written before the rekey" other than
+the ad hoc file surgery #42 was filed to stop.</p>
+<h2 id="data-model-store-changes">Data-model / store changes<a class="headerlink" href="#data-model-store-changes" title="Permanent link">&para;</a></h2>
+<p><strong><code>core/models.py</code>:</strong>
+- Add <code>CURRENT_SCHEMA_VERSION = 1</code> module constant.
+- Add <code>schema_version: int = CURRENT_SCHEMA_VERSION</code> field to the <code>Message</code>
+  dataclass (placed after the existing "Phase 2 schema additions" block,
+  labeled as its own "Phase 3" comment block matching the existing
+  <code># --- Phase 0 schema additions ---</code> / <code># --- Phase 2 schema additions
+  ---</code> convention already in the file).
+- <code>to_dict</code>: add <code>"schema_version": self.schema_version</code> to the emitted dict.
+- <code>from_dict</code>: before constructing the <code>Message</code>, read
+  <code>stored_version = d.get("schema_version", 0)</code>, run the migration ladder
+  (<code>while stored_version &lt; CURRENT_SCHEMA_VERSION: d =
+  _MIGRATIONS[stored_version](d); stored_version += 1</code>), then build the
+  dataclass from the migrated <code>d</code> exactly as today. Because the ladder
+  mutates the dict before any <code>d.get(...)</code> field extraction runs, no
+  individual field-extraction line needs to change — the migration functions
+  are the only place that needs to know about the old shape.
+- Add <code>_migrate_v0_to_v1(d: dict) -&gt; dict</code> (v0 = "no <code>schema_version</code> key
+  present" = every file on disk today). Its actual body depends on whether
+  v1 bundles any structural change at ship time — if not, it can be exactly
+  <code>return d</code> (all current fields already have <code>.get()</code> defaults, so nothing
+  needs rewriting); if a structural change is intentionally bundled with this
+  feature, it goes here.
+- Add the <code>_MIGRATIONS</code> registry dict as shown in Option A above.</p>
+<p><strong><code>core/store.py</code>:</strong> no changes required to <code>_read_message_at</code>,
+<code>_write_message</code>, <code>list_inbox</code>, or <code>list_thread</code> — they call
+<code>Message.from_json</code>/<code>.to_json()</code>/<code>.to_dict()</code>, which is where the migration
+now lives. This is the point of putting the ladder in the model layer rather
+than the store layer.</p>
+<p><strong><code>core/errors.py</code>:</strong> no new error type is strictly required — a migration
+function raising lets the existing <code>except (json.JSONDecodeError, KeyError)</code>
+in <code>_read_message_at</code> either catch it (if it raises <code>KeyError</code>) or propagate
+uncaught (anything else). Recommend migrations raise <code>KeyError</code> on
+unrecoverable shape mismatches so they fold into the existing
+<code>StoreCorrupt</code> path with no new catch site — consistent with how
+<code>CycleDetected</code> was deliberately made a subclass of <code>InvalidParent</code> in the
+peer-tree spec specifically to avoid new wiring at call sites.</p>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<p>Following the pattern in <code>tests/test_models.py</code> (direct dataclass
+round-trips) and <code>tests/test_store_messages.py</code> (choke-point-level tests):</p>
+<ul>
+<li><strong>Migration-ladder unit tests</strong> (<code>tests/test_models.py</code>): construct a
+  hand-built v0 dict (current shape, no <code>schema_version</code> key — i.e. exactly
+  what <code>Message(...).to_dict()</code> produces today, minus the new field), call
+  <code>Message.from_dict</code>, assert <code>.schema_version == CURRENT_SCHEMA_VERSION</code> and
+  every other field matches expectations. One test per migration function as
+  the ladder grows.</li>
+<li><strong>Round-trip test</strong>: <code>Message(...).to_dict()</code> → <code>Message.from_dict(d)</code> →
+  assert equality with the original (extending the dataclass <code>frozen=True</code>
+  equality downbeat already relies on) — proves stamping-on-write and
+  reading-back-current-version is lossless, the base case the ladder must
+  never break.</li>
+<li><strong>Old-file-upgrade test</strong> (the one #42's acceptance criteria call for
+  explicitly — "A documented, tested migration mechanism upgrades older files
+  on read/write"): write a <strong>real v0 JSON file</strong> to a temp <code>inbox/&lt;peer&gt;/</code>
+  directory (no <code>schema_version</code> key, matching what today's <code>send_message</code>
+  actually produces on <code>main</code> before this change), call <code>_read_message_at</code>
+  on it directly — the real choke point, not a mock — and assert (a) it
+  parses without raising <code>StoreCorrupt</code>, (b) the returned <code>Message</code> has
+  <code>schema_version == CURRENT_SCHEMA_VERSION</code>, (c) all pre-existing fields
+  survived unchanged. Then feed that message through <code>_write_message</code> and
+  re-read the file from disk with a raw <code>json.loads</code> (not through the model)
+  to assert the persisted JSON now carries <code>"schema_version":
+  CURRENT_SCHEMA_VERSION</code> — proving the self-heal-on-write half of the
+  mechanism, not just the tolerant-read half. This mirrors the project's
+  "verify against the real artifact" convention: read the real file the real
+  choke point reads, not a constructed <code>Message</code> object that never touches
+  <code>from_json</code>.</li>
+<li><strong>Regression coverage for existing corrupt-file handling</strong>: confirm a
+  genuinely malformed file (missing <code>id</code>/<code>from</code>/<code>to</code>, or invalid JSON) still
+  raises <code>StoreCorrupt</code> after this change — the migration ladder must not
+  swallow or mask the existing corruption detection in <code>_read_message_at</code>.</li>
+</ul>
+<h2 id="migration">Migration<a class="headerlink" href="#migration" title="Permanent link">&para;</a></h2>
+<p><strong>Existing data</strong>: no batch/backfill step needed. Every message file on disk
+today (across <code>inbox/ delivered/ processed/ quarantine/</code>) is a valid v0 input
+by construction — it has no <code>schema_version</code> key, which is precisely the v0
+condition <code>d.get("schema_version", 0)</code> detects. The first read of each file
+through <code>_read_message_at</code> (via any of the ~15 existing call sites) upgrades
+it in memory; the next write of that same message (<code>mark_read</code>, <code>deliver_messages</code>,
+<code>ack_messages</code>, etc.) persists the upgraded shape. Messages that are never
+read or written again (e.g. old <code>processed/</code> archives nobody revisits) simply
+stay v0 on disk indefinitely, which is safe — they still parse correctly
+via the ladder every time something <em>does</em> read them (e.g. <code>broadcast_status</code>'s
+<code>_scan_all_messages</code>, or a future audit tool) — but is worth naming
+explicitly as a known, accepted gap rather than assuming full backfill; see
+"Open decisions" below for whether an explicit <code>downbeat migrate</code> convenience
+command is wanted on top of this.</p>
+<p><strong>Behavior</strong>: none of the current store functions' return shapes or call
+signatures change. <code>schema_version</code> is not exposed anywhere the TUI or CLI
+currently render message fields, so no UI change is implied by this spec.</p>
+<h2 id="relationship-to-issue-40-peer-identity">Relationship to issue #40 (peer identity)<a class="headerlink" href="#relationship-to-issue-40-peer-identity" title="Permanent link">&para;</a></h2>
+<p>This spec is explicitly a <strong>prerequisite/enabler</strong>, not a fix, for issue #40.</p>
+<h1 id="40s-option-a-a-stable-identity-key-separate-from-display-name-with">40's option (a) — a stable identity key separate from display name, with<a class="headerlink" href="#40s-option-a-a-stable-identity-key-separate-from-display-name-with" title="Permanent link">&para;</a></h1>
+<p>messages referencing the stable key instead of a mutable name — requires
+rewriting <code>from</code>/<code>to</code> in every historical message file the moment the rekey
+ships. Today that rewrite has no home: <code>from_dict</code>'s additive <code>.get()</code>
+tolerance cannot express "if this file predates the identity rekey, replace
+<code>from</code>/<code>to</code> with the stable-id equivalent looked up from a rename-history
+table," because there is no per-file signal for "predates." With the ladder
+in place, that becomes <code>_migrate_v1_to_v2</code> (or whichever version number is
+current when #40 lands): a normal addition to <code>_MIGRATIONS</code>, tested the same
+way as every other rung, running through the same two choke points, with no
+new call-site wiring. This spec does not attempt to design that migration's
+content (the identity-key scheme itself is #40's open design question, e.g.
+whether the stable key is a UUID or the existing <code>session_id</code>) — it only
+establishes the ladder #40 will need to land its fix without hand-editing
+~100 files again.</p>
+<h2 id="open-decisions-for-the-maintainer">Open decisions for the maintainer<a class="headerlink" href="#open-decisions-for-the-maintainer" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Does v1 bundle any structural change</strong>, or does it ship as a pure
+   plumbing release (<code>_migrate_v0_to_v1</code> is <code>return d</code>, just proving the
+   mechanism)? Recommendation in this doc assumes plumbing-only, deferring
+   #40's actual rekey to a later version bump — confirm that's the intended
+   sequencing (versioning lands first, cleanly, as its own PR; identity rekey
+   follows as a separate, later change).</li>
+<li><strong>Is a <code>downbeat migrate</code> (or <code>downbeat store migrate</code>) CLI convenience
+   command wanted</strong>, to force-touch every file across all four directories
+   and eagerly upgrade them, for operators who want a fully-current store on
+   disk rather than relying on lazy upgrade-on-read/write? This spec treats
+   it as optional and out of scope, since upgrade-on-read already satisfies
+   #42's acceptance criteria without it, but it's a reasonable follow-up if
+   the maintainer wants an explicit "flush" story (e.g. before a backup, or
+   before deprecating a migration rung).</li>
+<li><strong>How long do old migration rungs stay in the ladder?</strong> Once v0 files are
+   believed to be fully flushed out of production instances, <code>_migrate_v0_to_v1</code>
+   could theoretically be dropped, raising <code>StoreCorrupt</code> on a stray v0 file
+   instead of silently upgrading it forever. Not addressed here — flag for a
+   future decision once there's real-world signal on how long v0 files
+   linger (quarantine/processed files with no further activity could persist
+   indefinitely, per "Migration" above).</li>
+<li><strong>Error type for unrecoverable migrations</strong>: this spec recommends reusing
+   <code>StoreCorrupt</code> via <code>KeyError</code> rather than adding a new exception class.
+   Confirm that's preferred over a dedicated <code>SchemaMigrationError</code>
+   (which would need its own catch site(s), unlike the <code>CycleDetected</code>
+   pattern this spec otherwise follows).</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.top", "navigation.footer", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

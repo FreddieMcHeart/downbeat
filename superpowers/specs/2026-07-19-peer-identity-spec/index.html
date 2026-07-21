@@ -1,0 +1,1037 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine">
+      
+      
+      
+        <link rel="canonical" href="https://freddiemcheart.github.io/downbeat/superpowers/specs/2026-07-19-peer-identity-spec/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Stable peer identity, separate from display name - downbeat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#stable-peer-identity-separate-from-display-name" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="downbeat" class="md-header__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            downbeat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Stable peer identity, separate from display name
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="downbeat" class="md-nav__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    downbeat
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Context">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#does-peersession_id-already-solve-this" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Does Peer.session_id already solve this?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-dedicated-stable-identity-key-name-becomes-a-pure-alias" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A — dedicated stable identity key, name becomes a pure alias
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-atomic-downbeat-peers-rename-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B — atomic downbeat peers rename command
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/FreddieMcHeart/downbeat/edit/main/docs/superpowers/specs/2026-07-19-peer-identity-spec.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="stable-peer-identity-separate-from-display-name">Stable peer identity, separate from display name<a class="headerlink" href="#stable-peer-identity-separate-from-display-name" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> decided (2026-07-21) — <strong>Option B shipped</strong>, Option A is the accepted
+target architecture, deferred until #42 (message-store schema versioning) lands.
+Maintainer chose "B now + schedule A later" per the fork in "Open decisions" below;
+the rename operation is resumable (idempotent per-file), not fully transactional.
+<strong>Issue:</strong> <a href="https://github.com/FreddieMcHeart/downbeat/issues/40">#40 — Stable peer identity, separate from display name</a>
+<strong>Related:</strong> <a href="https://github.com/FreddieMcHeart/downbeat/issues/42">#42 — Message-store schema versioning</a> (dependency for a clean Option A migration, see below)</p>
+<p>This spec presents two implementation options for #40, with honest trade-offs,
+and a recommendation. It does <strong>not</strong> commit the codebase to either option —
+see "Open decisions for the maintainer" at the bottom.</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>A peer's display <code>name</code> is the <em>only</em> identifier downbeat has ever used for a
+peer, and it is baked into three places at once:</p>
+<ol>
+<li>
+<p><strong>The sessions registry key.</strong> <code>sessions.json</code> is a <code>dict[name, Peer-dict]</code>
+   — <code>register_peer</code> writes <code>sessions[name] = peer.to_dict()</code>
+   (<code>src/downbeat/core/store.py:156</code>), and every other mutator (<code>set_parent</code>
+   at <code>store.py:174</code>, <code>touch_peer</code> at <code>store.py:248</code>, <code>rebind_session</code> at
+   <code>store.py:696-705</code>) reads/writes the same <code>sessions[name]</code> entry. There is
+   no field in <code>Peer</code> that identifies "this same peer, even if renamed" —
+   <code>name</code> <em>is</em> the primary key.</p>
+</li>
+<li>
+<p><strong>Every message's <code>from</code>/<code>to</code>.</strong> <code>Message.from_peer</code>/<code>Message.to_peer</code> are
+   plain strings, and <code>send_message</code> stamps them directly from the caller's
+   name argument (<code>store.py:337-347</code>). Once written, a message file never
+   gets touched again to reflect a later rename — messages are otherwise
+   append/transition-only (<code>_write_message</code>, <code>store.py:314-316</code>).</p>
+</li>
+<li>
+<p><strong>The on-disk directory layout.</strong> <code>_message_path</code> (<code>store.py:283-292</code>)
+   computes <code>base / msg.to_peer / f"{msg.id}.json"</code> where <code>base</code> is one of
+   <code>paths.INBOX_DIR</code>, <code>DELIVERED_DIR</code>, <code>PROCESSED_DIR</code>, <code>QUARANTINE_DIR</code>
+   (<code>src/downbeat/core/paths.py:10-13</code>). So a peer's messages don't just
+   <em>reference</em> its name, they live in a directory literally named after it —
+   <code>inbox/&lt;peer-name&gt;/</code>, <code>delivered/&lt;peer-name&gt;/</code>, etc. <code>deliver_messages</code>
+   (<code>store.py:358-361</code>), <code>list_inbox</code> (<code>store.py:533-534</code>),
+   <code>list_quarantined</code> (<code>store.py:741</code>), and <code>requeue_quarantined</code>
+   (<code>store.py:756-774</code>) all derive their working directory the same way:
+   <code>&lt;BASE_DIR&gt; / peer_name</code>.</p>
+</li>
+<li>
+<p><strong>Peer <em>groups</em>.</strong> <code>groups.json</code> (<code>src/downbeat/core/groups.py</code>) stores
+   <code>dict[group_name, list[member_peer_name]]</code> — <code>save_group</code> (<code>groups.py:24-27</code>)
+   persists member names as plain strings too, a fourth surface that a rename
+   must account for, distinct from the three the issue names explicitly.</p>
+</li>
+</ol>
+<p>The break, exactly as issue #40 describes it: <code>list_thread</code> reconstructs a
+conversation by comparing each message's <strong>stored, historical</strong> sender name
+against the counterpart's <strong>current, live</strong> name:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># store.py:829-841</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_thread</span><span class="p">(</span><span class="n">peer_a</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">peer_b</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="n">include_archived</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return all messages between peer_a and peer_b (either direction),</span>
+<span class="sd">    sorted oldest to newest. Used by the chat view.&quot;&quot;&quot;</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">owner</span><span class="p">,</span> <span class="n">sender</span> <span class="ow">in</span> <span class="p">((</span><span class="n">peer_a</span><span class="p">,</span> <span class="n">peer_b</span><span class="p">),</span> <span class="p">(</span><span class="n">peer_b</span><span class="p">,</span> <span class="n">peer_a</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">list_inbox</span><span class="p">(</span><span class="n">owner</span><span class="p">,</span> <span class="n">include_archived</span><span class="o">=</span><span class="n">include_archived</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">from_peer</span> <span class="o">==</span> <span class="n">sender</span> <span class="ow">and</span> <span class="n">m</span><span class="o">.</span><span class="n">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+                <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">out</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="n">m</span><span class="o">.</span><span class="n">created_at</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+</code></pre></div>
+<p><code>peer_a</code>/<code>peer_b</code> are whatever the TUI currently calls the two peers —
+i.e. their <em>current</em> names. <code>m.from_peer</code> is whatever the sender was called
+<em>at send time</em>. The moment a peer is renamed, every message it sent before
+the rename has <code>from_peer == &lt;old name&gt;</code>, the <code>sender</code> argument passed into
+<code>list_thread</code> is <code>&lt;new name&gt;</code>, the <code>==</code> comparison at <code>store.py:837</code> fails
+silently, and that message drops out of the thread — no error, no
+quarantine, just a hole in history. The same stale-name problem applies to
+<code>_message_path</code> at read time: <code>deliver_messages</code>/<code>list_inbox</code>/etc. look in
+<code>&lt;BASE_DIR&gt;/&lt;current-name&gt;/</code>, but any message filed under the old
+directory name is invisible until moved.</p>
+<p>Today's only recovery is exactly what the issue says: hand-editing every
+<code>from</code>/<code>to</code> field and physically moving every message file across
+<code>inbox/</code>, <code>delivered/</code>, <code>processed/</code>, <code>quarantine/</code> — on the order of ~100
+files for an active peer — plus fixing up <code>groups.json</code> membership and the
+<code>sessions.json</code> key by hand. There is no tooling for this today; <code>downbeat</code>
+has no <code>rename</code> verb at all (confirmed: no <code>rename</code> in
+<code>src/downbeat/cli/commands/relay_cmds.py</code> or <code>src/downbeat/cli/__main__.py</code>).</p>
+<h3 id="does-peersession_id-already-solve-this">Does <code>Peer.session_id</code> already solve this?<a class="headerlink" href="#does-peersession_id-already-solve-this" title="Permanent link">&para;</a></h3>
+<p>The issue asks this explicitly, and it's worth being precise about why the
+answer is <strong>no</strong>. <code>Peer</code> already carries a <code>session_id: str</code>
+(<code>src/downbeat/core/models.py:122</code>) that looks, at a glance, like exactly the
+kind of rename-proof key #40 wants. It isn't, for a reason that's load-bearing
+for the rest of this spec: <code>session_id</code> is the <em>volatile</em> field, and <code>name</code>
+is the <em>stable</em> one, in the exact opposite direction from what #40 needs.</p>
+<p><code>rebind_session</code> (<code>store.py:676-712</code>) exists specifically to change a peer's
+<code>session_id</code> while holding <code>name</code> fixed — that's its whole purpose: the same
+logical peer restarts its Claude Code process (new PID, new Claude session
+id) and reattaches under its <em>existing, unchanged</em> name:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># store.py:696-706</span>
+<span class="n">entry</span> <span class="o">=</span> <span class="n">sessions</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+<span class="n">old_sid</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;session_id&quot;</span><span class="p">)</span>
+<span class="n">history</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;session_id_history&quot;</span><span class="p">,</span> <span class="p">[]))</span>
+<span class="k">if</span> <span class="n">old_sid</span> <span class="ow">and</span> <span class="n">old_sid</span> <span class="o">!=</span> <span class="n">new_session_id</span> <span class="ow">and</span> <span class="n">old_sid</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">history</span><span class="p">:</span>
+    <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">old_sid</span><span class="p">)</span>
+<span class="n">entry</span><span class="p">[</span><span class="s2">&quot;session_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_session_id</span>
+<span class="n">entry</span><span class="p">[</span><span class="s2">&quot;session_id_history&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">history</span>
+<span class="n">entry</span><span class="p">[</span><span class="s2">&quot;last_rebind_at&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">now_iso</span><span class="p">()</span>
+<span class="n">entry</span><span class="p">[</span><span class="s2">&quot;last_seen&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">now_iso</span><span class="p">()</span>
+<span class="n">sessions</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span>
+</code></pre></div>
+<p>So today: <code>name</code> is expected to be constant across the peer's lifetime and
+<code>session_id</code> is expected to churn (every rebind appends the old value to
+<code>session_id_history</code> and moves on). Using <code>session_id</code> as the stable
+message-addressing key would mean every rebind — a routine, frequent event,
+not a rare one like a rename — silently breaks thread continuity in exactly
+the way #40 is trying to fix, just on a shorter cycle. <code>session_id</code> answers
+"which OS process is this peer running as right now," not "which enduring
+peer is this." It does not suffice. A stable key needs a field that is
+<em>never</em> reassigned by any existing store operation — neither <code>register_peer</code>
+re-registration, nor <code>rebind_session</code>, nor (today) any rename — and no
+existing <code>Peer</code> field has that property. <code>session_id_history</code> is close in
+spirit (an append-only log) but logs the wrong thing for this purpose.</p>
+<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h3 id="option-a-dedicated-stable-identity-key-name-becomes-a-pure-alias">Option A — dedicated stable identity key, name becomes a pure alias<a class="headerlink" href="#option-a-dedicated-stable-identity-key-name-becomes-a-pure-alias" title="Permanent link">&para;</a></h3>
+<p>Add a new immutable field to <code>Peer</code>, e.g. <code>peer_id: str</code> (a <code>uuid.uuid4().hex</code>
+like <code>models.new_id()</code> already produces for messages/broadcasts,
+<code>models.py:17-18</code>), generated once at first <code>register_peer</code> and never
+reassigned by any later mutation (rename, rebind, or re-register). <code>name</code>
+becomes a mutable display alias resolved to <code>peer_id</code> at every entry point.
+Messages store <code>from_peer_id</code>/<code>to_peer_id</code> (or repurpose <code>from_peer</code>/<code>to_peer</code>
+to hold the id and add separate display fields — see "Data-model sketch"
+below for the concrete shape). Directory layout keys on <code>peer_id</code>, not name.</p>
+<p><strong>What this actually touches</strong>, concretely, beyond <code>models.py</code>/<code>store.py</code>:</p>
+<ul>
+<li><code>sessions.json</code>: either re-key the top-level dict from <code>name</code> → <code>peer_id</code>
+  (breaking every <code>sessions[name]</code> lookup in <code>store.py</code> — six call sites
+  listed under Context above) or keep it name-keyed and add <code>peer_id</code> as a
+  field inside each entry (smaller diff, but then "look up a peer by stable
+  id" needs a linear scan or a second name→id index — <code>sessions.json</code> today
+  has no secondary index of any kind).</li>
+<li>Every message file, past and present: <code>from</code>/<code>to</code> currently hold names
+  (<code>Message.to_dict</code>, <code>models.py:69-70</code>); Option A means the <em>meaning</em> of
+  those two fields changes for every message ever written, which is exactly
+  the kind of on-disk format change issue #42 exists to make migratable
+  cleanly (see "Dependency on #42" below) — without it, Option A has no
+  principled way to tell an old-format message (fields are names) from a
+  new-format one (fields are ids) except heuristics.
+  file naming/moving: every message currently under
+  <code>inbox/&lt;name&gt;/&lt;id&gt;.json</code> needs a directory move to <code>inbox/&lt;peer_id&gt;/&lt;id&gt;.json</code>.</li>
+<li><code>groups.json</code> membership lists (<code>groups.py:24-27</code>) — currently names,
+  would need the same id-vs-alias resolution.</li>
+<li>Every TUI file that reads <code>Message.from_peer</code>/<code>to_peer</code> and treats it as a
+  human-readable label to render directly — <code>screens/chat.py</code>,
+  <code>screens/quarantine.py</code>, <code>screens/message_detail.py</code>,
+  <code>widgets/find_message.py</code>, <code>widgets/composer.py</code>, <code>widgets/chat_stream.py</code>,
+  <code>widgets/inbox_list.py</code>, <code>widgets/message_view.py</code> (all confirmed via grep
+  to reference <code>from_peer</code>/<code>to_peer</code>) would need a name-<em>lookup</em> step
+  (<code>peer_id → current display name</code>) inserted before rendering, since the
+  field itself would no longer be display-ready.</li>
+<li>CLI/TUI arguments that currently take a peer <em>name</em> (<code>--peer</code>, <code>--parent</code>,
+  <code>set-parent &lt;child_name&gt; &lt;parent_name&gt;</code>, group membership) would need to
+  keep accepting names for human ergonomics while resolving to <code>peer_id</code>
+  internally — a name→id resolver becomes a new, permanent piece of surface
+  area, and it has to handle "no peer with this name" and, once renames
+  exist, "this name used to belong to a different peer_id" (name reuse after
+  a rename) as explicit, tested cases.</li>
+</ul>
+<p><strong>Trade-offs.</strong> This is the architecturally correct answer — identity and
+display name become genuinely orthogonal, which is exactly what #40 asks
+for, and it's a strict category improvement (rebind already proved the
+project believes "peer" should be independent of any one mutable
+attribute — this generalizes that same idea to <code>name</code>). But it is a large,
+invasive change: it touches the on-disk message schema (every message file,
+past and present), the sessions.json key/index shape, <code>groups.json</code>, and
+every TUI/CLI surface that currently treats <code>from_peer</code>/<code>to_peer</code>/<code>--peer</code>
+as a human name. It is not safely executable without #42's schema
+versioning (below) — doing it without a version marker means writing a
+migration with no reliable way to detect "have I already migrated this
+file," which is a well-known way to double-migrate or silently skip files
+on a partial/interrupted run.</p>
+<h3 id="option-b-atomic-downbeat-peers-rename-command">Option B — atomic <code>downbeat peers rename</code> command<a class="headerlink" href="#option-b-atomic-downbeat-peers-rename-command" title="Permanent link">&para;</a></h3>
+<p>Keep <code>name</code> as the only identifier (no new field, no schema change). Add a
+transactional CLI command that, given <code>old_name new_name</code>, rewrites every
+on-disk reference to <code>old_name</code> to <code>new_name</code> as a single all-or-nothing
+operation:</p>
+<ul>
+<li>every message file's <code>from</code>/<code>to</code> field, across all four state directories
+  (<code>inbox/</code>, <code>delivered/</code>, <code>processed/</code>, <code>quarantine/</code>) — matching the same
+  four bases <code>_find_message_path</code> already iterates
+  (<code>store.py:305-311</code>);</li>
+<li>the physical directory rename: <code>&lt;BASE&gt;/&lt;old_name&gt;/</code> → <code>&lt;BASE&gt;/&lt;new_name&gt;/</code>,
+  for each of the four bases (a plain <code>os.replace</code> per base is sufficient
+  when both dirs are on the same filesystem — the store already commits to
+  <code>os.replace</code>-based atomicity elsewhere, see <code>_atomic_write_text</code>,
+  <code>store.py:29-38</code>);</li>
+<li>the <code>sessions.json</code> entry: pop <code>sessions[old_name]</code>, reinsert under
+  <code>sessions[new_name]</code> with <code>name</code> updated inside the value too (the value's
+  own <code>name</code> field and the dict key must never disagree — <code>_load_sessions</code>
+  already treats the dict key as authoritative and backfills <code>name</code> from it
+  for legacy entries, <code>store.py:56-58</code>);</li>
+<li>every peer's <code>parent</code> pointer that equals <code>old_name</code> — every other peer in
+  <code>sessions.json</code> whose <code>parent == old_name</code> needs repointing to
+  <code>new_name</code>, or its children silently detach (this is the same
+  "dangling-pointer" failure mode <code>remove_peer</code>'s docstring already warns
+  about at <code>store.py:213-224</code>, just triggered by rename instead of removal);</li>
+<li><code>groups.json</code> membership lists containing <code>old_name</code> (<code>groups.py</code>).</li>
+</ul>
+<p><strong>Making it atomic in practice</strong>: since this is a filesystem tree, not a
+database, "all-or-nothing" has to be built, not assumed. The established
+pattern in this codebase is stage-then-commit via <code>os.replace</code>
+(<code>_atomic_write_text</code>, <code>store.py:29-38</code>) — extend that shape: write every
+modified message file to a temp path first, build the full list of
+(source, dest) directory/file moves, and only start <code>os.replace</code>-ing once
+every write has succeeded, in an order that never leaves both an
+<code>old_name</code> and a <code>new_name</code> directory holding live (non-duplicate) message
+state simultaneously. A crash mid-rename should be recoverable — at minimum
+detectable — not silently half-migrated; see "Migration" below for the
+concrete recovery shape.</p>
+<p><strong>Trade-offs.</strong> Smaller: no <code>Peer</code> field added, no message schema change, no</p>
+<h1 id="42-dependency-no-id-vs-name-resolution-layer-to-add-across-every-tui-file">42 dependency, no id-vs-name resolution layer to add across every TUI file.<a class="headerlink" href="#42-dependency-no-id-vs-name-resolution-layer-to-add-across-every-tui-file" title="Permanent link">&para;</a></h1>
+<p>It directly satisfies the acceptance criteria in #40 ("renaming a peer
+preserves full thread history with no manual file surgery"). But identity
+stays fundamentally string-based — a rename is still, structurally, "reissue
+this peer's key, then chase down every place the old key was copied," which
+is O(files touched) per rename and re-derives the same file/dir-touching
+logic issue #40 is trying to retire, just wrapped in one command instead of
+done by hand. It doesn't change the fact that <code>name</code> is simultaneously the
+identity key <em>and</em> the thing users want to be free to change — it makes
+that combination safe, not gone. Every future feature that wants "the same
+logical peer across a rename" (audit log, cross-referencing, external
+integration) still has to either re-run the migration idea or accept
+string identity's limits. It also doesn't touch the <code>session_id</code>-vs-<code>name</code>
+volatility mismatch described above; it only fixes the <code>name</code>-changes case, not any structural ambiguity about what "identity" means for a peer.</p>
+<h3 id="dependency-on-42-message-store-schema-versioning">Dependency on #42 (message-store schema versioning)<a class="headerlink" href="#dependency-on-42-message-store-schema-versioning" title="Permanent link">&para;</a></h3>
+<p>Issue #42 exists because "the manual rename surgery in the peer-identity
+issue is a symptom of" the deeper problem: <code>Message</code> files carry no schema
+version (<code>Message.to_dict</code>/<code>from_dict</code>, <code>models.py:66-116</code>, has no
+<code>schema_version</code> field; tolerance today is purely <code>.get(key, default)</code>
+duck-typing, not a versioned migration). That matters differently for each
+option:</p>
+<ul>
+<li><strong>Option A</strong> cannot be migrated cleanly without it. Reinterpreting
+  <code>from</code>/<code>to</code> from "peer name" to "peer id" is a breaking change to what
+  those fields <em>mean</em>, applied to every message file ever written. Without
+  a version marker, a migration script has no reliable way to tell "this
+  file already has id-valued <code>from</code>/<code>to</code>" from "this file still has
+  name-valued <code>from</code>/<code>to</code>" — especially once a peer is renamed and its old
+  name could coincidentally look like a valid id-shaped string, or vice
+  versa. #42's "every message file records a schema version" acceptance
+  criterion is close to a hard prerequisite for Option A being safe to ship
+  as an automatic, non-interactive migration.</li>
+<li><strong>Option B</strong> does not strictly need #42 — it doesn't change what the
+  <code>from</code>/<code>to</code> fields <em>mean</em> (they're still names before and after,
+  just a different name), so there's no ambiguity a schema version would
+  resolve. It only needs its own rename operation to be atomic (see above),
+  which is a narrower, self-contained guarantee.</li>
+</ul>
+<p>This asymmetry — A structurally depends on #42, B does not — is itself a
+data point for sequencing, independent of which option is otherwise
+preferred (see Recommendation).</p>
+<h2 id="recommendation">Recommendation<a class="headerlink" href="#recommendation" title="Permanent link">&para;</a></h2>
+<p>Ship <strong>Option B now</strong>, and treat <strong>Option A as the target architecture</strong>,
+sequenced after #42 lands.</p>
+<p>Reasoning: #40's acceptance criteria ("renaming a peer preserves full thread
+history with no manual file surgery," "no code path compares a stored
+historical sender name against a live name") are both fully satisfiable by
+Option B alone — it doesn't require the message schema to change shape, so
+it doesn't require #42 first, and it's a self-contained, testable, atomic
+operation with a blast radius the codebase already has patterns for
+(<code>_atomic_write_text</code>'s stage-then-<code>os.replace</code> shape). Option A is the
+architecturally cleaner end state — it's the only option that makes
+"identity" and "display name" genuinely orthogonal rather than "renaming is
+now a safe, expensive operation instead of an unsafe one" — but it is a
+larger migration whose safe execution is gated on #42 landing first, and
+building it before #42 means either blocking on that issue or accepting the
+double-migration/partial-migration risk described above. Landing B first
+also does not throw away work: <code>peers rename</code>'s file-touching logic
+(enumerate every reference to a peer across 4 message-state dirs +
+sessions.json + groups.json) is close to a superset of what Option A's
+one-time migration script needs to do internally, just keyed on <code>peer_id</code>
+generation additionally once that field exists.</p>
+<h2 id="data-model-sketch">Data-model sketch<a class="headerlink" href="#data-model-sketch" title="Permanent link">&para;</a></h2>
+<p>Only in scope if/when Option A is chosen; sketched here so the maintainer
+can evaluate the shape of the larger change, not as something to build now.</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Peer</span><span class="p">:</span>
+    <span class="n">peer_id</span><span class="p">:</span> <span class="nb">str</span>        <span class="c1"># NEW — uuid4().hex, assigned once at first</span>
+                         <span class="c1"># register_peer, NEVER reassigned by rename,</span>
+                         <span class="c1"># rebind, or re-register. The stable key.</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>            <span class="c1"># display alias; mutable via `peers rename`.</span>
+    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span>       <span class="c1"># unchanged meaning: current OS-process</span>
+                         <span class="c1"># attachment, volatile across rebinds (see</span>
+                         <span class="c1"># &quot;Does Peer.session_id already solve this?&quot;).</span>
+    <span class="o">...</span>                  <span class="c1"># remaining fields unchanged</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Message</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="n">from_peer</span><span class="p">:</span> <span class="nb">str</span>        <span class="c1"># becomes peer_id, not display name</span>
+    <span class="n">to_peer</span><span class="p">:</span> <span class="nb">str</span>          <span class="c1"># becomes peer_id, not display name</span>
+    <span class="n">schema_version</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>   <span class="c1"># NEW, from #42 — required to distinguish</span>
+                               <span class="c1"># id-valued fields (v2+) from name-valued</span>
+                               <span class="c1"># legacy fields (v1, implicit/unversioned)</span>
+</code></pre></div>
+<p>Rendering code (TUI) resolves <code>peer_id → current display name</code> via a single
+shared lookup (e.g. <code>store.get_peer_name(peer_id)</code> backed by an
+in-memory name→id / id→name index built once per <code>list_peers()</code> call,
+analogous to how <code>acting_as_candidates()</code> already builds a derived set
+over <code>list_peers()</code> at <code>store.py:189-198</code>) rather than each of the eight
+TUI call sites rolling its own resolution.</p>
+<h2 id="store-cli-changes">Store / CLI changes<a class="headerlink" href="#store-cli-changes" title="Permanent link">&para;</a></h2>
+<p><strong>Option B, concretely</strong> — new functions in <code>core/store.py</code>, following the
+existing four-base-directory iteration pattern used by
+<code>_find_message_path</code>/<code>_scan_all_messages</code> (<code>store.py:305-311</code>,
+<code>store.py:631-645</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">rename_peer</span><span class="p">(</span><span class="n">old_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Peer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Atomically rename a peer: rewrites from/to on every message file</span>
+<span class="sd">    across inbox/delivered/processed/quarantine, moves each of the four</span>
+<span class="sd">    per-peer directories, repoints sessions.json (key + parent pointers),</span>
+<span class="sd">    and updates groups.json membership. All-or-nothing: either every</span>
+<span class="sd">    reference is updated or none are.&quot;&quot;&quot;</span>
+</code></pre></div>
+<ul>
+<li>Validate first, before any write: <code>new_name</code> must not already be a
+  registered peer (collision) and must be a non-empty, otherwise-valid name
+  by whatever constraints <code>register_peer</code> already enforces on names today
+  (currently none explicit beyond non-empty dict key — worth confirming/
+  tightening as part of this work, since <code>sessions.json</code> is dict-keyed on
+  name and a collision would silently overwrite).</li>
+<li>Reuse the existing atomic-write primitive (<code>_atomic_write_text</code>,
+  <code>store.py:29-38</code>) per file, and stage full success before committing any
+  directory move, per the "Making it atomic in practice" note under Option
+  B above.</li>
+<li>New CLI subcommand modeled directly on the existing <code>peers set-parent</code>
+  pattern (<code>src/downbeat/cli/__main__.py:93-103</code>,
+  <code>relay_cmds.py:cmd_peers</code>, dispatched via <code>args.peers_action</code>):</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="n">sp_peers_rename</span> <span class="o">=</span> <span class="n">sp_peers_sub</span><span class="o">.</span><span class="n">add_parser</span><span class="p">(</span>
+    <span class="s2">&quot;rename&quot;</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;rename a peer, atomically migrating all message history and directories&quot;</span><span class="p">,</span>
+    <span class="n">parents</span><span class="o">=</span><span class="p">[</span><span class="n">debug_parent</span><span class="p">])</span>
+<span class="n">sp_peers_rename</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;old_name&quot;</span><span class="p">)</span>
+<span class="n">sp_peers_rename</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;new_name&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><code>cmd_peers</code> gains an <code>elif args.peers_action == "rename":</code> branch calling
+  <code>store.rename_peer(args.old_name, args.new_name)</code>, catching a new
+  <code>PeerNotFound</code>/<code>PeerNameCollision</code>-style error the same way the existing
+  <code>set-parent</code> branch catches <code>PeerNotFound, InvalidParent</code>
+  (<code>relay_cmds.py:122-129</code>).
+- New error class in <code>core/errors.py</code>, alongside the existing
+  <code>PeerNotFound</code>/<code>InvalidParent</code> family: <code>PeerNameCollision(RelayError)</code> for
+  "new_name already registered."</p>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<p>Mirrors the structure of the existing peer/store test suite
+(<code>tests/test_store_peers.py</code>, <code>tests/test_rebind.py</code>), plus a rename-specific
+file:</p>
+<ul>
+<li><strong>Happy path</strong>: register peer A, send several messages both directions
+  with another peer B (mix of inbox/delivered/processed/quarantine states —
+  reuse the quarantine/reconcile helpers already exercised in
+  <code>tests/test_store_quarantine.py</code>), call <code>rename_peer("A", "A2")</code>, then
+  assert <code>list_thread("A2", "B")</code> returns the full pre-rename history with
+  no gaps — this is the direct regression test for the <code>list_thread</code> bug
+  quoted under Context.</li>
+<li><strong>Directory migration</strong>: assert no files remain under any of
+  <code>inbox/A/</code>, <code>delivered/A/</code>, <code>processed/A/</code>, <code>quarantine/A/</code> after
+  rename, and the same message IDs exist under <code>.../A2/</code>.</li>
+<li><strong>Parent-pointer repointing</strong>: register a child peer C with
+  <code>parent="A"</code>, rename A→A2, assert <code>get_peer("C").parent == "A2"</code> (the
+  dangling-pointer case <code>remove_peer</code>'s docstring already flags for a
+  different operation, <code>store.py:213-224</code> — same failure shape, different
+  trigger).</li>
+<li><strong>Group membership</strong>: create a group containing "A" via
+  <code>groups.save_group</code>, rename A→A2, assert the group's member list contains
+  "A2" not "A".</li>
+<li><strong>Collision rejection</strong>: attempt <code>rename_peer("A", "B")</code> where B is
+  already registered; assert it raises before touching any file (verify via
+  mtimes/inode or a before/after file listing diff, not just the return
+  value).</li>
+<li><strong>Atomicity under simulated failure</strong>: inject a failure partway through
+  the file-rewrite loop (e.g. monkeypatch one message write to raise) and
+  assert the on-disk state is unchanged from before the call — either fully
+  rolled back or, if full rollback isn't implemented, that the operation is
+  safely re-runnable/resumable (see "Migration" below) and never leaves a
+  state where the same message id exists validly under both the old and
+  new peer directories.</li>
+<li><strong>CLI wiring</strong>: a <code>test_cli.py</code>-style subprocess/argparse test that
+  <code>downbeat peers rename old new</code> dispatches to <code>cmd_peers</code> and exits 0/1
+  correctly, matching the existing coverage pattern for <code>set-parent</code>.</li>
+</ul>
+<h2 id="migration">Migration<a class="headerlink" href="#migration" title="Permanent link">&para;</a></h2>
+<p><strong>For Option B (recommended, do now)</strong>: no migration of <em>existing</em> data is
+needed — <code>rename_peer</code> is a new operation applied going forward; peers that
+are never renamed are entirely unaffected, and nothing about existing
+message files or <code>sessions.json</code> shape changes. The only new operational
+concern is crash-safety of the rename operation itself: document (in the
+command's own help text or a <code>docs/</code> note) what state a user finds their
+relay dir in if <code>peers rename</code> is interrupted mid-run (e.g. process killed),
+and what recovery command to run — at minimum, <code>rename_peer</code> should be
+safely re-runnable with the same <code>(old_name, new_name)</code> pair if the first
+attempt didn't finish (idempotent per-file: skip a file already correctly
+written under the new name/location rather than erroring).</p>
+<p><strong>For Option A (deferred, gated on #42)</strong>: this is where real data migration
+lives — every existing message file's <code>from</code>/<code>to</code> needs reinterpreting from
+name to id, every <code>sessions.json</code> entry needs a <code>peer_id</code> backfilled, and
+<code>groups.json</code> needs no change in shape (member lists can stay name-based if
+groups are treated as a display-layer concept, or migrate to id-based for
+consistency — an open question in its own right, not resolved by this
+spec). This migration is exactly the shape #42 is meant to make safe: read
+old-format (unversioned) messages, write them back at the new
+<code>schema_version</code> with <code>from</code>/<code>to</code> reinterpreted, in a way that's detectable
+and resumable. Not designed in detail here — it is explicitly out of scope
+until #42 lands and the maintainer decides to proceed with Option A.</p>
+<h2 id="open-decisions-for-the-maintainer">Open decisions for the maintainer<a class="headerlink" href="#open-decisions-for-the-maintainer" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>A vs. B vs. both-sequenced.</strong> This spec recommends B now / A later,
+   gated on #42. The maintainer may instead prefer A directly (accepting
+   the #42 dependency up front and delaying #40's fix until both land), or
+   B only (accepting that identity stays string-based indefinitely and
+   declining to schedule A at all).</li>
+<li><strong>If B ships</strong>: should <code>rename_peer</code> support true rollback on partial
+   failure, or is "safely re-runnable/resumable" (finish the job on a second
+   invocation) an acceptable substitute? True rollback is more work; the
+   codebase's existing atomicity primitive (<code>_atomic_write_text</code>) is
+   per-file, not multi-file-transactional, so true rollback across the full
+   file set is new machinery, not a reuse of an existing pattern.</li>
+<li><strong>If B ships</strong>: what, if anything, constrains a valid peer name beyond
+   "non-empty and not already registered"? <code>sessions.json</code> being dict-keyed
+   on name means any accepted string becomes a directory name too
+   (<code>inbox/&lt;name&gt;/</code>) — worth deciding whether to validate against filesystem-
+   unsafe characters at rename time (and, ideally, at <code>register_peer</code> time
+   too, as a related but separate hardening).</li>
+<li><strong>If A is scheduled</strong>: does <code>groups.json</code> migrate to id-based membership
+   in the same pass, or stay name-based as a deliberately separate,
+   display-layer concept? Sketched as an open question above, not decided
+   by this spec.</li>
+<li><strong>Timing relative to #42</strong>: should #42's schema-version field be added
+   opportunistically now (a small, low-risk addition to <code>Message</code>) even
+   before Option A is scheduled, purely so any <em>future</em> on-disk format
+   change — not just this one — doesn't face the same "no version marker"
+   problem? This spec's position is that #42 is a prerequisite for Option A
+   specifically, but the maintainer may see independent value in landing it
+   sooner regardless of A/B sequencing.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.top", "navigation.footer", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
