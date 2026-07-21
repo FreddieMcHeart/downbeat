@@ -311,6 +311,20 @@ def _find_message_path(msg_id: str) -> Path:
     raise MessageNotFound(msg_id)
 
 
+def locate_message(msg_id: str) -> str | None:
+    """Return which bucket a message id currently lives in — one of
+    "inbox", "delivered", "processed", "quarantine" — or None if it is
+    nowhere in this relay. Lets callers explain WHY an operation scoped to
+    one bucket (e.g. ack, which only touches delivered/) found nothing."""
+    for name, base in (("inbox", paths.INBOX_DIR),
+                       ("delivered", paths.DELIVERED_DIR),
+                       ("processed", paths.PROCESSED_DIR),
+                       ("quarantine", paths.QUARANTINE_DIR)):
+        if _find_message_in(base, msg_id) is not None:
+            return name
+    return None
+
+
 def _write_message(msg: Message) -> None:
     path = _message_path(msg)
     _atomic_write_text(path, msg.to_json())
