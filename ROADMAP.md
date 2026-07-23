@@ -105,7 +105,7 @@ mail:
 - **Lossless migration** from the current on-disk layout, with no thread history
   dropped.
 
-Alongside it, two narrower directions:
+Alongside it, a few narrower directions:
 
 - **Kind-aware message reconciliation.** `reconcile()` today re-queues and
   eventually quarantines any unacked message purely by age — including status
@@ -132,6 +132,18 @@ Alongside it, two narrower directions:
   queue without hand-editing files; (b) distinguish a genuine waiting task from
   terminal noise in the badge, so `●N` reflects work owed, not transport
   backlog. Pairs naturally with kind-aware reconciliation above.
+- **Cross-branch send from the TUI.** Routing is already flat — any peer can
+  `downbeat send` to any other by name, regardless of tree position — but the
+  TUI only surfaces the current group's peers, so a message to a far branch
+  gets hand-forwarded hop-by-hop through a common ancestor instead. That chain
+  is fragile: every intermediary has to wake, pick up, and consciously forward.
+  Add a "send to any peer" action — a fuzzy picker over all registered peers —
+  so reaching a distant branch is one step, not a relay chain.
+- **First-class message forwarding.** Forwarding a received message today means
+  hand-copying its body into a fresh send. Add `downbeat forward <msg_id>
+  <target>` that re-sends the original verbatim — preserving the source
+  `from`/subject/body and adding a "forwarded by" trail — so passing an ask
+  along is lossless and attributed instead of a manual paste.
 
 ---
 
@@ -161,6 +173,10 @@ Alongside it, two narrower directions:
 - **Every tree traversal is bounded** — a visited-set/iteration cap on every
   `.parent` walk, not just the cycle check, so corrupt on-disk data can't hang a
   read.
+- **Routing is flat; the tree is a view** — any peer can address any peer
+  directly by name. The parent/child tree only groups the TUI and sets autonomy
+  defaults; it is not a delivery topology, so a cross-branch message never needs
+  hop-by-hop forwarding.
 - **Verify against the real artifact, not its test double** — drive the real
   binary / real TUI / real store; a check that fakes what it's checking passes for
   the wrong reason.
