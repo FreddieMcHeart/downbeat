@@ -81,7 +81,12 @@ take one, opening an issue (or a PR) is the way in — see
   consciously per peer. Expose it: view and change a peer's autonomy after
   registration, independent of its structure.
 - **Message-store hardening.** Schema versioning on message files, so future
-  format changes are migratable instead of manual.
+  format changes are migratable instead of manual. Already felt concretely:
+  pre-rename quarantined messages carry `from`/`to = null` (they predate the
+  `from_peer`/`to_peer` fields), so they can't be cleanly re-routed or
+  auto-acked — the same legacy-vs-migrated ambiguity a per-message schema
+  version resolves. This is also the gate on Option A of stable peer identity,
+  above.
 
 ---
 
@@ -106,13 +111,27 @@ Alongside it, two narrower directions:
   eventually quarantines any unacked message purely by age — including status
   reports and closing replies that were absorbed the moment they arrived and
   have no natural ack path. They churn through redeliveries and pile into
-  quarantine (a real backlog we've had to hand-clear). Teach reconcile the
-  difference: auto-ack terminal messages, re-queue only genuine tasks. A focused
-  precursor to — or part of — the rework above.
+  quarantine (a real backlog we've had to hand-clear — 40 messages across peers
+  at last count, mostly `Re: Re:` reply chains stuck at `redelivery_count 3`).
+  The schema groundwork already exists — `Message.kind` (`"task"` default,
+  `"backflow-ready"`) — but `reconcile()` never reads it. Teach it the
+  difference: auto-ack terminal kinds (status, backflow) **and** any message
+  carrying an `in_reply_to` (the original sender has no ack path), re-queue only
+  genuine tasks. One `kind`/`in_reply_to` check at the right altitude replaces
+  the per-message hand-clearing. A focused precursor to — or part of — the
+  rework above.
 - **Copy anywhere in the TUI.** The copy affordance (`c` id / `y` body) lives
   only on the message-detail screen, and mouse-selection copy (drag-select +
   `Ctrl+C`) isn't surfaced anywhere. Extend copy to the chat and peers views and
   make the selection-copy path discoverable.
+- **Idle-peer inbox controls + an honest unread badge.** A background peer that
+  isn't taking prompts never drains its own inbox — pickup is per-turn, not
+  event-driven — so `new` messages pile up behind a `●N` badge that reads as
+  "unread" when it actually means "undelivered, recipient idle". Two moves: (a)
+  a bulk-ack / clear-inbox affordance so a human can retire a stalled peer's
+  queue without hand-editing files; (b) distinguish a genuine waiting task from
+  terminal noise in the badge, so `●N` reflects work owed, not transport
+  backlog. Pairs naturally with kind-aware reconciliation above.
 
 ---
 
