@@ -240,6 +240,7 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
     counts = store.reconcile(window_minutes=args.window_minutes,
                              max_redelivery=args.max_redelivery)
     print(f"reconciled: promoted={counts['promoted']} "
+          f"auto_acked={counts['auto_acked']} "
           f"requeued={counts['requeued']} quarantined={counts['quarantined']}")
     if counts["quarantined"] > 0:
         print(f"⚠ {counts['quarantined']} message(s) quarantined — "

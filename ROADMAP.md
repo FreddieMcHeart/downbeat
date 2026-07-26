@@ -18,6 +18,15 @@ Horizons are ordered by confidence, not calendar:
 
 ## Recently shipped (through v0.11.1)
 
+- **Kind-aware reconciliation.** `reconcile()` no longer redelivers mail that
+  carries no work back. A message is *terminal* when its `kind` is terminal
+  (`backflow-ready`, `status`) or it carries an `in_reply_to` — the original
+  sender absorbed it on arrival and has no ack path. Terminal messages are
+  auto-acked into `processed/` instead of churning through redeliveries into
+  quarantine; genuine tasks still requeue and quarantine exactly as before. The
+  delivery window still governs, so an awake recipient keeps its normal chance
+  to ack. `downbeat reconcile` reports the new outcome as `auto_acked=N`.
+  (issue #47)
 - **Atomic peer rename.** `downbeat peers rename <old> <new>` migrates a peer's
   full on-disk identity in one shot — `from`/`to` across every message, all four
   per-peer directories, `sessions.json` (key + parent pointers), and group
@@ -107,19 +116,6 @@ mail:
 
 Alongside it, a few narrower directions:
 
-- **Kind-aware message reconciliation.** `reconcile()` today re-queues and
-  eventually quarantines any unacked message purely by age — including status
-  reports and closing replies that were absorbed the moment they arrived and
-  have no natural ack path. They churn through redeliveries and pile into
-  quarantine (a real backlog we've had to hand-clear — 40 messages across peers
-  at last count, mostly `Re: Re:` reply chains stuck at `redelivery_count 3`).
-  The schema groundwork already exists — `Message.kind` (`"task"` default,
-  `"backflow-ready"`) — but `reconcile()` never reads it. Teach it the
-  difference: auto-ack terminal kinds (status, backflow) **and** any message
-  carrying an `in_reply_to` (the original sender has no ack path), re-queue only
-  genuine tasks. One `kind`/`in_reply_to` check at the right altitude replaces
-  the per-message hand-clearing. A focused precursor to — or part of — the
-  rework above.
 - **Copy anywhere in the TUI.** The copy affordance (`c` id / `y` body) lives
   only on the message-detail screen, and mouse-selection copy (drag-select +
   `Ctrl+C`) isn't surfaced anywhere. Extend copy to the chat and peers views and
@@ -131,7 +127,9 @@ Alongside it, a few narrower directions:
   a bulk-ack / clear-inbox affordance so a human can retire a stalled peer's
   queue without hand-editing files; (b) distinguish a genuine waiting task from
   terminal noise in the badge, so `●N` reflects work owed, not transport
-  backlog. Pairs naturally with kind-aware reconciliation above.
+  backlog. Kind-aware reconciliation (shipped) already stops terminal mail from
+  accumulating; what remains is the human-facing half — the bulk affordance and
+  a badge that counts work rather than transport.
 - **Cross-branch send from the TUI.** Routing is already flat — any peer can
   `downbeat send` to any other by name, regardless of tree position — but the
   TUI only surfaces the current group's peers, so a message to a far branch

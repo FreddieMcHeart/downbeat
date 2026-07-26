@@ -721,13 +721,25 @@ def list_inbox(peer_name: str, include_archived: bool = False) -> list[Message]:
     return out
 
 
+# Kinds the recipient absorbs on arrival: they carry no work owed back, so
+# they have no natural ack path and redelivering them only churns the queue.
+TERMINAL_KINDS = frozenset({"backflow-ready", "status"})
+
+
+def _is_terminal_message(msg: Message) -> bool:
+    """True when nothing is owed in return: an explicitly terminal kind, or
+    any reply (the original sender absorbed it the moment it arrived)."""
+    return msg.kind in TERMINAL_KINDS or msg.in_reply_to is not None
+
+
 def reconcile(window_minutes: int = 30, max_redelivery: int = 3) -> dict:
     """Scan delivered/. For each message with delivered_at older than
-    window_minutes: requeue if redelivery_count < max_redelivery, else quarantine."""
+    window_minutes: auto-ack it if it is terminal (see _is_terminal_message),
+    else requeue if redelivery_count < max_redelivery, else quarantine."""
     from datetime import datetime, timedelta
     now = datetime.now(UTC)
     threshold = now - timedelta(minutes=window_minutes)
-    counts = {"promoted": 0, "requeued": 0, "quarantined": 0}
+    counts = {"promoted": 0, "requeued": 0, "quarantined": 0, "auto_acked": 0}
     if not paths.DELIVERED_DIR.exists():
         return counts
     for peer_dir in paths.DELIVERED_DIR.iterdir():
@@ -746,6 +758,22 @@ def reconcile(window_minutes: int = 30, max_redelivery: int = 3) -> dict:
                 continue
             if d_at > threshold:
                 continue  # still within window
+            if _is_terminal_message(msg):
+                # Nothing is owed back — retire it instead of redelivering.
+                reason = ("reply" if msg.in_reply_to is not None
+                          else f"terminal kind {msg.kind!r}")
+                if ack_messages([msg.id]).get(msg.id):
+                    counts["auto_acked"] += 1
+                    _log.info("auto-ack msg=%s peer=%s reason=%s",
+                              msg.id, peer_dir.name, reason)
+                    _append_delivery_log({"event": "auto-ack",
+                                          "msg_id": msg.id,
+                                          "peer": peer_dir.name,
+                                          "reason": reason})
+                else:
+                    _log.warning("auto-ack failed msg=%s peer=%s",
+                                 msg.id, peer_dir.name)
+                continue
             if msg.redelivery_count + 1 > max_redelivery:
                 # Quarantine
                 d = msg.to_dict()
