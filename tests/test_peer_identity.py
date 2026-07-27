@@ -223,7 +223,7 @@ def test_cli_migrate_reports_ids_backfilled(relay_dir, capsys, monkeypatch):
     rc = main()
 
     assert rc == 0
-    assert "1 identity" in capsys.readouterr().out
+    assert "identity for 1 message" in capsys.readouterr().out
 
 
 def test_cli_peers_shows_peer_id(relay_dir, capsys, monkeypatch):
