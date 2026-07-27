@@ -259,7 +259,9 @@ def cmd_migrate(args: argparse.Namespace) -> int:
           f"v{CURRENT_SCHEMA_VERSION}; "
           f"{counts['current']} already current")
     if counts["ids_backfilled"]:
-        print(f"resolved {counts['ids_backfilled']} identity reference(s) "
+        # Counts MESSAGES touched, not id fields written — a message can gain
+        # both ends. Say which, so the number can't be read as the other.
+        print(f"resolved identity for {counts['ids_backfilled']} message(s) "
               "from the peer registry")
     if args.dry_run:
         print("dry run — nothing written")
