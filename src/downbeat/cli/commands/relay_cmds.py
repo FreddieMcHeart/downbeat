@@ -14,6 +14,7 @@ from ...core.errors import (
     PeerNameCollision,
     PeerNotFound,
 )
+from ...core.models import CURRENT_SCHEMA_VERSION
 
 
 def _detect_peer_or_error(name: str | None, *, flag: str = "--peer") -> str:
@@ -245,6 +246,26 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
     if counts["quarantined"] > 0:
         print(f"⚠ {counts['quarantined']} message(s) quarantined — "
               "check ~/.claude/relay/quarantine/")
+    return 0
+
+
+def cmd_migrate(args: argparse.Namespace) -> int:
+    counts = store.migrate_store(dry_run=args.dry_run)
+    scanned = counts["migrated"] + counts["current"] + counts["unreadable"]
+    print(f"scanned {scanned} message file(s) across "
+          "inbox/ delivered/ processed/ quarantine/")
+    if args.dry_run:
+        print(f"would migrate {counts['migrated']} file(s) to schema "
+              f"v{CURRENT_SCHEMA_VERSION}; "
+              f"{counts['current']} already current")
+        print("dry run — nothing written")
+    else:
+        print(f"migrated {counts['migrated']} file(s) to schema "
+              f"v{CURRENT_SCHEMA_VERSION}; "
+              f"{counts['current']} already current")
+    if counts["unreadable"]:
+        print(f"⚠ {counts['unreadable']} file(s) could not be read — left "
+              "untouched (corrupt, or written by a newer downbeat)")
     return 0
 
 

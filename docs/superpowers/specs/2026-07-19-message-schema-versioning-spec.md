@@ -1,8 +1,8 @@
 # Message-store schema versioning
 
-**Status:** design — recommendation, pending maintainer decision
+**Status:** implemented — Option A shipped, see "Maintainer decisions" at the end
 **Issue:** [#42 Message-store schema versioning](https://github.com/FreddieMcHeart/downbeat/issues/42)
-**Branch:** none yet — this is analysis, not an approved plan (see "Stance" below)
+**Branch:** `feat/message-schema-versioning`
 **Tip at time of writing:** `c459e49` (`main`, v0.10.4)
 
 ## Stance
@@ -379,3 +379,31 @@ establishes the ladder #40 will need to land its fix without hand-editing
    Confirm that's preferred over a dedicated `SchemaMigrationError`
    (which would need its own catch site(s), unlike the `CycleDetected`
    pattern this spec otherwise follows).
+
+## Maintainer decisions (2026-07-27)
+
+All four resolved; Option A implemented as specified.
+
+1. **v1 is plumbing-only.** `_migrate_v0_to_v1` is `return d`. The mechanism
+   ships alone so the first structural rung lands on infrastructure already
+   exercised against real v0 files, rather than on untested plumbing and a
+   data-model change at the same time.
+2. **Yes to a CLI command.** `downbeat migrate [--dry-run]` ships with v1,
+   layered on top of upgrade-on-read rather than replacing it. Justified by
+   real data: a dry run against a live store reported **1557 files, all v0** —
+   the bulk of them `processed/` archives that lazy upgrade would never reach,
+   so without the flush they would stay v0 indefinitely. `--dry-run` reports
+   the same counts and writes nothing.
+3. **Rung retirement stays deferred**, as recommended — revisit once there is
+   real-world signal on how long v0 files linger.
+4. **Reused `StoreCorrupt` via `KeyError`.** No new exception class, no new
+   catch site.
+
+### One addition beyond the spec
+
+The spec did not cover a file whose `schema_version` is **newer** than this
+build supports. Left unhandled, `from_dict` would drop the keys it does not
+know and the next write would persist that loss — silent data destruction on a
+downgrade. `_apply_migrations` therefore raises on a too-new version, which the
+existing `_read_message_at` turns into `StoreCorrupt`; `migrate_store` counts
+such files as unreadable and leaves them untouched.
