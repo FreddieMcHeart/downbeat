@@ -9,7 +9,7 @@
 | src/downbeat/cli/\_\_main\_\_.py               |      115 |        1 |     99% |       233 |
 | src/downbeat/cli/commands/\_\_init\_\_.py      |        0 |        0 |    100% |           |
 | src/downbeat/cli/commands/init\_cmd.py         |      293 |       17 |     94% |98, 115-120, 176-177, 252, 264, 268-269, 310-311, 330, 341 |
-| src/downbeat/cli/commands/relay\_cmds.py       |      226 |       56 |     75% |64-66, 103-105, 111-119, 126-127, 155-156, 166-183, 190-195, 198, 230, 232, 236, 248, 267, 306-308, 312-315, 319-320 |
+| src/downbeat/cli/commands/relay\_cmds.py       |      226 |       56 |     75% |64-66, 103-105, 111-119, 126-127, 155-156, 166-183, 190-195, 198, 230, 232, 236, 248, 269, 308-310, 314-317, 321-322 |
 | src/downbeat/core/\_\_init\_\_.py              |        0 |        0 |    100% |           |
 | src/downbeat/core/errors.py                    |       10 |        0 |    100% |           |
 | src/downbeat/core/groups.py                    |       22 |        0 |    100% |           |
