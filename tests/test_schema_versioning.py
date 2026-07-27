@@ -221,7 +221,8 @@ def test_migrate_store_on_empty_relay_returns_zeros(relay_dir):
 
     counts = store.migrate_store()
 
-    assert counts == {"migrated": 0, "current": 0, "unreadable": 0}
+    assert counts == {"scanned": 0, "migrated": 0, "current": 0,
+                      "unreadable": 0, "ids_backfilled": 0}
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────

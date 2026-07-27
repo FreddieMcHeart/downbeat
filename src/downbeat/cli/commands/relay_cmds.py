@@ -156,7 +156,8 @@ def cmd_peers(args: argparse.Namespace) -> int:
         return 0
     for p in peers:
         parent_suffix = f"  parent={p.parent}" if p.parent else ""
-        print(f"{p.name:<24}  role={p.role:<6}  session={p.session_id}  "
+        print(f"{p.name:<24}  id={p.peer_id}  role={p.role:<6}  "
+              f"session={p.session_id}  "
               f"last_seen={p.last_seen}{parent_suffix}")
     return 0
 
@@ -251,18 +252,17 @@ def cmd_reconcile(args: argparse.Namespace) -> int:
 
 def cmd_migrate(args: argparse.Namespace) -> int:
     counts = store.migrate_store(dry_run=args.dry_run)
-    scanned = counts["migrated"] + counts["current"] + counts["unreadable"]
-    print(f"scanned {scanned} message file(s) across "
+    print(f"scanned {counts['scanned']} message file(s) across "
           "inbox/ delivered/ processed/ quarantine/")
+    verb = "would migrate" if args.dry_run else "migrated"
+    print(f"{verb} {counts['migrated']} file(s) to schema "
+          f"v{CURRENT_SCHEMA_VERSION}; "
+          f"{counts['current']} already current")
+    if counts["ids_backfilled"]:
+        print(f"resolved {counts['ids_backfilled']} identity reference(s) "
+              "from the peer registry")
     if args.dry_run:
-        print(f"would migrate {counts['migrated']} file(s) to schema "
-              f"v{CURRENT_SCHEMA_VERSION}; "
-              f"{counts['current']} already current")
         print("dry run — nothing written")
-    else:
-        print(f"migrated {counts['migrated']} file(s) to schema "
-              f"v{CURRENT_SCHEMA_VERSION}; "
-              f"{counts['current']} already current")
     if counts["unreadable"]:
         print(f"⚠ {counts['unreadable']} file(s) could not be read — left "
               "untouched (corrupt, or written by a newer downbeat)")

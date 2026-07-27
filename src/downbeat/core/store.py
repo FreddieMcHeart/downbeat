@@ -8,6 +8,8 @@ import json
 import logging
 import os
 import tempfile
+import uuid
+from dataclasses import replace
 from datetime import UTC
 from pathlib import Path
 
@@ -55,6 +57,19 @@ def _append_delivery_log(event: dict) -> None:
         f.write(line + "\n")
 
 
+# Fixed namespace for deriving an id for a peer registered before peer_id
+# existed. Derivation must be DETERMINISTIC, not random: two sessions loading
+# sessions.json concurrently would otherwise mint different identities for the
+# same peer, and whichever wrote last would silently orphan the other's
+# messages. The derived value is persisted by the next _save_sessions, but
+# correctness never depends on that having happened.
+_PEER_ID_NAMESPACE = uuid.UUID("6f1c0b6e-2a5e-4f0f-9d1e-b0d0beaf0040")
+
+
+def _derive_peer_id(name: str) -> str:
+    return uuid.uuid5(_PEER_ID_NAMESPACE, name).hex[:12]
+
+
 def _load_sessions() -> dict[str, dict]:
     if not paths.SESSIONS_FILE.exists():
         return {}
@@ -66,6 +81,8 @@ def _load_sessions() -> dict[str, dict]:
     for key, value in raw.items():
         if "name" not in value:
             value["name"] = key
+        if not value.get("peer_id"):
+            value["peer_id"] = _derive_peer_id(key)
     return raw
 
 
@@ -156,6 +173,9 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
         if role == "child" or parent is not None or (existing and existing.get("parent"))
         else None
     )
+    # Identity is assigned once. Re-registering an existing name is the same
+    # peer reattaching, not a new one, so its id must carry over untouched.
+    peer_id = (existing or {}).get("peer_id") or new_id()
     peer = Peer(
         name=name, session_id=session_id, cwd=cwd, role=role,
         registered_at=registered_at, last_seen=now_iso(),
@@ -163,6 +183,7 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
         claude_pid_start=claude_pid_start,
         session_id_history=history,
         parent=resolved_parent,
+        peer_id=peer_id,
     )
     sessions[name] = peer.to_dict()
     _save_sessions(sessions)
@@ -507,6 +528,15 @@ def _read_message_at(path: Path) -> Message:
         raise StoreCorrupt(f"{path} is not a valid message: {e}") from e
 
 
+def peer_id_for_name(name: str) -> str | None:
+    """Current identity behind a display name, or None if no peer answers to
+    it — a sender that never registered, or one since removed."""
+    try:
+        return get_peer(name).peer_id or None
+    except PeerNotFound:
+        return None
+
+
 def get_message(msg_id: str) -> Message:
     return _read_message_at(_find_message_path(msg_id))
 
@@ -517,7 +547,7 @@ def send_message(from_peer: str, to_peer: str, subject: str, body: str,
                  kind: str = "task") -> Message:
     # Sender doesn't need to be registered (CLI may send before its own
     # register completes); recipient must exist.
-    get_peer(to_peer)
+    recipient = get_peer(to_peer)
     msg = Message(
         id=new_id(),
         from_peer=from_peer,
@@ -528,6 +558,11 @@ def send_message(from_peer: str, to_peer: str, subject: str, body: str,
         broadcast_id=broadcast_id,
         in_reply_to=in_reply_to,
         kind=kind,
+        # from_peer/to_peer keep the name as it was at send time; these carry
+        # identity. An unregistered sender has no id yet — left None, which
+        # the name fallback in _is_from() covers.
+        from_peer_id=peer_id_for_name(from_peer),
+        to_peer_id=recipient.peer_id,
     )
     _write_message(msg)
     _log.info("send from=%s to=%s msg=%s kind=%s broadcast=%s in_reply_to=%s bytes=%d",
@@ -834,11 +869,20 @@ def migrate_store(dry_run: bool = False) -> dict:
     Rewrites each file in place — never at _message_path(), which would move a
     message between directories as a side effect of a migration.
     """
-    counts = {"migrated": 0, "current": 0, "unreadable": 0}
+    # `scanned` is counted explicitly rather than derived by summing the
+    # others: a file can need both a version bump and an id backfill, or
+    # neither category (id-only), so any sum over a subset silently lies.
+    counts = {"scanned": 0, "migrated": 0, "current": 0, "unreadable": 0,
+              "ids_backfilled": 0}
+    # Resolving names to ids needs the peer registry, which a migration rung
+    # cannot reach (rungs are pure dict->dict). That is why this half of the
+    # v1->v2 migration lives here rather than in the ladder.
+    ids_by_name = {p.name: p.peer_id for p in list_peers() if p.peer_id}
     for base in _message_dirs():
         if not base.exists():
             continue
         for p in sorted(base.glob("*/*.json")):
+            counts["scanned"] += 1
             try:
                 raw = json.loads(p.read_text())
             except (OSError, json.JSONDecodeError):
@@ -847,7 +891,13 @@ def migrate_store(dry_run: bool = False) -> dict:
             if not isinstance(raw, dict):
                 counts["unreadable"] += 1
                 continue
-            if raw.get("schema_version") == CURRENT_SCHEMA_VERSION:
+            needs_version = raw.get("schema_version") != CURRENT_SCHEMA_VERSION
+            new_from = (None if raw.get("from_peer_id")
+                        else ids_by_name.get(raw.get("from")))
+            new_to = (None if raw.get("to_peer_id")
+                      else ids_by_name.get(raw.get("to")))
+            needs_ids = bool(new_from or new_to)
+            if not needs_version and not needs_ids:
                 counts["current"] += 1
                 continue
             try:
@@ -857,9 +907,17 @@ def migrate_store(dry_run: bool = False) -> dict:
                 counts["unreadable"] += 1
                 _log.warning("migrate skipped unreadable file %s", p)
                 continue
+            if needs_ids:
+                # A name with no live peer stays unresolved rather than being
+                # given an invented identity; the name fallback carries it.
+                msg = replace(msg,
+                              from_peer_id=msg.from_peer_id or new_from,
+                              to_peer_id=msg.to_peer_id or new_to)
+                counts["ids_backfilled"] += 1
+            if needs_version:
+                counts["migrated"] += 1
             if not dry_run:
                 _atomic_write_text(p, msg.to_json())
-            counts["migrated"] += 1
     _log.info("migrate dry_run=%s counts=%s", dry_run, counts)
     return counts
 
@@ -1083,15 +1141,30 @@ def poll_new(peer_name: str, seen: set[str]) -> tuple[list[Message], set[str]]:
     return new, seen
 
 
+def _is_from(msg: Message, sender_name: str, sender_id: str | None) -> bool:
+    """Whether msg was sent by the peer currently displayed as sender_name.
+
+    Identity wins when both ends have it: msg.from_peer holds the sender's
+    name *at send time*, so comparing it against a live name silently drops
+    every message sent before a rename. Falls back to the name only when the
+    message predates identity (pre-v2, never backfilled) or the sender was
+    never registered — for those there is nothing better to compare.
+    """
+    if msg.from_peer_id and sender_id:
+        return msg.from_peer_id == sender_id
+    return msg.from_peer == sender_name
+
+
 def list_thread(peer_a: str, peer_b: str,
                 include_archived: bool = True) -> list[Message]:
     """Return all messages between peer_a and peer_b (either direction),
     sorted oldest to newest. Used by the chat view."""
     out: list[Message] = []
     seen: set[str] = set()
+    ids = {peer_a: peer_id_for_name(peer_a), peer_b: peer_id_for_name(peer_b)}
     for owner, sender in ((peer_a, peer_b), (peer_b, peer_a)):
         for m in list_inbox(owner, include_archived=include_archived):
-            if m.from_peer == sender and m.id not in seen:
+            if m.id not in seen and _is_from(m, sender, ids[sender]):
                 out.append(m)
                 seen.add(m.id)
     out.sort(key=lambda m: m.created_at)

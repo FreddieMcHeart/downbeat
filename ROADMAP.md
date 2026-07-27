@@ -18,6 +18,17 @@ Horizons are ordered by confidence, not calendar:
 
 ## Recently shipped (through v0.11.1)
 
+- **Stable peer identity.** A peer now carries a `peer_id` assigned once and
+  never reassigned — not by rename, not by rebind, not by re-registration —
+  while `name` becomes a display alias. Messages carry both: `from`/`to` keep
+  the name *at send time* (real history, and what the TUI renders), while
+  `from_peer_id`/`to_peer_id` carry identity, and `list_thread` compares those.
+  A rename can no longer punch a hole in a conversation, and neither can a
+  message the rename sweep failed to reach. Legacy peers get a **deterministic**
+  id derived from their name, so two sessions loading the registry concurrently
+  can never mint competing identities for the same peer. A message whose sender
+  is no longer registered stays unresolved rather than being given an invented
+  identity — the name comparison still carries it. (issue #40, Option A)
 - **Message-store schema versioning.** Every message file now records a
   `schema_version`, and `Message.from_dict` runs a migration ladder before
   reading any field — so a future structural change (a key renamed, a value's
@@ -86,17 +97,6 @@ take one, opening an issue (or a PR) is the way in — see
 
 ## Next — planned, shape is clear
 
-- **Stable peer identity, separate from display name.** _Option B shipped:_
-  `downbeat peers rename` now migrates a peer's full history atomically
-  (messages, directories, parent pointers, groups), so renaming is no longer a
-  data-corrupting operation. What remains is _Option A_ — a stable identity key
-  (UUID) with the name as a pure display alias, so no code path ever compares a
-  stored historical name against a live one. Option A rewrites what every
-  message's `from`/`to` field *means* — which is exactly why it was gated on
-  message-store schema versioning. **That gate is now lifted:** the migration
-  ladder shipped, so the rekey becomes a registered rung (`_migrate_v1_to_v2`)
-  that can tell an already-migrated file from a legacy one, instead of ad hoc
-  surgery across every message on disk.
 - **Per-peer autonomy control.** A peer's relay-monitor autonomy (auto-execute
   vs. surface-and-ask) is fixed at registration by `role` and can't be changed
   afterward. Now that any node can be both a parent and a child, autonomy no

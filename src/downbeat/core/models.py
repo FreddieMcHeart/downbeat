@@ -24,7 +24,7 @@ def new_id() -> str:
 # meaning changed, a field split) — NOT for a new optional field, which
 # from_dict's .get() defaults already absorb. Every bump needs a migration
 # rung registered in _MIGRATIONS below plus a test for that rung.
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 
 
 def _migrate_v0_to_v1(d: dict) -> dict:
@@ -39,10 +39,25 @@ def _migrate_v0_to_v1(d: dict) -> dict:
     return d
 
 
+def _migrate_v1_to_v2(d: dict) -> dict:
+    """v2 adds from_peer_id/to_peer_id — stable identity beside the display
+    name (issue #40).
+
+    Only makes room for them. A rung is pure by contract, so it cannot read
+    the peer registry to resolve a name to an id; store.migrate_store() does
+    that backfill, and list_thread falls back to name comparison for messages
+    it could not resolve.
+    """
+    d.setdefault("from_peer_id", None)
+    d.setdefault("to_peer_id", None)
+    return d
+
+
 # Keyed by the version being migrated FROM. A rung must be pure (dict in,
 # dict out) so it can express structural changes field-level defaults cannot.
 _MIGRATIONS: dict[int, Callable[[dict], dict]] = {
     0: _migrate_v0_to_v1,
+    1: _migrate_v1_to_v2,
 }
 
 
@@ -105,6 +120,12 @@ class Message:
     # Always the current version in memory: from_dict runs the ladder before
     # constructing, so a Message that exists is by definition up to date.
     schema_version: int = CURRENT_SCHEMA_VERSION
+    # Stable identity of the two ends (issue #40). from_peer/to_peer above stay
+    # the display name *at send time* — real history, and what the TUI renders.
+    # These are what identity comparisons must use. None means "not resolved":
+    # a pre-v2 message whose sender is no longer a registered peer.
+    from_peer_id: str | None = None
+    to_peer_id: str | None = None
 
     @property
     def state(self) -> MessageState:
@@ -139,6 +160,8 @@ class Message:
             "quarantine_reason": self.quarantine_reason,
             "kind": self.kind,
             "schema_version": self.schema_version,
+            "from_peer_id": self.from_peer_id,
+            "to_peer_id": self.to_peer_id,
         }
 
     def to_json(self) -> str:
@@ -169,6 +192,8 @@ class Message:
             quarantine_reason=d.get("quarantine_reason"),
             kind=d.get("kind", "task"),
             schema_version=CURRENT_SCHEMA_VERSION,
+            from_peer_id=d.get("from_peer_id"),
+            to_peer_id=d.get("to_peer_id"),
         )
 
     @classmethod
@@ -200,6 +225,13 @@ class Peer:
                                 # regardless of role -- a role="parent" peer can have
                                 # its own parent (an interior node). See the role
                                 # field's comment above.
+    # --- stable identity (issue #40) ---
+    # Assigned once and never reassigned -- not by rename, not by rebind, not
+    # by re-registration. `name` is a display alias; `session_id` is the
+    # volatile OS-process attachment (see rebind_session). This is the only
+    # field that answers "which enduring peer is this". Empty only for a legacy
+    # entry that _load_sessions has not backfilled yet.
+    peer_id: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -216,6 +248,7 @@ class Peer:
             claude_pid=d.get("claude_pid"),
             claude_pid_start=d.get("claude_pid_start"),
             session_id_history=d.get("session_id_history", []),
+            peer_id=d.get("peer_id", ""),
             last_rebind_at=d.get("last_rebind_at"),
             parent=d.get("parent"),
         )
