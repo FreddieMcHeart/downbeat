@@ -854,6 +854,16 @@ def reconcile(window_minutes: int = 30, max_redelivery: int = 3) -> dict:
     return counts
 
 
+def _id_to_fill(raw: dict, name_key: str, id_key: str,
+                ids_by_name: dict[str, str]) -> str | None:
+    """The id to write for one end of a message, or None to leave it alone —
+    either it already has one, or its stored name matches no live peer."""
+    if raw.get(id_key):
+        return None
+    name = raw.get(name_key)
+    return ids_by_name.get(name) if isinstance(name, str) else None
+
+
 def _message_dirs() -> tuple[Path, ...]:
     """The four directories a message file can live in."""
     return (paths.INBOX_DIR, paths.DELIVERED_DIR,
@@ -892,10 +902,8 @@ def migrate_store(dry_run: bool = False) -> dict:
                 counts["unreadable"] += 1
                 continue
             needs_version = raw.get("schema_version") != CURRENT_SCHEMA_VERSION
-            new_from = (None if raw.get("from_peer_id")
-                        else ids_by_name.get(raw.get("from")))
-            new_to = (None if raw.get("to_peer_id")
-                      else ids_by_name.get(raw.get("to")))
+            new_from = _id_to_fill(raw, "from", "from_peer_id", ids_by_name)
+            new_to = _id_to_fill(raw, "to", "to_peer_id", ids_by_name)
             needs_ids = bool(new_from or new_to)
             if not needs_version and not needs_ids:
                 counts["current"] += 1
