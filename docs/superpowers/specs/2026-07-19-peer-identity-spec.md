@@ -1,9 +1,8 @@
 # Stable peer identity, separate from display name
 
-**Status:** decided (2026-07-21) — **Option B shipped**, Option A is the accepted
-target architecture, deferred until #42 (message-store schema versioning) lands.
-Maintainer chose "B now + schedule A later" per the fork in "Open decisions" below;
-the rename operation is resumable (idempotent per-file), not fully transactional.
+**Status:** implemented (2026-07-27) — **Option B shipped** (v0.11.0), and
+**Option A shipped** in a narrowed form once #42 landed; see "Option A as
+shipped" at the end for what was deliberately left out of scope.
 **Issue:** [#40 — Stable peer identity, separate from display name](https://github.com/FreddieMcHeart/downbeat/issues/40)
 **Related:** [#42 — Message-store schema versioning](https://github.com/FreddieMcHeart/downbeat/issues/42) (dependency for a clean Option A migration, see below)
 
@@ -477,3 +476,46 @@ until #42 lands and the maintainer decides to proceed with Option A.
    problem? This spec's position is that #42 is a prerequisite for Option A
    specifically, but the maintainer may see independent value in landing it
    sooner regardless of A/B sequencing.
+
+## Option A as shipped (2026-07-27)
+
+Maintainer decision: ship Option A **additively**, not as the full re-keying
+this spec sketched. `peer_id` is real identity; the invasive parts were
+deliberately not done.
+
+**Shipped:**
+- `Peer.peer_id` — `uuid4` at first registration, preserved across rename,
+  rebind, and re-registration.
+- `Message.from_peer_id` / `to_peer_id` **beside** `from`/`to`, not replacing
+  them. `from`/`to` keep the display name *at send time*, which is real history
+  and keeps every TUI call site rendering as before — **zero TUI changes**,
+  against the eight files this spec predicted.
+- `list_thread` compares identity, falling back to the name only when a message
+  predates identity or its sender was never registered.
+- `_migrate_v1_to_v2` makes room for the fields; `store.migrate_store()` does
+  the name→id backfill, because a migration rung is pure by contract and cannot
+  read the peer registry.
+
+**Deliberately NOT shipped** (and not currently needed):
+- Re-keying `sessions.json` from name to `peer_id` — it stays name-keyed.
+- Moving message directories to `inbox/<peer_id>/`. They stay
+  `inbox/<name>/`, which keeps the relay dir readable by a human debugging it;
+  `peers rename` already moves them atomically.
+- `groups.json` stays name-based (open decision 4 — answered "no change").
+
+**One correction to this spec's analysis.** It presents `list_thread` breaking
+on rename as the live bug. It is not, since v0.11.0: `peers rename` rewrites
+`from`/`to` in every message file, so names stay in sync and the thread holds.
+The real remaining gap is narrower and worth stating precisely — the comparison
+is still *name*-based, so any file the rename sweep does not reach (written
+concurrently with the rename, or in a directory the walk missed) silently drops
+out of history. That is the case the shipped identity comparison fixes, and the
+case the regression test drives.
+
+**Legacy peers.** Entries predating `peer_id` get one derived
+**deterministically** from the name (`uuid5`), not randomly. This spec did not
+raise the concurrency hazard: two sessions loading `sessions.json` at the same
+time would each mint a different random id for the same peer, and whichever
+saved last would orphan the other's stamped messages. Determinism removes the
+race outright — persistence becomes an optimization, not a correctness
+requirement.
