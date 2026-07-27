@@ -133,9 +133,12 @@ Alongside it, a few narrower directions:
   a bulk-ack / clear-inbox affordance so a human can retire a stalled peer's
   queue without hand-editing files; (b) distinguish a genuine waiting task from
   terminal noise in the badge, so `●N` reflects work owed, not transport
-  backlog. Kind-aware reconciliation (shipped) already stops terminal mail from
-  accumulating; what remains is the human-facing half — the bulk affordance and
-  a badge that counts work rather than transport.
+  backlog. Kind-aware reconciliation (shipped) does **not** cover this, despite
+  looking like it should: `reconcile()` scans `delivered/` only, and an idle
+  peer's mail never leaves `inbox/` for it to find. The two are structurally
+  independent — #47 stopped terminal churn at a *live* recipient, this is
+  accumulation at an *idle* one. Measured on a live store: a badge reading
+  `●12` was 9 terminal replies and 3 genuine tasks.
 - **Cross-branch send from the TUI.** Routing is already flat — any peer can
   `downbeat send` to any other by name, regardless of tree position — but the
   TUI only surfaces the current group's peers, so a message to a far branch
