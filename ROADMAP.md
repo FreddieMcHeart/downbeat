@@ -18,6 +18,17 @@ Horizons are ordered by confidence, not calendar:
 
 ## Recently shipped (through v0.11.1)
 
+- **Message-store schema versioning.** Every message file now records a
+  `schema_version`, and `Message.from_dict` runs a migration ladder before
+  reading any field — so a future structural change (a key renamed, a value's
+  meaning changed) is a registered rung with a test, not hand-editing files
+  across four directories. Files written before versioning existed are v0 by
+  the absence of the key, so there is no backfill: they upgrade on read and
+  self-heal on the next write. `downbeat migrate [--dry-run]` is the eager
+  flush for archives nothing reads again. A file from a *newer* downbeat is
+  refused rather than silently rewritten, since reading it would drop fields
+  this build does not know. v1 ships the mechanism only — no data change — so
+  the first real migration lands on proven plumbing. (issue #42)
 - **Kind-aware reconciliation.** `reconcile()` no longer redelivers mail that
   carries no work back. A message is *terminal* when its `kind` is terminal
   (`backflow-ready`, `status`) or it carries an `in_reply_to` — the original
@@ -81,22 +92,17 @@ take one, opening an issue (or a PR) is the way in — see
   data-corrupting operation. What remains is _Option A_ — a stable identity key
   (UUID) with the name as a pure display alias, so no code path ever compares a
   stored historical name against a live one. Option A rewrites what every
-  message's `from`/`to` field *means*, so it's gated on message-store schema
-  versioning (below) landing first.
+  message's `from`/`to` field *means* — which is exactly why it was gated on
+  message-store schema versioning. **That gate is now lifted:** the migration
+  ladder shipped, so the rekey becomes a registered rung (`_migrate_v1_to_v2`)
+  that can tell an already-migrated file from a legacy one, instead of ad hoc
+  surgery across every message on disk.
 - **Per-peer autonomy control.** A peer's relay-monitor autonomy (auto-execute
   vs. surface-and-ask) is fixed at registration by `role` and can't be changed
   afterward. Now that any node can be both a parent and a child, autonomy no
   longer follows from tree position — it's a value the human should set
   consciously per peer. Expose it: view and change a peer's autonomy after
   registration, independent of its structure.
-- **Message-store hardening.** Schema versioning on message files, so future
-  format changes are migratable instead of manual. Already felt concretely:
-  pre-rename quarantined messages carry `from`/`to = null` (they predate the
-  `from_peer`/`to_peer` fields), so they can't be cleanly re-routed or
-  auto-acked — the same legacy-vs-migrated ambiguity a per-message schema
-  version resolves. This is also the gate on Option A of stable peer identity,
-  above.
-
 ---
 
 ## Later — direction set, design open

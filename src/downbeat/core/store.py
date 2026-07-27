@@ -23,7 +23,15 @@ from .errors import (
     PeerNotFound,
     StoreCorrupt,
 )
-from .models import Broadcast, Message, MessageState, Peer, new_id, now_iso
+from .models import (
+    CURRENT_SCHEMA_VERSION,
+    Broadcast,
+    Message,
+    MessageState,
+    Peer,
+    new_id,
+    now_iso,
+)
 
 _log = logging.getLogger("downbeat.core")
 
@@ -808,6 +816,51 @@ def reconcile(window_minutes: int = 30, max_redelivery: int = 3) -> dict:
                 _append_delivery_log({"event": "requeue",
                                       "msg_id": msg.id, "peer": peer_dir.name,
                                       "redelivery_count": d["redelivery_count"]})
+    return counts
+
+
+def _message_dirs() -> tuple[Path, ...]:
+    """The four directories a message file can live in."""
+    return (paths.INBOX_DIR, paths.DELIVERED_DIR,
+            paths.PROCESSED_DIR, paths.QUARANTINE_DIR)
+
+
+def migrate_store(dry_run: bool = False) -> dict:
+    """Eagerly upgrade every message file to CURRENT_SCHEMA_VERSION.
+
+    Upgrade-on-read already keeps anything the store touches current; this is
+    the flush for files nothing reads again (old processed/ archives,
+    quarantined mail), which would otherwise stay on an old version forever.
+    Rewrites each file in place — never at _message_path(), which would move a
+    message between directories as a side effect of a migration.
+    """
+    counts = {"migrated": 0, "current": 0, "unreadable": 0}
+    for base in _message_dirs():
+        if not base.exists():
+            continue
+        for p in sorted(base.glob("*/*.json")):
+            try:
+                raw = json.loads(p.read_text())
+            except (OSError, json.JSONDecodeError):
+                counts["unreadable"] += 1
+                continue
+            if not isinstance(raw, dict):
+                counts["unreadable"] += 1
+                continue
+            if raw.get("schema_version") == CURRENT_SCHEMA_VERSION:
+                counts["current"] += 1
+                continue
+            try:
+                msg = _read_message_at(p)
+            except StoreCorrupt:
+                # Includes files from a newer downbeat: refused, not rewritten.
+                counts["unreadable"] += 1
+                _log.warning("migrate skipped unreadable file %s", p)
+                continue
+            if not dry_run:
+                _atomic_write_text(p, msg.to_json())
+            counts["migrated"] += 1
+    _log.info("migrate dry_run=%s counts=%s", dry_run, counts)
     return counts
 
 

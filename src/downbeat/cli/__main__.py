@@ -186,6 +186,14 @@ def build_parser() -> argparse.ArgumentParser:
     sp_rec.add_argument("--max-redelivery", type=int, default=3)
     sp_rec.set_defaults(func=relay_cmds.cmd_reconcile)
 
+    sp_mig = sub.add_parser("migrate",
+                            help="upgrade every message file to the current "
+                                 "on-disk schema version",
+                            parents=[debug_parent])
+    sp_mig.add_argument("--dry-run", action="store_true", dest="dry_run",
+                        help="report what would change without writing")
+    sp_mig.set_defaults(func=relay_cmds.cmd_migrate)
+
     sp_init = sub.add_parser("init", help="bootstrap relay dir, skill, shim",
                              parents=[debug_parent])
     sp_init.add_argument("--force", action="store_true")

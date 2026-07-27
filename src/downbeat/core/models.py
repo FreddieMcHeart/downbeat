@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -16,6 +17,56 @@ def now_iso() -> str:
 
 def new_id() -> str:
     return uuid.uuid4().hex[:12]
+
+
+# --- Message wire-format versioning (issue #42) ------------------------------
+# Bump when the on-disk shape changes structurally (a key renamed, a value's
+# meaning changed, a field split) — NOT for a new optional field, which
+# from_dict's .get() defaults already absorb. Every bump needs a migration
+# rung registered in _MIGRATIONS below plus a test for that rung.
+CURRENT_SCHEMA_VERSION = 1
+
+
+def _migrate_v0_to_v1(d: dict) -> dict:
+    """v0 = any file written before versioning existed, detected by the
+    absence of a "schema_version" key.
+
+    Deliberately a no-op on content: v1 ships the ladder itself and nothing
+    else, so the first structural migration lands on a mechanism that has
+    already been exercised against real v0 files rather than on untested
+    plumbing and a data-model change at once.
+    """
+    return d
+
+
+# Keyed by the version being migrated FROM. A rung must be pure (dict in,
+# dict out) so it can express structural changes field-level defaults cannot.
+_MIGRATIONS: dict[int, Callable[[dict], dict]] = {
+    0: _migrate_v0_to_v1,
+}
+
+
+def _apply_migrations(d: dict) -> dict:
+    """Walk a raw message dict up to CURRENT_SCHEMA_VERSION.
+
+    Raises KeyError on a version this build cannot handle — which
+    _read_message_at already turns into StoreCorrupt, so there is no new
+    catch site. Refusing a too-new file is deliberate: from_dict drops keys
+    it does not know, so silently rewriting a file a newer downbeat wrote
+    would destroy those fields.
+    """
+    version = d.get("schema_version", 0)
+    if not isinstance(version, int) or version < 0:
+        raise KeyError(f"schema_version {version!r} is not a valid version")
+    if version > CURRENT_SCHEMA_VERSION:
+        raise KeyError(
+            f"schema_version {version} is newer than this downbeat supports "
+            f"({CURRENT_SCHEMA_VERSION}); upgrade downbeat to read it"
+        )
+    while version < CURRENT_SCHEMA_VERSION:
+        d = _MIGRATIONS[version](d)
+        version += 1
+    return d
 
 
 class MessageState(StrEnum):
@@ -50,6 +101,10 @@ class Message:
     # Open string, NOT a StrEnum: "task" (default) | "backflow-ready" | future
     # Phase-3 kinds ("workflow-request"/"workflow-result") need zero migration.
     kind: str = "task"
+    # --- Phase 3 schema additions ---
+    # Always the current version in memory: from_dict runs the ladder before
+    # constructing, so a Message that exists is by definition up to date.
+    schema_version: int = CURRENT_SCHEMA_VERSION
 
     @property
     def state(self) -> MessageState:
@@ -83,6 +138,7 @@ class Message:
             "quarantined_at": self.quarantined_at,
             "quarantine_reason": self.quarantine_reason,
             "kind": self.kind,
+            "schema_version": self.schema_version,
         }
 
     def to_json(self) -> str:
@@ -90,6 +146,9 @@ class Message:
 
     @classmethod
     def from_dict(cls, d: dict) -> Message:
+        # The ladder runs before any field is read, so migration rungs are the
+        # only code that ever needs to know about an older shape.
+        d = _apply_migrations(d)
         return cls(
             id=d["id"],
             from_peer=d["from"],
@@ -109,6 +168,7 @@ class Message:
             quarantined_at=d.get("quarantined_at"),
             quarantine_reason=d.get("quarantine_reason"),
             kind=d.get("kind", "task"),
+            schema_version=CURRENT_SCHEMA_VERSION,
         )
 
     @classmethod
