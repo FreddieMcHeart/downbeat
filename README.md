@@ -9,18 +9,18 @@
 | src/downbeat/cli/\_\_main\_\_.py               |      115 |        1 |     99% |       233 |
 | src/downbeat/cli/commands/\_\_init\_\_.py      |        0 |        0 |    100% |           |
 | src/downbeat/cli/commands/init\_cmd.py         |      293 |       17 |     94% |98, 115-120, 176-177, 252, 264, 268-269, 310-311, 330, 341 |
-| src/downbeat/cli/commands/relay\_cmds.py       |      225 |       56 |     75% |64-66, 103-105, 111-119, 126-127, 155-156, 165-182, 189-194, 197, 229, 231, 235, 247, 267, 306-308, 312-315, 319-320 |
+| src/downbeat/cli/commands/relay\_cmds.py       |      226 |       56 |     75% |64-66, 103-105, 111-119, 126-127, 155-156, 166-183, 190-195, 198, 230, 232, 236, 248, 267, 306-308, 312-315, 319-320 |
 | src/downbeat/core/\_\_init\_\_.py              |        0 |        0 |    100% |           |
 | src/downbeat/core/errors.py                    |       10 |        0 |    100% |           |
 | src/downbeat/core/groups.py                    |       22 |        0 |    100% |           |
 | src/downbeat/core/logging.py                   |       27 |        0 |    100% |           |
-| src/downbeat/core/models.py                    |      101 |        1 |     99% |        60 |
+| src/downbeat/core/models.py                    |      108 |        1 |     99% |        75 |
 | src/downbeat/core/notify.py                    |       17 |        0 |    100% |           |
 | src/downbeat/core/paths.py                     |       17 |        0 |    100% |           |
 | src/downbeat/core/provenance.py                |       61 |        5 |     92% |93-94, 136-138 |
 | src/downbeat/core/session.py                   |       82 |       30 |     63% |26-27, 77, 94-103, 109-110, 115-116, 131-145, 152 |
 | src/downbeat/core/state.py                     |       57 |        8 |     86% |49, 56, 60-65, 81 |
-| src/downbeat/core/store.py                     |      662 |       67 |     90% |46-48, 63-64, 183, 239, 280-281, 330-332, 335, 362, 365, 417, 432, 436-437, 455, 459, 467, 544, 553-554, 594-596, 628-630, 657, 716, 723-724, 752, 755, 759-760, 762, 765-766, 782, 840, 844-846, 848-849, 893, 896, 900-901, 911, 924, 1003-1004, 1020-1021, 1052-1056, 1114, 1117, 1123-1124 |
+| src/downbeat/core/store.py                     |      695 |       67 |     90% |48-50, 78-79, 204, 260, 301-302, 351-353, 356, 383, 386, 438, 453, 457-458, 476, 480, 488, 579, 588-589, 629-631, 663-665, 692, 751, 758-759, 787, 790, 794-795, 797, 800-801, 817, 893, 898-900, 902-903, 959, 962, 966-967, 977, 990, 1069-1070, 1086-1087, 1118-1122, 1195, 1198, 1204-1205 |
 | src/downbeat/core/watcher.py                   |       87 |       12 |     86% |37, 41-42, 52-53, 89, 93-94, 131, 134-136 |
 | src/downbeat/skill/\_\_init\_\_.py             |        0 |        0 |    100% |           |
 | src/downbeat/tui/\_\_init\_\_.py               |        0 |        0 |    100% |           |
@@ -49,7 +49,7 @@
 | src/downbeat/tui/widgets/peer\_tabs.py         |       54 |        2 |     96% |    41, 89 |
 | src/downbeat/tui/widgets/rebind\_modal.py      |       33 |       33 |      0% |      2-52 |
 | src/downbeat/tui/widgets/switch\_acting\_as.py |       33 |        6 |     82% | 39-43, 46 |
-| **TOTAL**                                      | **3232** |  **774** | **76%** |           |
+| **TOTAL**                                      | **3273** |  **774** | **76%** |           |
 
 
 ## Setup coverage badge
