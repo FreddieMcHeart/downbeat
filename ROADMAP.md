@@ -130,15 +130,22 @@ Alongside it, a few narrower directions:
   isn't taking prompts never drains its own inbox — pickup is per-turn, not
   event-driven — so `new` messages pile up behind a `●N` badge that reads as
   "unread" when it actually means "undelivered, recipient idle". Two moves: (a)
-  a bulk-ack / clear-inbox affordance so a human can retire a stalled peer's
-  queue without hand-editing files; (b) distinguish a genuine waiting task from
-  terminal noise in the badge, so `●N` reflects work owed, not transport
-  backlog. Kind-aware reconciliation (shipped) does **not** cover this, despite
-  looking like it should: `reconcile()` scans `delivered/` only, and an idle
-  peer's mail never leaves `inbox/` for it to find. The two are structurally
-  independent — #47 stopped terminal churn at a *live* recipient, this is
-  accumulation at an *idle* one. Measured on a live store: a badge reading
-  `●12` was 9 terminal replies and 3 genuine tasks.
+  a **CLI** bulk-ack — the TUI already has one (`c` on the inbox tab: confirmed,
+  recoverable, and role-aware, since clearing a *child*'s inbox can bury
+  unstarted tasks), but nothing scripted or headless can do it without reaching
+  into the store; (b) an honest badge — the substantial half, and a bigger
+  question than filtering terminal noise. `state == "new"` requires **both** no
+  `delivered_at` **and** no `read_at`, so the badge collapses two unrelated
+  facts and either moves it: it overstates work owed by counting terminal
+  replies, and it understates to *zero* because opening a message in the TUI
+  sets `read_at` — a human scrolling clears the badge while the recipient
+  session has received nothing. Measured on a live store: `delivered` was `no`
+  for every message a peer had ever been sent, and three genuine four-day-old
+  tasks went `●3` → `●0` from scrolling alone. So the question is which fact the
+  badge is *for* — what a human has seen, or what the recipient has actually
+  received. Kind-aware reconciliation (shipped) does **not** help: `reconcile()`
+  scans `delivered/` only, and an idle peer's mail never leaves `inbox/` for it
+  to find — #47 stopped churn at a *live* recipient, this is an *idle* one.
 - **Cross-branch send from the TUI.** Routing is already flat — any peer can
   `downbeat send` to any other by name, regardless of tree position — but the
   TUI only surfaces the current group's peers, so a message to a far branch
