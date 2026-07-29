@@ -16,8 +16,37 @@ Horizons are ordered by confidence, not calendar:
 
 ---
 
-## Recently shipped (through v0.14.1)
+## Recently shipped (through v0.14.4)
 
+- **A name collision can no longer re-home a peer behind your back.** The peer
+  registry is keyed by name, and re-registering a known name used to be treated
+  as "the same peer reattaching" — carrying its identity over while silently
+  overwriting its parent. Someone who meant *a new child that happens to share a
+  name* got a destructive move instead, with no warning: the peer vanished from
+  one parent's view and appeared under another looking empty, while its history
+  stayed on disk attributed to the old pairing. Registering with a parent that
+  disagrees with the stored one is now refused, and the refusal says what is in
+  the way — current parent, when it was registered, how many messages it holds —
+  so the choice is visible before anything is written. Reattaching still works
+  unchanged; a deliberate move goes through `peers set-parent`. (issue #70)
+- **`last_seen` finally means what it says, and the write it made hot is
+  locked.** The peers table's one liveness signal was a registration timestamp
+  wearing a liveness name: the function that updates it existed and had no
+  callers, so peers that had been sending and receiving all day read weeks
+  stale — making live peers look dead. It now updates on the two events that
+  mean a peer took part: sending, and draining its own inbox. That wiring turned
+  a latent race live, since every such update rewrites the whole registry, so
+  registry writes are now mutually excluded by a lock. Atomic writes were never
+  enough on their own — they make the *write* indivisible, not the
+  read-modify-write around it. (issue #72)
+- **Identity survives a resume when the lineage is provable.** If the current
+  session id is one a single peer previously held, that is recorded evidence
+  rather than a guess, so the binding repairs itself instead of failing. Where
+  the evidence is ambiguous — or absent — it still refuses rather than picking a
+  winner, because binding a session to the wrong peer is worse than an error.
+  This covers less than it sounds like: a resume that mints an entirely new
+  session id leaves no trace to match on, and that case is still open. (issue
+  #71, in part)
 - **Stable peer identity.** A peer now carries a `peer_id` assigned once and
   never reassigned — not by rename, not by rebind, not by re-registration —
   while `name` becomes a display alias. Messages carry both: `from`/`to` keep
@@ -175,16 +204,49 @@ Alongside it, a few narrower directions:
   scans `delivered/` only, and an idle peer's mail never leaves `inbox/` for it
   to find — #47 stopped churn at a *live* recipient, this is an *idle* one.
   ([#62](https://github.com/FreddieMcHeart/downbeat/issues/62))
-- **Peer identity for a background session.** A session that didn't register
-  itself has to guess which peer it is, and the guess keys off `session_id` —
-  which changes when a session is resumed or re-launched, so the match silently
-  fails and the CLI falls back to "can't auto-identify, pass `--peer`". Stable
-  `peer_id` (shipped) gives the *peer* a durable key but doesn't tell a running
-  session which peer it is; the binding between a live session and a peer is
-  still the open question. Design deferred until the shape of that binding is
-  clear — a recorded claim, a handshake, or an explicit env var are all
-  plausible and they don't cost the same.
-  ([#53](https://github.com/FreddieMcHeart/downbeat/issues/53))
+- **A session still cannot reliably say who it is.** Stable `peer_id` gives the
+  *peer* a durable key; it does not tell a *running session* which peer it is,
+  and that binding is where identity keeps breaking. Three distinct failures sit
+  underneath one symptom. A session in the background can't be identified at all
+  — detection walks ancestor processes looking for `claude`, and a background
+  process wears a title rather than a path, so the one ancestor holding the
+  session marker is the one rejected
+  ([#75](https://github.com/FreddieMcHeart/downbeat/issues/75)). A resume that
+  mints a brand-new session id leaves nothing to match against; the fix that
+  shipped only covers resuming *back into* an id already on record, and for the
+  rest there may be no provable signal at all — which argues the remedy is to
+  fail loudly at resume rather than guess harder
+  ([#71](https://github.com/FreddieMcHeart/downbeat/issues/71)). And the older,
+  broader question of how a session should claim an identity in the first place
+  — a recorded claim, a handshake, an explicit variable — is still open
+  ([#53](https://github.com/FreddieMcHeart/downbeat/issues/53)). Worth treating
+  as one theme: patched individually, each fix leaves the symptom alive.
+- **Two parents, one child name.** A name like `Dev One` is a *role* someone
+  plays in several trees, not a globally unique entity, and being pushed into
+  `Dev One 2` is the storage model leaking into what things are called. But
+  names are currently **addresses** — any peer reaches any other by name in one
+  hop — so making them non-unique makes `send "Dev One"` ambiguous, which is why
+  this is a design question rather than a change to a dictionary key. The clean
+  resolution is probably to finish what stable identity started: let `peer_id`
+  be the address and names be free-form labels, with message directories keyed
+  by id (a store migration, which the schema ladder exists for). Scoping the key
+  to `(parent, name)` is the tempting shortcut and the wrong one — parents can
+  change, and keying identity on a *view* is the same category error `role`
+  made before the tree was generalized.
+  ([#73](https://github.com/FreddieMcHeart/downbeat/issues/73))
+- **One home for registry writes, and one for delivery.** Two places where the
+  same operation exists twice. Half the registry's mutators take the lock added
+  with the liveness fix and half do not, and since the lock is advisory an
+  unlocked writer doesn't merely go unprotected — it defeats the protection on
+  the locked side too
+  ([#78](https://github.com/FreddieMcHeart/downbeat/issues/78)). Separately,
+  the per-turn hook that actually delivers mail reimplements draining instead of
+  calling the store's, so the store's version runs only when a human types
+  `downbeat drain`. That divergence already silently halved a shipped fix, and
+  it duplicates invariants — crash-safe write ordering, delivery stamping — that
+  should have exactly one definition
+  ([#79](https://github.com/FreddieMcHeart/downbeat/issues/79)). Same principle
+  as *"skills call the CLI; they don't reimplement it"*, one layer down.
 
 ---
 
@@ -218,7 +280,9 @@ Alongside it, a few narrower directions:
 - **Routing is flat; the tree is a view** — any peer can address any peer
   directly by name. The parent/child tree only groups the TUI and sets autonomy
   defaults; it is not a delivery topology, so a cross-branch message never needs
-  hop-by-hop forwarding.
+  hop-by-hop forwarding. The cost of this, worth stating plainly: it makes the
+  *name* an address, which is why non-unique names are a design question and not
+  a small change.
 - **Verify against the real artifact, not its test double** — drive the real
   binary / real TUI / real store; a check that fakes what it's checking passes for
   the wrong reason.
