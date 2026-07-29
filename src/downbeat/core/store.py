@@ -25,6 +25,7 @@ from .errors import (
     MessageNotFound,
     PeerNameCollision,
     PeerNotFound,
+    PeerReparentConflict,
     StoreCorrupt,
 )
 from .models import (
@@ -201,6 +202,38 @@ def _resolve_parent(name: str, sessions: dict[str, dict], existing: dict | None,
     )
 
 
+def _peer_message_counts(name: str) -> dict[str, int]:
+    """Count of on-disk message files owned by `name` across inbox/,
+    delivered/, and processed/ -- used to make register_peer's reparent
+    refusal concrete (issue #70) instead of a bare "name taken": the human
+    sees exactly how much history sits behind the name before deciding."""
+    counts: dict[str, int] = {}
+    for label, base in (("inbox", paths.INBOX_DIR),
+                        ("delivered", paths.DELIVERED_DIR),
+                        ("processed", paths.PROCESSED_DIR)):
+        d = base / name
+        counts[label] = len(list(d.glob("*.json"))) if d.exists() else 0
+    return counts
+
+
+def _reparent_conflict_message(name: str, existing: dict, new_parent: str) -> str:
+    counts = _peer_message_counts(name)
+    total = sum(counts.values())
+    existing_parent = existing.get("parent")
+    parent_desc = (f"parent {existing_parent!r}" if existing_parent
+                   else "no parent (a root peer)")
+    return (
+        f"{name!r} is already registered with {parent_desc} "
+        f"(registered_at={existing.get('registered_at')}, {total} message"
+        f"{'s' if total != 1 else ''} held: inbox={counts['inbox']} "
+        f"delivered={counts['delivered']} processed={counts['processed']}). "
+        f"Registering {name!r} with --parent {new_parent!r} would silently "
+        f"re-home it, orphaning that history from its current parent's view. "
+        f"To reattach the SAME peer, omit --parent. To deliberately move it, "
+        f"run: downbeat peers set-parent {name!r} {new_parent!r}"
+    )
+
+
 def register_peer(name: str, session_id: str, cwd: str, role: str,
                   claude_pid: int | None = None,
                   claude_pid_start: str | None = None,
@@ -219,9 +252,21 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
             if role == "child" or parent is not None or (existing and existing.get("parent"))
             else None
         )
-        # Identity is assigned once. Re-registering an existing name is the
-        # same peer reattaching, not a new one, so its id must carry over
-        # untouched.
+        # An explicit --parent that disagrees with an existing peer's stored
+        # parent is presumed reattachment territory turning destructive: the
+        # caller may mean "this is the same peer, move it" (fine, but must be
+        # said explicitly) or may mean "this name just happens to collide with
+        # someone else's child" (in which case overwriting parent would silently
+        # re-home the wrong peer -- issue #70). Refuse before any write. Equal to
+        # the stored parent is not a conflict -- it's confirming the existing
+        # pairing. No --parent at all (parent is None) is the plain reattach path
+        # and must never be gated here.
+        if existing is not None and parent is not None and existing.get("parent") != parent:
+            raise PeerReparentConflict(
+                _reparent_conflict_message(name, existing, parent)
+            )
+        # Identity is assigned once. Re-registering an existing name is the same
+        # peer reattaching, not a new one, so its id must carry over untouched.
         peer_id = (existing or {}).get("peer_id") or new_id()
         peer = Peer(
             name=name, session_id=session_id, cwd=cwd, role=role,

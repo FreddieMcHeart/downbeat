@@ -4,7 +4,12 @@ import sys
 import pytest
 
 from downbeat.core import store
-from downbeat.core.errors import AmbiguousParent, InvalidParent, PeerNotFound
+from downbeat.core.errors import (
+    AmbiguousParent,
+    InvalidParent,
+    PeerNotFound,
+    PeerReparentConflict,
+)
 
 
 def test_register_creates_peer(relay_dir):
@@ -504,3 +509,87 @@ def test_remove_heals_a_dangling_grandparent(relay_dir):
     }))
     store.remove_peer("Mid")
     assert _parent_of("W") is None
+
+
+# --- issue #70: register_peer must refuse to silently re-home a name that
+# already belongs to a different parent, instead of overwriting it. Option
+# (b) from the issue: names stay globally unique; the collision becomes an
+# explicit, actionable refusal instead of a silent overwrite. ---
+
+def test_register_explicit_parent_conflicting_with_stored_raises(relay_dir):
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s-2", cwd="/tmp", role="parent")
+    store.register_peer(name="Dev One", session_id="s-3", cwd="/tmp", role="child",
+                        parent="parent-a")
+    with pytest.raises(PeerReparentConflict):
+        store.register_peer(name="Dev One", session_id="s-4", cwd="/tmp", role="child",
+                            parent="parent-b")
+    # Refusal must not write -- the peer's parent must be unchanged.
+    assert store.get_peer("Dev One").parent == "parent-a"
+
+
+def test_register_conflict_message_is_actionable(relay_dir):
+    """The refusal must state the existing peer's current parent, when it was
+    registered, and how many messages it holds -- a bare 'name taken' is not
+    enough, since the whole point is showing the human what they'd destroy."""
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s-2", cwd="/tmp", role="parent")
+    store.register_peer(name="Dev One", session_id="s-3", cwd="/tmp", role="child",
+                        parent="parent-a")
+    store.send_message(from_peer="parent-a", to_peer="Dev One",
+                       subject="s1", body="x")
+    store.send_message(from_peer="parent-a", to_peer="Dev One",
+                       subject="s2", body="x")
+    with pytest.raises(PeerReparentConflict) as exc_info:
+        store.register_peer(name="Dev One", session_id="s-4", cwd="/tmp", role="child",
+                            parent="parent-b")
+    message = str(exc_info.value)
+    assert "parent-a" in message                # existing parent
+    assert "Dev One" in message
+    registered_at = store.get_peer("Dev One").registered_at
+    assert registered_at in message              # when it was registered
+    assert "2" in message                        # message count (inbox)
+    assert "set-parent" in message               # the escape hatch
+
+
+def test_register_explicit_parent_equal_to_stored_is_not_a_conflict(relay_dir):
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="Dev One", session_id="s-2", cwd="/tmp", role="child",
+                        parent="parent-a")
+    # Re-registering with the SAME explicit parent must succeed -- it isn't a
+    # conflict, it's confirming the existing pairing.
+    again = store.register_peer(name="Dev One", session_id="s-3", cwd="/tmp",
+                                role="child", parent="parent-a")
+    assert again.parent == "parent-a"
+
+
+def test_register_no_parent_argument_reattaches_as_today(relay_dir):
+    """The plain resume/reattach path (no --parent passed at all) must behave
+    exactly as before this fix -- carry the existing parent over silently,
+    no error, no --reparent needed."""
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="Dev One", session_id="s-2", cwd="/tmp", role="child",
+                        parent="parent-a")
+    again = store.register_peer(name="Dev One", session_id="s-3", cwd="/tmp", role="child")
+    assert again.parent == "parent-a"
+    assert again.session_id == "s-3"
+
+
+def test_register_genuinely_new_name_unaffected(relay_dir):
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s-2", cwd="/tmp", role="parent")
+    peer = store.register_peer(name="Brand New", session_id="s-3", cwd="/tmp",
+                               role="child", parent="parent-b")
+    assert peer.parent == "parent-b"
+
+
+def test_register_peer_with_no_parent_reregistered_stays_rootless(relay_dir):
+    """A role=parent peer with parent=None (a root), re-registered with no
+    --parent, must stay parentless and must not raise -- this is the
+    plain-resume path applied to a root peer specifically, since a naive
+    conflict check keyed on truthiness of the stored parent could special-case
+    None incorrectly."""
+    store.register_peer(name="Root One", session_id="s-1", cwd="/tmp", role="parent")
+    again = store.register_peer(name="Root One", session_id="s-2", cwd="/tmp",
+                                role="parent")
+    assert again.parent is None

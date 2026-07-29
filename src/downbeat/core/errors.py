@@ -14,6 +14,16 @@ class PeerNameCollision(RelayError):
     """Raised when renaming a peer to a name that is already registered."""
 
 
+class PeerReparentConflict(RelayError):
+    """Raised by register_peer when an explicit --parent differs from an
+    already-registered peer's stored parent (issue #70, option (b)). Names
+    stay globally unique, so a reused name is presumed to be the SAME peer
+    reattaching -- but silently carrying over identity while overwriting
+    `parent` re-homes it without warning. Refusing turns that into an
+    explicit decision: reattach with no --parent, or move it on purpose via
+    `downbeat peers set-parent`."""
+
+
 class InvalidPeerName(RelayError):
     """Raised when a peer name is empty or whitespace-only."""
 
