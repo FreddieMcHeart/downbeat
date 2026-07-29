@@ -1,0 +1,956 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine">
+      
+      
+      
+        <link rel="canonical" href="https://freddiemcheart.github.io/downbeat/decisions/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>downbeat — OSS-prep decisions (locked) - downbeat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#downbeat-oss-prep-decisions-locked" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="downbeat" class="md-header__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            downbeat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              downbeat — OSS-prep decisions (locked)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="downbeat" class="md-nav__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    downbeat
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#decision-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-interactions-consequences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key interactions / consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#operational-lessons-durable-carry-forward-to-the-next-relocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operational lessons (durable — carry forward to the next relocation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-mapping-execution-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase mapping (execution order)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/FreddieMcHeart/downbeat/edit/main/docs/decisions.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="downbeat-oss-prep-decisions-locked">downbeat — OSS-prep decisions (locked)<a class="headerlink" href="#downbeat-oss-prep-decisions-locked" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Decided 2026-07-01 with the maintainer, walking <a href="../oss-readiness-research/">oss-readiness-research.md</a>
+topic by topic. This is the execution backlog. Where a decision overrides the research's
+recommendation, it's marked <strong>[override]</strong>. Name + identity: see
+<a href="../superpowers/specs/2026-07-01-downbeat-product-identity/">product-identity</a>; GTM: <a href="../launch-plan/">launch-plan.md</a>.</p>
+</blockquote>
+<h2 id="decision-table">Decision table<a class="headerlink" href="#decision-table" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Area</th>
+<th>Decision</th>
+<th>Phase</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>—</td>
+<td><strong>Name</strong></td>
+<td><code>downbeat</code> (rename from claude-relay is its own phase)</td>
+<td>1</td>
+</tr>
+<tr>
+<td>1</td>
+<td>License</td>
+<td><strong>MIT</strong> — add real <code>LICENSE</code> file, migrate to PEP 639 SPDX (<code>license = "MIT"</code> + <code>license-files</code>), add classifiers/keywords/<code>[project.urls]</code></td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Contribution sign-off</td>
+<td><strong>DCO</strong> (one CONTRIBUTING line + DCO bot); lock before first external PR</td>
+<td>1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Community-health</td>
+<td><strong>Minimal baseline</strong>: CONTRIBUTING, CODE_OF_CONDUCT (Contributor Covenant 2.1), SECURITY (GitHub Private Vulnerability Reporting) + <strong>Issue Forms</strong> (bugs, with TUI/CLI/lib/skill surface dropdown) + <strong>Discussions</strong> (ideas). README borrows Best-README-Template badge/ToC conventions</td>
+<td>1</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Versioning</td>
+<td><strong>[override]</strong> Dynamic, owned by <strong>python-semantic-release</strong> (derived from Conventional Commits) — not static</td>
+<td>1</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Type checker</td>
+<td><strong>pyright</strong> (~98% conformance vs ty ~53%)</td>
+<td>2</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Coverage</td>
+<td><strong>pytest-cov + coverage-comment-action</strong> (no external account/Codecov)</td>
+<td>2</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Release automation</td>
+<td><strong>[override]</strong> <strong>python-semantic-release, FULL-AUTO (7a)</strong> — qualifying merge to <code>main</code> → version bump + CHANGELOG + tag + build + publish to PyPI. Auth via <strong>Trusted Publishing (OIDC)</strong></td>
+<td>1</td>
+</tr>
+<tr>
+<td>8</td>
+<td>OS matrix</td>
+<td>Add <strong>macOS</strong> leg (keep Linux; py3.11–3.13)</td>
+<td>1</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Dependency updates</td>
+<td><strong>Dependabot</strong></td>
+<td>2</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Demo recording</td>
+<td><strong>VHS</strong> (<code>.tape</code> → GIF, regenerated in CI via vhs-action)</td>
+<td>2</td>
+</tr>
+<tr>
+<td>11</td>
+<td>CLI polish</td>
+<td><strong>rich-argparse</strong> + <strong><code>--version</code>/<code>-V</code></strong> (importlib.metadata) + error-message wrapping (no raw tracebacks)</td>
+<td>1 (version+errors) / 2 (rich)</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Install channel</td>
+<td><strong>PyPI-only</strong> (<code>uv tool install</code> headline, pipx/pip fallback, <code>uvx …</code> zero-install trial) + DX polish (<code>examples/</code> parent/child transcript, troubleshooting, uninstall docs). Skip Homebrew + single-file binaries</td>
+<td>1 (release) / 2 (DX)</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Docs site</td>
+<td><strong>[chosen]</strong> <strong>MkDocs Material</strong> (Diátaxis structure), hosted on <strong>GitHub Pages</strong> (<code>mkdocs gh-deploy</code>)</td>
+<td>2</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Positioning</td>
+<td>Ship <strong>comparison table</strong> vs <code>agent-message-queue</code> + <code>cc2cc</code> (lead on the <strong>TUI</strong> + one-command <code>init</code> differentiator); position as the <strong>substrate</strong> under orchestration frameworks, not a competitor. Full launch package → Phase 3</td>
+<td>2–3</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Claude Code integration</td>
+<td><strong>[override]</strong> <strong>Option A — real Claude Code plugin</strong> (<code>.claude-plugin/plugin.json</code> + <code>hooks/hooks.json</code> + <code>skills/</code>), install via <code>/plugin marketplace add</code>; auto-merge/clean hooks, <strong>no settings.json surgery</strong>. Keep <code>init</code> as a thin hardened fallback for standalone users. <strong>SUPERSEDES the settings.json-merge installer (<code>290fc9c</code>)</strong></td>
+<td>2</td>
+</tr>
+<tr>
+<td>—</td>
+<td>Config path</td>
+<td>Keep <code>~/.claude/relay/</code> (intentional Claude Code coupling); revisit during plugin repackaging</td>
+<td>—</td>
+</tr>
+<tr>
+<td>—</td>
+<td>Launch timing</td>
+<td>Ship Phase 1 + minimal README → iterate publicly (don't hold for Phase 2)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>—</td>
+<td>Sponsorship</td>
+<td>No <code>FUNDING.yml</code> for now; revisit on demand</td>
+<td>—</td>
+</tr>
+<tr>
+<td>—</td>
+<td>CHANGELOG</td>
+<td><strong>Auto-generated</strong> by semantic-release (supersedes manual Keep-a-Changelog)</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<h2 id="key-interactions-consequences">Key interactions / consequences<a class="headerlink" href="#key-interactions-consequences" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>semantic-release cluster (#4 + #7 + CHANGELOG):</strong> pulls <strong>Conventional Commits</strong> in <em>now</em> (not deferred). Version, CHANGELOG, tags, and PyPI publish all derive from commit history (<code>fix:</code>→patch, <code>feat:</code>→minor, <code>feat!:</code>/<code>BREAKING CHANGE:</code>→major). Add <strong>commitlint</strong> to <code>.pre-commit-config.yaml</code> to enforce. Full-auto (7a) = a merge to <code>main</code> can publish to PyPI with no human gate — accepted trade; mitigate with strong CI as the gate (tests + pyright + coverage must pass before merge).</li>
+<li><strong>#15 correction (2026-07-06, PR #4): the plugin does NOT supersede the installer</strong> — this
+  row's original framing ("SUPERSEDES the settings.json-merge installer", "no settings.json
+  surgery") turned out wrong once actually scoped with the sibling <code>claude-core-hooks</code> plugin
+  session over relay. downbeat is a general-purpose PyPI tool (<code>uv tool install downbeat</code>),
+  not Claude-Code-only, so <code>init</code>'s hand-merge into <code>settings.json</code> has to keep working
+  permanently for non-plugin installs — it is a <strong>co-equal baseline path</strong>, not a fallback
+  being phased out. What actually shipped: <code>_is_plugin_enabled()</code> (<code>claude plugin list --json</code>,
+  fails open) gates <code>init</code>'s hand-merge — skip it if the plugin's already active, but if
+  hand-merged entries from a <em>prior</em> <code>init</code> run already exist alongside a newly-installed
+  plugin, print an explicit double-fire <strong>WARNING</strong> (caught in peer review — <code>HOOK_NAMES</code>
+  substring detection isn't safe enough to auto-remove entries) rather than silently doing
+  nothing. <code>hooks/</code>, <code>commands/</code>, <code>skills/downbeat/</code> are symlinks into the existing
+  <code>src/downbeat/assets/</code>-packaged files — one source of truth for both distribution channels.
+  No marketplace registration yet (local-path/git install only). <code>--migrate-to-plugin</code> (exact
+  command-string match + drop-empty-groups, not substring) is an explicit fast-follow, not in
+  this PR. See <a href="../plugin/">plugin.md</a> and PR #4.</li>
+<li><strong>Name migration</strong> (<code>claude-relay → downbeat</code>) is tracked separately in launch-plan.md; it must precede the first PyPI release (#12) and the plugin marketplace slug (#15).</li>
+<li><strong>#4/#7 pipeline is code-complete but not yet LIVE:</strong> <code>release.yml</code> + the semantic-release config landed in <code>8883258</code>, but three GitHub/PyPI web-console steps (Trusted Publisher registration, <code>pypi</code> environment, branch-protection status checks) can't be done from a CLI session — see <a href="../release-setup/">release-setup.md</a> for the exact runbook. Do those steps AFTER the rename (Step 1 registers the PyPI project name).</li>
+</ul>
+<h2 id="operational-lessons-durable-carry-forward-to-the-next-relocation">Operational lessons (durable — carry forward to the next relocation)<a class="headerlink" href="#operational-lessons-durable-carry-forward-to-the-next-relocation" title="Permanent link">&para;</a></h2>
+<ul>
+<li>
+<p><strong><code>uv sync</code> does not always regenerate <code>.venv/bin/</code> script shims after a directory move.</strong>
+  Discovered during the <code>~/mama/claude-relay</code> → <code>~/mama/downbeat</code> rename (2026-07-02).
+  After <code>mv</code>-ing the checkout and running <code>uv sync --extra dev</code> from the new path, <code>uv run
+  pytest</code> failed with <code>Failed to spawn: pytest — No such file or directory</code>. Root cause:
+  <code>.venv/bin/pytest</code> is a Python script whose shebang line hardcodes the <strong>absolute</strong> venv
+  interpreter path (<code>#!/Users/.../OLD_PATH/.venv/bin/python3</code>); <code>uv sync</code> reused the
+  existing shim rather than regenerating it, since it only re-resolves/re-installs
+  <em>packages</em> it considers changed — a pure directory move doesn't look like a dependency
+  change to it. <code>ruff</code> was unaffected because it's a compiled binary with no shebang, which
+  is exactly why the symptom is inconsistent across tools and easy to half-verify (checking
+  one tool works is not evidence the venv is healthy).
+  <strong>Fix:</strong> after any directory move, don't trust <code>uv sync</code> alone — <code>rm -rf .venv &amp;&amp; uv sync
+  --extra dev</code> for a guaranteed-fresh rebuild, or explicitly check <code>head -1 .venv/bin/&lt;tool&gt;</code>
+  for every script-based (non-compiled) console-script shim you rely on.
+  <strong>This is a THIRD editable-install binding</strong>, alongside the two already documented from
+  the <code>mama/mondu</code> relocation (global <code>uv tool install --editable</code>, project <code>.venv</code> package
+  metadata) — the venv's own script shims are a distinct failure mode from "is the package
+  installed," and <code>uv sync</code> succeeding (exit 0) is not sufficient evidence they're correct.
+  <strong>Caught live, a FOURTH instance of the same class, mid-commit of this very lesson:</strong>
+  <code>git commit</code> failed with <code>`pre-commit` not found. Did you forget to activate your
+  virtualenv?</code> — <code>.git/hooks/commit-msg</code> (generated by <code>pre-commit install</code>) <em>also</em>
+  hardcodes an absolute interpreter path (<code>INSTALL_PYTHON=.../OLD_PATH/.venv/bin/python3</code>)
+  at install time, and rebuilding <code>.venv</code> doesn't touch <code>.git/hooks/</code>. Fix: re-run <code>uv run
+  pre-commit install --hook-type commit-msg</code> after any directory move. <strong>General pattern:</strong>
+  any tool that generates a shim/hook embedding an absolute interpreter path at install time
+  (venv console-scripts, pre-commit git hooks, and plausibly others not yet hit — check
+  editor/IDE run configs, systemd units, launchd plists, direnv caches) needs an explicit
+  re-install step after a relocation; none of these self-heal from <code>uv sync</code> alone.</p>
+</li>
+<li>
+<p><strong><code>pytest -q</code>'s buffered dot output is not a reliable hang locator; add <code>pytest-timeout</code>
+  proactively, don't debug silent CI hangs by eye.</strong> Discovered 2026-07-03: the first <code>main</code>
+  push after the rename hung an ubuntu CI job for 47+ minutes with zero output past a
+  partial <code>[ 39%]</code> progress line — no error, no traceback. Guessing the stuck test from the
+  visible dot count was unreliable (stdout is block-buffered, not line-buffered, when piped
+  to a CI log) and burned real debugging time chasing the wrong test. <strong>Fix:</strong> added
+  <code>pytest-timeout</code> (<code>timeout = 30</code>, <code>timeout_method = "thread"</code> in <code>[tool.pytest.ini_options]</code>)
+  — on the <em>next</em> hang it killed the run at 30s and dumped every thread's stack via
+  <code>faulthandler</code>, which immediately named the real culprit. <strong>Root cause found this way:</strong>
+  <code>watchdog</code>'s inotify <code>Observer.stop()</code> has a known Linux-only deadlock — the stopping
+  thread can block forever acquiring an internal lock still held by an emitter thread parked
+  in a blocking inotify read. Our <code>FsWatcher.stop()</code> only bounded the <code>.join()</code> <em>after</em>
+  <code>observer.stop()</code>, not the <code>stop()</code> call itself, so the deadlock passed straight through.
+  Macos jobs never hit it (FSEvents backend, no inotify). <strong>Fix:</strong> run <code>observer.stop()</code> in
+  a daemon thread with its own 2s join; if it doesn't return, log and abandon rather than
+  block the caller — a real user hitting Ctrl-C in <code>downbeat watch</code> on Linux would otherwise
+  hang the same way, not just CI. <strong>General lesson:</strong> any watcher/observer <code>.stop()</code> built on
+  a third-party library should be treated as untrusted-to-return; bound <em>every</em> blocking call
+  in a shutdown path, not just the final <code>.join()</code>. And: add <code>pytest-timeout</code> to any project
+  with background threads <em>before</em> the first mystery hang, not after burning an hour on one.</p>
+</li>
+</ul>
+<h2 id="phase-mapping-execution-order">Phase mapping (execution order)<a class="headerlink" href="#phase-mapping-execution-order" title="Permanent link">&para;</a></h2>
+<p><strong>Phase 1 — launch-blockers — ✅ DONE (2026-07-03)</strong>
+LICENSE + PEP 639 metadata (#1), classifiers/urls, community-health core + Issue Forms (#2, #3), <code>--version</code> + error-wrapping (#11), macOS CI leg (#8), Conventional-Commits + commitlint, <strong>semantic-release pipeline + Trusted Publishing</strong> (#4, #7), verify wheel data assets, name migration, first PyPI release (#12).</p>
+<p>First real release confirmed live: <strong><code>downbeat v0.1.1</code></strong> on PyPI (sdist + wheel), released via the
+full automated pipeline (semantic-release → tag → build → OIDC Trusted Publishing) with zero
+manual publish steps. Getting there required chasing four separate bugs surfaced only by the
+first real (non-dry-run) run — see "Operational lessons" above for the watchdog/pytest-timeout
+one; the release-pipeline-specific ones (PSR's Docker container not seeing host <code>uv</code>, missing
+<code>contents:read</code> on the publish job, and the branch-ruleset bypass not covering <code>github-actions[bot]</code>
+— fixed via a <code>RELEASE_TOKEN</code> PAT, see release-setup.md Step 4) are captured in their own commit
+messages (<code>24fb3a7</code>, <code>ef5102c</code>, <code>8adb0de</code>) rather than duplicated here.</p>
+<p><strong>Two more releases (0.1.2, 0.1.3) were needed before the pipeline was actually self-healing</strong> —
+both real bugs, not repeats of the above. (1) <code>uv.lock</code> doesn't get updated when PSR bumps
+<code>pyproject.toml</code>'s version; PSR's own uv-integration docs prescribe fixing this via
+<code>build_command = "uv lock --upgrade-package \"$PACKAGE_NAME\" &amp;&amp; git add uv.lock &amp;&amp; uv build"</code>
+(<code>8cf5384</code>) — except <code>$PACKAGE_NAME</code> is a <strong>PSR v10+ feature that
+<code>python-semantic-release/python-semantic-release@v9</code></strong> (the pinned Action major version) doesn't
+export, so it silently expanded to <code>""</code>, <code>uv lock --upgrade-package ""</code> PEP508-errored, and
+because <code>build_command</code> runs via <code>bash -c</code> with no <code>set -e</code>, the failure was swallowed — <code>git add</code>
++ <code>uv build</code> kept going and the job still reported success. <strong>Lesson: verify a fix against the
+job log, not just "the step didn't fail"</strong> — a multi-line <code>build_command</code> needs an explicit
+<code>set -e</code> (or check each line's own success) to actually surface a mid-script failure; don't trust
+docs written against a newer version of a pinned Action/package without checking what the pinned
+version actually supports. Fixed by hardcoding the literal package name (<code>4739a92</code>/<code>a2dc364</code>).
+Confirmed genuinely self-healing only once the ci run triggered by the bot's OWN version-bump
+commit (not just the release job) went green on its own, unassisted.</p>
+<p><strong>Phase 2 — polish — ✅ DONE (2026-07-07)</strong>
+MkDocs Material docs site (#13, <code>0549e2d</code> — a <code>feat:</code> commit, released <strong>v0.2.0</strong>), VHS demo
+(#10, <code>1c6c610</code>, <code>docs:</code> — no release), <code>examples/</code> + README restructure (#12, <code>07b494f</code>,
+<code>docs:</code> — no release),
+rich-argparse + pyright + pre-commit-in-CI + coverage-comment + Dependabot (#5, #6, #9, #11,
+<code>bcb732a</code> — a <code>feat:</code> commit, released <strong>v0.3.0</strong>), <strong>Claude Code plugin repackaging (#15,
+PR #4, merged <code>f12da1d</code> — a <code>feat(plugin):</code> commit, released </strong>v0.4.0<strong>, see correction
+above)</strong>.</p>
+<p>Deliberate scope calls made landing these, worth keeping as precedent: (1) <code>pyright</code> is scoped
+to <code>cli/</code>+<code>core/</code> only (<code>[tool.pyright].include</code> in pyproject.toml) — <code>tui/</code> has 64
+pre-existing errors, almost all Textual's <code>query_one() -&gt; Widget | None</code> narrowing; fixing
+those is a separate, larger pass, not something to fold silently into a CI-wiring change. (2)
+<code>ruff-format</code> is <strong>not</strong> wired into pre-commit/CI yet — <code>ruff format --check .</code> found 62 files
+(mostly <code>tests/</code>) non-conformant; reformatting all of them is its own visible decision, not a
+side effect of adding hygiene hooks. (3) The MkDocs site reuses root <code>.md</code> files via
+<code>pymdownx.snippets</code> (<code>--8&lt;-- "README.md"</code> etc.) instead of copying content — one file, two
+render contexts; a same-named-file's relative links can't resolve identically from repo-root
+(GitHub) and from <code>docs/</code> (the site), so <code>mkdocs.yml</code>'s <code>validation.links.not_found</code> is
+deliberately downgraded to <code>info</code> rather than fighting each link with a symlink.</p>
+<p><strong>Gotcha hit mid-Phase-2, worth flagging for the next relocation-adjacent change:</strong> the
+globally-installed <code>downbeat</code> (<code>uv tool install --editable</code>, used by the live <code>~/.claude/relay/
+relay.py</code> shim) is a <strong>separate environment from the repo's dev <code>.venv</code></strong>. Adding
+<code>rich-argparse</code> to <code>pyproject.toml</code> and running <code>uv sync</code> only updated the dev venv — the
+global tool install broke (<code>ModuleNotFoundError: rich_argparse</code>) the moment the peer-relay
+<code>send</code>/<code>reply</code> commands were invoked through it, since those route through the same installed
+binary. Fix: <code>uv tool upgrade downbeat</code> after any dependency change, not just <code>uv sync</code>. Same
+lesson as the earlier IAM-migration finding (memory: <code>project_iam_migration.md</code>) generalized —
+an editable/dev environment and its "live", separately-materialized install are not the same
+thing and don't sync automatically.</p>
+<p><strong>CI follow-up (2026-07-07, PR #5): docs-only diffs no longer run the python matrix.</strong>
+<code>ci.yml</code> gained a <code>changes</code> job (<code>dorny/paths-filter</code>, <code>code</code> output true unless every changed
+file is README/CONTRIBUTING/CODE_OF_CONDUCT/SECURITY/<code>docs/**</code>/<code>mkdocs.yml</code>) gating
+<code>pre-commit</code>/<code>typecheck</code>/<code>coverage</code>/<code>test</code> behind <code>if: needs.changes.outputs.code == 'true'</code>.
+<strong>Two real gotchas surfaced getting this right, both about how GitHub's required-status-checks
+actually interact with skipped/conditional jobs:</strong>
+1. <code>paths-filter</code> with no explicit <code>base:</code> diffs the <strong>whole branch against <code>main</code></strong>, not just
+   the latest push's incremental commit — confirmed from the action's own log ("Changes will be
+   detected between main and \&lt;branch&gt;"). This is correct for how this repo merges (squash),
+   but means you can't test the "skip" path on a branch that itself modifies <code>ci.yml</code> — that
+   file's own diff always makes <code>code=true</code> on that branch, by construction. Verification of the
+   skip path required a real doc-only PR opened <em>after</em> the new <code>ci.yml</code> reached <code>main</code>.
+2. The <code>main-protection</code> ruleset requires <strong>exact expanded matrix context names</strong>
+   (<code>test (ubuntu-latest, 3.11)</code>, etc.). A <strong>job-level</strong> <code>if:</code> on a matrix job skips matrix
+   expansion entirely — those named contexts never get created, and GitHub leaves the PR stuck
+   on "Expected — Waiting for status to be reported" forever, not merged and not failed. Fix:
+   added a single fan-in <code>ci-required</code> job (<code>needs: [pre-commit, typecheck, coverage, test]</code>,
+   <code>if: always() &amp;&amp; (cancelled() || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'failure'))</code>)
+   that is itself <strong>skipped</strong> (GitHub reports a skipped job as "Success") on the happy path and
+   only runs — to deliberately fail loudly — if something upstream genuinely failed. Repointed
+   the ruleset's <code>required_status_checks</code> at this one job instead of the 6 matrix contexts.
+   Confirmed both directions empirically in CI logs before merging: <code>ci-required</code> correctly
+   fired and failed when an unrelated <code>end-of-file-fixer</code> regression broke <code>pre-commit</code>, and
+   correctly stayed skipped (= passing) once fixed.</p>
+<p><strong>CI follow-up part 2 (2026-07-07/08, PR #7): the paths-filter exclusions were a silent no-op
+until fixed.</strong> PR #5's <code>changes</code> job filter (<code>"**"</code> plus <code>!docs/**</code> etc.) evaluated <code>code=true</code>
+on a genuine docs-only PR (#6) even after the file reached <code>main</code> — the negation never applied.
+Root cause: <code>dorny/paths-filter</code>'s <code>predicate-quantifier</code> input defaults to <code>"some"</code> (a file
+counts as matching if it hits <em>any one</em> pattern in the list), so the bare <code>"**"</code> alone always
+satisfied the filter regardless of what <code>!</code>-exclusions came after it — gitignore-style negation
+only actually applies with <code>predicate-quantifier: every</code>. Confirmed via the action's own log
+(<code>Filter code = true</code>, matching file <code>docs/decisions.md</code>) before and after the fix. <strong>Lesson:</strong>
+don't assume a <code>!</code>-prefixed pattern list gives gitignore semantics by default in a third-party
+action just because the syntax looks like <code>.gitignore</code> — check the action's own quantifier
+default, and verify empirically with a real PR against the real target branch, not just a
+syntax read of the YAML.</p>
+<p><strong>Dependabot sibling-PR merge conflicts on adjacent version-bump lines.</strong> Merging PR #2
+(<code>actions/checkout@v4→v7</code>) and PR #3 (<code>astral-sh/setup-uv@v5→v7</code>) back-to-back produced a real
+git conflict in <code>ci.yml</code>/<code>docs.yml</code> — both PRs touch the same <code>steps:</code> blocks, one line apart,
+so PR #3's branch (opened before PR #2 merged) couldn't fast-forward-update cleanly once PR #2
+landed. Dependabot doesn't rebase sibling PRs against each other. Not a config bug, just an
+expected outcome of independent action-bump PRs sharing files — resolved by hand (keep both new
+versions) rather than tooled. Worth remembering next time multiple Dependabot PRs are open
+simultaneously in a file with multiple <code>uses:</code> lines close together.</p>
+<p><strong>Public docs nav should not carry maintainer-only content (2026-07-08, PR #9).</strong> The site's
+"Maintainer docs" nav section (<code>release-setup.md</code>, <code>docs-site-setup.md</code>, <code>decisions.md</code> — this
+very file) was removed from <code>mkdocs.yml</code>'s <code>nav:</code> after checking how comparable OSS CLI tools
+(<code>uv</code>, <code>hatch</code>, <code>ruff</code>) structure their published docs sites: none surface a release-runbook or
+raw decisions/bug journal in the main public nav. <code>ruff</code>'s closest analog is one curated
+<code>CONTRIBUTING.md</code>-style page, not a split-out internal log. Moved discoverability to a new
+"Maintainer-only references" section in <code>CONTRIBUTING.md</code> instead — the pages themselves stay
+on disk and still build as <strong>orphan pages</strong> (MkDocs still builds+deploys a <code>docs_dir</code> file even
+if it's absent from <code>nav:</code>, just reachable only by direct URL, not the sidebar); added
+<code>validation.nav.omitted_files: info</code> to <code>mkdocs.yml</code> to downgrade the resulting expected warning
+in strict builds, mirroring the existing <code>validation.links.not_found: info</code> pattern.</p>
+<p><strong><code>--migrate-to-plugin</code> design drafted and peer-reviewed, not yet implemented (2026-07-08).</strong>
+See <a href="../superpowers/specs/2026-07-08-migrate-to-plugin-design/">2026-07-08-migrate-to-plugin-design.md</a>
+(PR #8) — reviewed with the <code>claude-core-hooks</code> maintainer session over relay. Key shape: reuses
+<code>hooks_manifest.json</code> as the single source of truth for both registration (<code>_register_hooks</code>)
+and migration, exact-command-string match instead of <code>_unregister_hooks</code>'s substring match,
+drop-empty-groups logic extracted into one shared <code>_remove_matching_hooks</code> helper instead of a
+second implementation. Peer review's main catch: nothing enforces parity between
+<code>hooks_manifest.json</code> (hand-merge) and <code>hooks/hooks.json</code> (plugin) — they agree today but could
+silently drift if a third hook binding is ever added to one and not the other; a parity test is
+scoped as a required companion, not optional polish. Implementation deliberately on hold — user
+said "hold off" 2026-07-08, scoping only for now.</p>
+<p><strong><code>--migrate-to-plugin</code> implemented (2026-07-08).</strong> <code>init_cmd.py</code> gained <code>_remove_matching_hooks</code>
+(the shared drop-empty-groups helper the design called for — <code>_unregister_hooks</code> now calls it
+with its existing substring predicate instead of doing its own loop), <code>_migrate_to_plugin</code>
+(exact-command-string predicate built from <code>hooks_manifest.json</code>), and <code>run_migrate_to_plugin</code>
+(CLI wiring: hard-fails if the plugin isn't enabled, catches <code>SettingsParseError</code> explicitly,
+prints a <code>downbeat uninstall</code> hint when legacy entries plausibly exist under a non-matching
+command string). Wired up as <code>downbeat init --migrate-to-plugin</code> — a standalone mode of <code>init</code>,
+not a modifier. Also landed the parity test the design flagged as a required companion:
+<code>tests/test_hooks_manifest_parity.py</code> asserts <code>hooks_manifest.json</code> and <code>hooks/hooks.json</code>
+enumerate the same <code>(event, matcher, command-basename)</code> set. <code>docs/plugin.md</code>'s "double-fire
+warning" section rewritten to point at the new command instead of the old manual JSON-surgery
+steps. 6 new tests, full suite green, <code>ruff</code>/<code>pyright</code> clean. Cross-validated with
+<code>claude-core-hooks</code> maintainer session over relay before starting (msg <code>9756567e1983</code>) — they're
+building the symmetric <code>lib/migrate_to_plugin.py</code> independently, same exact-match/drop-empty-
+groups/backup-on-write shape.</p>
+<p><strong>Explicit parent-child pairing replaces name-prefix inference (2026-07-10).</strong> Root cause: the
+TUI's "acting as <code>&lt;parent&gt;</code>" view (<code>peer_list.py</code>, <code>chat.py</code>) and the admin table's grouping
+(<code>peers.py</code>) all derived parent-child relationships by string-splitting a peer's name on its
+last <code>-</code> — a child registered under a different naming convention than its parent was silently
+excluded from that parent's view, with no error anywhere. Found by the <code>claude-core-hooks</code>
+maintainer session hitting exactly this on their own machine (relay msg <code>8167fa3922fb</code>), who
+then wrote up a full design doc (relay msg <code>0e6983180fe8</code>) generalizing the fix beyond the one
+bug. Shipped as specified: <code>Peer</code> gained an explicit <code>parent: str | None</code> field set at
+registration time (never re-derived); <code>register_peer()</code> auto-defaults a <code>role=child</code> peer's
+parent to the sole existing <code>role=parent</code> peer, hard-errors (<code>AmbiguousParent</code>) if more than one
+parent exists and <code>--parent</code> wasn't given, and validates an explicit <code>--parent</code> actually names a
+registered parent (<code>InvalidParent</code>). New <code>store.children_of(parent_name)</code> helper replaces the
+two duplicated <code>_related_prefix()</code> implementations in <code>peer_list.py</code> and <code>chat.py</code>; <code>peers.py</code>'s
+<code>group_key()</code> groups by the real field instead of <code>rsplit("-", 1)</code>. New <code>downbeat peers
+set-parent &lt;child&gt; &lt;parent&gt;</code> CLI command backfills existing peers without a full re-register.
+<code>Peer.from_dict()</code> defaults a missing <code>parent</code> key to <code>None</code> — old <code>sessions.json</code> entries parse
+unchanged, no migration script. Explicitly out of scope (per the design doc): <code>core/groups.py</code>'s
+separate named-group mechanism, and multi-parent/nested hierarchies.</p>
+<p>Two bugs found only by actually running the TUI modal, not by reading the diff: (1) <code>Select</code>'s
+<code>Select.BLANK</code> sentinel is literally the boolean <code>False</code>, not the real "no selection" marker
+(<code>Select.NULL</code>, a <code>NoSelection</code> instance) — a <code>!=</code> comparison against it silently fails to detect
+blank/uncommitted state; the add-peer modal now tracks role via an <code>on_select_changed</code> handler
+compared against <code>Select.NULL</code> by identity, not by reading <code>Select.value</code> back. (2) naming the
+new parent-name input field <code>self._parent</code> collided with <code>Widget</code>'s own internal <code>_parent</code>
+attribute (DOM-parent tracking) — silently broke <code>is_attached</code>/mount tracking with a confusing
+<code>MountError</code> unrelated-looking to the actual cause; renamed to <code>self._parent_input</code>. Both are
+documented in-code as guardrails against reintroducing them. Full suite green (204 passed, 16
+skipped), <code>ruff</code> and <code>uv run pyright</code> clean.</p>
+<p><strong>Phase 3 — growth</strong>
+Comparison-table + launch package (#14): badges, social-preview, <code>awesome-cli-coding-agents</code> + <code>awesome-claude-code</code> PRs, Show HN + Reddit (see launch-plan.md).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.top", "navigation.footer", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

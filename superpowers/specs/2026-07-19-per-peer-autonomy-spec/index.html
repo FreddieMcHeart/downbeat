@@ -1,0 +1,957 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine">
+      
+      
+      
+        <link rel="canonical" href="https://freddiemcheart.github.io/downbeat/superpowers/specs/2026-07-19-per-peer-autonomy-spec/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Per-peer autonomy control (change autonomy after registration) - downbeat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#per-peer-autonomy-control-change-autonomy-after-registration" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="downbeat" class="md-header__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            downbeat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Per-peer autonomy control (change autonomy after registration)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="downbeat" class="md-nav__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    downbeat
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Context">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-now-matters-post-18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why this now matters (post-#18)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#invariant-autonomy-is-orthogonal-to-structure-restated-must-survive-this-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Invariant: autonomy is orthogonal to structure (restated, must survive this change)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Options">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-minimal-keep-role-add-an-explicit-setter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A — minimal: keep role, add an explicit setter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-clarifying-refactor-rename-role-autonomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B — clarifying refactor: rename role → autonomy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shared-constraint-the-orthogonality-invariant-applies-identically-to-both-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared constraint: the orthogonality invariant applies identically to both options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recommendation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommendation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-model-cli-tui-changes-option-a-as-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data model / CLI / TUI changes (Option A, as recommended)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration-backward-compat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration / backward-compat
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-decisions-for-the-maintainer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open decisions for the maintainer
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/FreddieMcHeart/downbeat/edit/main/docs/superpowers/specs/2026-07-19-per-peer-autonomy-spec.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="per-peer-autonomy-control-change-autonomy-after-registration">Per-peer autonomy control (change autonomy after registration)<a class="headerlink" href="#per-peer-autonomy-control-change-autonomy-after-registration" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> design — recommendation, pending maintainer decision. Tracks
+<a href="https://github.com/FreddieMcHeart/downbeat/issues/41">issue #41</a> ("Per-peer
+autonomy control (change autonomy after registration)"), milestone "Peer
+identity &amp; autonomy". This spec analyzes the options and recommends one; it
+does not commit to a design — see "Open decisions for the maintainer" below.</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>A peer's <code>/relay-monitor</code> autonomy — auto-execute vs. surface-and-ask — is
+set once, at <code>downbeat register</code> time, via the <code>--role</code> flag, and there is
+no path to change it afterward.</p>
+<p><code>Peer.role</code> (<code>src/downbeat/core/models.py:124-129</code>) already documents this
+narrowed meaning, added by the general peer tree spec
+(<code>docs/superpowers/specs/2026-07-15-general-peer-tree-design.md</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="n">role</span><span class="p">:</span> <span class="nb">str</span>   <span class="c1"># &quot;parent&quot; | &quot;child&quot; -- the /relay-monitor autonomy DEFAULT</span>
+            <span class="c1"># only (auto-execute vs surface-and-ask). NOT structural</span>
+            <span class="c1"># position: a peer can be role=&quot;child&quot; and still have its</span>
+            <span class="c1"># own children -- gaining/losing children never changes</span>
+            <span class="c1"># this field. See docs/superpowers/specs/</span>
+            <span class="c1"># 2026-07-15-general-peer-tree-design.md.</span>
+</code></pre></div>
+<p><code>role</code> is written in exactly two places, and neither is a "change autonomy"
+path:</p>
+<ul>
+<li><strong><code>register_peer</code></strong> (<code>src/downbeat/core/store.py:132-160</code>) takes <code>role</code> as
+  a required positional argument and stores it verbatim on every call —
+  including a re-register of an existing peer (<code>existing = sessions.get(name)</code>
+  at line 137), which <em>would</em> let a repeat <code>downbeat register &lt;name&gt; --role
+  parent</code> silently flip an existing peer's autonomy as a side effect of an
+  unrelated re-registration. That's a footgun, not a supported "change
+  autonomy" command.</li>
+<li><strong><code>set_parent</code></strong> (<code>src/downbeat/core/store.py:163-176</code>) only ever touches
+  <code>sessions[name]["parent"]</code>; it never reads or writes <code>role</code>. This is the
+  intended enforcement of the orthogonality invariant for the <em>structural</em>
+  path — but it also means <code>set_parent</code> offers no autonomy-change capability
+  at all, by design.</li>
+</ul>
+<p>The CLI (<code>src/downbeat/cli/__main__.py:37-192</code>) confirms there is no
+autonomy-change surface: subcommands are <code>register</code>, <code>send</code>, <code>reply</code>,
+<code>inbox</code>, <code>peers</code> (with only a <code>set-parent</code> sub-action,
+<code>__main__.py:97-103</code>), <code>gc-stale</code>, <code>gc-markers</code>, <code>rebind</code>, <code>quarantine</code>,
+<code>whoami</code>, <code>tui</code>, <code>drain</code>, <code>ack</code>, <code>reconcile</code>, <code>init</code>, <code>uninstall</code>. <code>rebind</code>
+explicitly preserves role (<code>--role/cwd unchanged</code>, <code>__main__.py:116</code>); no
+subcommand sets it.</p>
+<p>The TUI's only role-setting surface is <code>AddPeerModal</code>
+(<code>src/downbeat/tui/widgets/add_peer_modal.py</code>), which drives a first-time
+<code>store.register_peer(..., role=role, ...)</code> call (line 80) — registration,
+not editing. <code>PeersScreen</code> (<code>src/downbeat/tui/screens/peers.py</code>) displays
+<code>p.role</code> as a table column (line 83) and has bindings for add/remove/gc/
+rebind (<code>BINDINGS</code>, lines 15-23) but none for changing role.</p>
+<h3 id="why-this-now-matters-post-18">Why this now matters (post-#18)<a class="headerlink" href="#why-this-now-matters-post-18" title="Permanent link">&para;</a></h3>
+<p>Before the general peer tree (#18), <code>role</code> and tree position were
+1:1 — a <code>role=="parent"</code> peer was always a root, a <code>role=="child"</code> peer
+was always a leaf — so autonomy incidentally tracked structure and the gap
+was invisible. Post-#18, <code>store.acting_as_candidates()</code>
+(<code>store.py:189-198</code>) and <code>PeersScreen._refresh</code>'s <code>group_key</code>
+(<code>screens/peers.py:45-58</code>) both explicitly treat "is this an interior node"
+and "is <code>role=="parent"</code>" as independent, unioned conditions — the codebase
+already assumes any peer can be both a parent and a child. Autonomy, by
+contrast, is still frozen at whatever <code>--role</code> was passed at registration,
+with no way to reconsider it once the peer's place in the tree — or its
+job — changes.</p>
+<h3 id="invariant-autonomy-is-orthogonal-to-structure-restated-must-survive-this-change">Invariant: autonomy is orthogonal to structure (restated, must survive this change)<a class="headerlink" href="#invariant-autonomy-is-orthogonal-to-structure-restated-must-survive-this-change" title="Permanent link">&para;</a></h3>
+<p><strong>A peer's <code>role</code> must never change as a side effect of gaining or losing
+children, or of being repointed via <code>set_parent</code>.</strong> This spec's whole job is
+to add an <em>explicit, conscious</em> path to change <code>role</code> — it must not
+reintroduce an <em>implicit</em> one. Concretely: <code>set_parent</code> must continue to
+touch only the <code>parent</code> field; nothing added by this spec should live in
+<code>set_parent</code>, <code>_resolve_parent</code>, <code>register_peer</code>'s parent-resolution branch,
+or <code>remove_peer</code>'s grandparent-promotion path. This is the same invariant
+the 2026-07-15 spec established and tested (its "Autonomy orthogonality"
+test case, <code>2026-07-15-general-peer-tree-design.md</code> line ~219); this spec
+extends the test matrix (see "Testing" below) rather than replacing it.</p>
+<h2 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h2>
+<h3 id="option-a-minimal-keep-role-add-an-explicit-setter">Option A — minimal: keep <code>role</code>, add an explicit setter<a class="headerlink" href="#option-a-minimal-keep-role-add-an-explicit-setter" title="Permanent link">&para;</a></h3>
+<p>Add <code>store.set_role(name: str, role: str) -&gt; Peer</code>, a <code>downbeat peers
+set-role &lt;name&gt; &lt;parent|child&gt;</code> CLI subcommand (siblings with the existing
+<code>peers set-parent</code>), and a TUI keybinding on <code>PeersScreen</code> (e.g. <code>r</code>) that
+opens a small confirm/select modal and calls the same store function. The
+field stays named <code>role</code>, keeps its two literal values, and keeps living on
+<code>Peer</code> unchanged in shape.</p>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_role</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">role</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Peer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Change an existing peer&#39;s /relay-monitor autonomy default.</span>
+<span class="sd">    Structural-only: never touches `parent`. See docs/superpowers/specs/</span>
+<span class="sd">    2026-07-19-per-peer-autonomy-spec.md.&quot;&quot;&quot;</span>
+    <span class="n">sessions</span> <span class="o">=</span> <span class="n">_load_sessions</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sessions</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">PeerNotFound</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;parent&quot;</span><span class="p">,</span> <span class="s2">&quot;child&quot;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">InvalidRole</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;role must be &#39;parent&#39; or &#39;child&#39;, got </span><span class="si">{</span><span class="n">role</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">sessions</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">role</span>
+    <span class="n">_save_sessions</span><span class="p">(</span><span class="n">sessions</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Peer</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">sessions</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+</code></pre></div>
+<p>CLI wiring mirrors the existing <code>peers set-parent</code> sub-action
+(<code>__main__.py:97-103</code>, <code>relay_cmds.py cmd_peers</code> lines 122-130): a new
+<code>peers_action == "set-role"</code> branch calling <code>store.set_role</code>, catching a new
+<code>InvalidRole(RelayError)</code> the same way <code>set-parent</code> catches
+<code>PeerNotFound</code>/<code>InvalidParent</code>.</p>
+<p><strong>Trade-offs:</strong>
+- Smallest possible diff: one store function, one CLI branch, one TUI
+  binding + tiny modal (or an inline <code>Select</code> reusing <code>AddPeerModal</code>'s
+  pattern). No changes to <code>Peer</code>'s shape, <code>relay-monitor.md</code>, <code>SKILL.md</code>, or
+  <code>relay-inbox.py</code>'s <code>role</code> reads (<code>assets/hooks/relay-inbox.py:130-132,254-257</code>).
+- Ships the acceptance criteria in #41 directly and literally ("a CLI path
+  … e.g. <code>downbeat peers set-role</code>").
+- Leaves the underlying naming problem unresolved: <code>role</code> is a field whose
+  <em>name</em> still suggests "structural position" (a plausible reading for
+  anyone who hasn't read the 2026-07-15 spec's field comment) while its
+  <em>only remaining meaning</em> is an autonomy default. The field comment is the
+  only thing preventing a future contributor from re-conflating the two —
+  same risk the 2026-07-15 spec flagged for the comment itself ("the only
+  place the two-tier assumption can silently survive the refactor").
+- <code>register_peer</code>'s re-register footgun (an unrelated re-registration
+  silently changing <code>role</code>) stays unaddressed unless bundled in — see "Data
+  model / CLI / TUI changes" below, where it's folded into Option A anyway
+  since it's cheap and directly adjacent.</p>
+<h3 id="option-b-clarifying-refactor-rename-role-autonomy">Option B — clarifying refactor: rename <code>role</code> → <code>autonomy</code><a class="headerlink" href="#option-b-clarifying-refactor-rename-role-autonomy" title="Permanent link">&para;</a></h3>
+<p>Rename the field itself: <code>Peer.autonomy: str</code> (values <code>"auto"</code> /
+<code>"ask"</code>, or keep <code>"parent"</code>/<code>"child"</code> string values under the new field name
+— a separate sub-decision), remove <code>role</code> entirely, and thread the rename
+through every read site: <code>core/store.py</code> (<code>_resolve_parent</code>'s
+<code>role=="parent"</code> filter is unaffected — that check is about the auto-default
+<em>pairing</em> convenience, but it currently keys off the <em>same</em> field, so it
+would need to migrate too, or be re-justified as intentionally staying on
+the old field for a different reason), <code>acting_as_candidates()</code>
+(<code>store.py:189-198</code>), every <code>p.role</code> in the TUI (<code>screens/peers.py:31,79,83</code>,
+<code>add_peer_modal.py</code>), <code>relay-monitor.md</code>, <code>skill/SKILL.md</code>
+(<code>whoami</code>'s <code>&lt;name&gt; &lt;role&gt;</code> output format), and <code>relay-inbox.py</code>'s
+<code>model_nudge_line</code>/<code>sessions.get(name, {}).get("role")</code>
+(<code>assets/hooks/relay-inbox.py:130,254</code>).</p>
+<p><strong>Trade-offs:</strong>
+- Fixes the naming problem at the root: a field called <code>autonomy</code> cannot be
+  mistaken for a structural concept, which is exactly the ambiguity Option A
+  leaves standing. This is the more honest long-term shape, and it's the
+  kind of clarifying rename the 2026-07-15 spec itself <em>considered and
+  rejected</em> for the same reason it would be needed now ("renaming was
+  considered and rejected: it would touch <code>relay-monitor.md</code>, <code>SKILL.md</code>,
+  <code>relay-inbox.py</code>, and every <code>role=="parent"</code> TUI comparison for zero
+  functional gain" — at that time, because the rename bought nothing beyond
+  what the field comment already documented). Issue #41 is arguably the
+  first time the rename buys something concrete: a setter command whose
+  name (<code>set-role</code> vs. <code>set-autonomy</code>) will otherwise permanently encode the
+  ambiguity into the CLI's public surface.
+- Backward compatibility: <code>Peer.from_dict</code> (<code>models.py:147-161</code>) uses
+  <code>.get()</code> with defaults, so a rename needs a compat read (<code>d.get("autonomy",
+  d.get("role", "child"))</code>) to load pre-existing <code>sessions.json</code> files
+  without a migration script, and <code>to_dict()</code>/<code>asdict()</code> would start
+  serializing the new key name going forward — meaning any external tooling
+  or saved fixtures reading raw <code>sessions.json</code> for <code>"role"</code> breaks silently
+  unless a transition period double-writes both keys, or a one-time
+  migration pass rewrites <code>sessions.json</code> in place.
+  <code>assets/hooks/relay-inbox.py</code> is Jinja/shell-adjacent hook code shipped as
+  an <em>asset</em> installed into users' <code>~/.claude/hooks/</code> — a rename there is a
+  breaking change to an interface that isn't versioned alongside the Python
+  package the way <code>store.py</code> is, so stale installed hooks would read
+  <code>"role"</code> from a <code>sessions.json</code> that no longer writes it, silently
+  degrading the Fable-model nudge (<code>relay-inbox.py:130-132</code>) rather than
+  erroring.
+  <code>SKILL.md</code>'s <code>whoami --json</code> output shape (<code>{"name": ..., "role": ...}</code>,
+  <code>SKILL.md:75</code>) is documented, human/agent-facing API; renaming its key
+  changes a contract that other Claude Code sessions' prompts (the
+  <code>relay-monitor.md</code> role-branch logic) may already parse by that name.
+- Bigger surface, bigger review, and — per the 2026-07-15 spec's own
+  prior rejection of this exact rename — no functional payoff beyond
+  clarity <em>unless</em> #41's setter command is the trigger that finally makes
+  clarity worth the diff. That trigger is real but is itself a judgment
+  call, not a technical fact.</p>
+<h3 id="shared-constraint-the-orthogonality-invariant-applies-identically-to-both-options">Shared constraint: the orthogonality invariant applies identically to both options<a class="headerlink" href="#shared-constraint-the-orthogonality-invariant-applies-identically-to-both-options" title="Permanent link">&para;</a></h3>
+<p>Neither option touches <code>set_parent</code>, <code>_resolve_parent</code>, or
+<code>remove_peer</code>'s child-promotion path. Both add exactly one new,
+explicit write path for the autonomy field (<code>set_role</code> in A,
+<code>set_autonomy</code> in B) that a human or agent must call on purpose — nothing
+added by either option makes <code>role</code>/<code>autonomy</code> change as a side effect of a
+structural operation.</p>
+<h2 id="recommendation">Recommendation<a class="headerlink" href="#recommendation" title="Permanent link">&para;</a></h2>
+<p><strong>Ship Option A now.</strong> It satisfies #41's acceptance criteria exactly as
+proposed in the issue text (<code>downbeat peers set-role</code>), keeps the diff
+reviewable and low-risk, and does not foreclose Option B later — a future
+rename is a pure refactor on top of Option A's already-correct behavior
+(the setter's <em>logic</em> doesn't change, only the field/key names it touches).
+Option B's case is real but is a documentation/clarity investment best
+made deliberately, with its own review of the <code>SKILL.md</code>/<code>relay-monitor.md</code>
+contract and hook backward-compat story, not bundled into a feature PR whose
+acceptance criteria don't require it. Sequencing A before B also gives B a
+concrete answer to "was the rename worth it" — namely, whether <code>set-role</code>
+ends up being a recurring point of confusion in practice.</p>
+<h2 id="data-model-cli-tui-changes-option-a-as-recommended">Data model / CLI / TUI changes (Option A, as recommended)<a class="headerlink" href="#data-model-cli-tui-changes-option-a-as-recommended" title="Permanent link">&para;</a></h2>
+<p><strong><code>core/store.py</code>:</strong>
+- Add <code>set_role(name: str, role: str) -&gt; Peer</code>, as shown above. Raise
+  <code>InvalidRole</code> (new) for any value other than <code>"parent"</code>/<code>"child"</code>,
+  <code>PeerNotFound</code> if <code>name</code> isn't registered.
+- Close the <code>register_peer</code> footgun identified in "Context": add a
+  doc-comment on <code>register_peer</code> making explicit that a re-register with a
+  different <code>--role</code> <em>does</em> change an existing peer's autonomy today (it
+  always has), and that <code>set_role</code> is now the <em>intended</em> path — re-register
+  is for session/pid/cwd changes, not autonomy changes. Whether to also add
+  a <code>register_peer</code> behavior change (e.g. warn or require <code>--force</code> to
+  change <code>role</code> on an existing peer) is left to the maintainer — see "Open
+  decisions" below; this spec does not mandate a behavior change to
+  <code>register_peer</code> itself, only the doc-comment.</p>
+<p><strong><code>core/errors.py</code>:</strong> add <code>InvalidRole(RelayError)</code>, sibling to
+<code>InvalidParent</code>.</p>
+<p><strong>CLI (<code>cli/__main__.py</code>, <code>cli/commands/relay_cmds.py</code>):</strong>
+- <code>__main__.py</code>: add <code>sp_peers_setrole = sp_peers_sub.add_parser("set-role",
+  ...)</code> next to the existing <code>sp_peers_setparent</code> (lines 97-103), with
+  positional args <code>name</code> and <code>role</code> (<code>choices=["parent", "child"]</code>,
+  matching <code>sp_reg.add_argument("--role", choices=["parent", "child"], ...)</code>
+  at line 56).
+- <code>relay_cmds.py cmd_peers</code>: add an <code>elif getattr(args, "peers_action", None)
+  == "set-role":</code> branch beside the existing <code>set-parent</code> branch (lines
+  123-130), calling <code>store.set_role</code>, catching <code>(PeerNotFound, InvalidRole)</code>,
+  printing <code>f"{peer.name}: role set to {peer.role}"</code> to match the
+  <code>set-parent</code> branch's <code>f"{peer.name}: parent set to {peer.parent}"</code> style.</p>
+<p><strong>TUI:</strong>
+- <code>screens/peers.py</code>: add a binding, e.g. <code>("r,R", "set_role", "Set role")</code>,
+  to <code>BINDINGS</code> (alongside <code>rebind_session</code>'s <code>u</code> binding, lines 15-23).
+  <code>action_set_role</code> follows <code>action_rebind_session</code>'s shape (lines 128-135):
+  require a selected peer, push a new small modal, refresh + notify on
+  return.
+- New <code>tui/widgets/set_role_modal.py</code> (or fold into <code>peer_admin.py</code>
+  alongside <code>RemovePeerConfirm</code>/<code>GcStaleModal</code>): a <code>ModalScreen</code> showing the
+  peer's current role and a <code>Select</code>/toggle for the new value, <code>y</code>/Enter to
+  confirm, <code>Esc</code> to cancel — same interaction shape as <code>RemovePeerConfirm</code>.
+  Calls <code>store.set_role</code>, catches <code>InvalidRole</code>/<code>PeerNotFound</code> and
+  <code>self.notify(..., severity="error")</code> the same way <code>AddPeerModal.submit</code>
+  does (lines 81-84).
+- No change needed to <code>acting_as_candidates()</code> (<code>store.py:189-198</code>) or the
+  acting-as union filters added by the 2026-07-15 spec — changing <code>role</code>
+  after the fact is exactly the kind of update those filters are already
+  built to react to correctly (a peer that gains <code>role=="parent"</code> via
+  <code>set_role</code> becomes acting-as-eligible on the next read, with no separate
+  wiring).</p>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<p>Extend the 2026-07-15 spec's test matrix (<code>core/store.py</code> tests) rather than
+replacing it:</p>
+<ul>
+<li><code>set_role</code> happy path: register a peer <code>role="child"</code>, call
+  <code>set_role(name, "parent")</code>, assert <code>get_peer(name).role == "parent"</code> and
+  <code>parent</code> field unchanged.</li>
+<li><code>set_role</code> invalid role: <code>set_role(name, "bogus")</code> raises <code>InvalidRole</code>.</li>
+<li><code>set_role</code> unknown peer: raises <code>PeerNotFound</code>.</li>
+<li><strong>Orthogonality, extended</strong>: register a peer, give it a child via
+  <code>set_parent</code>, call <code>set_role</code> on it, assert the child's <code>parent</code> pointer
+  is untouched and the peer's own <code>parent</code> is untouched — <code>set_role</code> must
+  only ever write the <code>role</code> key.</li>
+<li><strong>Reverse orthogonality</strong>: call <code>set_role</code>, then <code>set_parent</code> on the same
+  peer, assert <code>role</code> is unchanged by the <code>set_parent</code> call — confirms the
+  new setter didn't accidentally get invoked by, or get merged into, the
+  structural path.</li>
+<li>CLI: <code>downbeat peers set-role &lt;name&gt; parent</code> exit 0 + expected stdout;
+  unknown peer name exit 1 with <code>error: ...</code>; invalid role value rejected by
+  argparse <code>choices</code> before reaching the store.</li>
+<li>TUI: <code>set_role_modal</code> confirm calls <code>store.set_role</code> with the selected
+  value and dismisses with the peer name; cancel calls neither.</li>
+</ul>
+<h2 id="migration-backward-compat">Migration / backward-compat<a class="headerlink" href="#migration-backward-compat" title="Permanent link">&para;</a></h2>
+<p>Option A requires none: <code>Peer</code>'s shape is unchanged, <code>role</code>'s two literal
+values are unchanged, and every existing <code>sessions.json</code> entry already has a
+valid <code>role</code>. No <code>Peer.from_dict</code> change, no <code>sessions.json</code> rewrite.</p>
+<p>(Option B's migration/back-compat burden — compat reads, hook-asset
+version skew, <code>SKILL.md</code>/<code>relay-monitor.md</code> contract changes — is detailed
+under "Option B" above and does not apply if A ships as recommended.)</p>
+<h2 id="open-decisions-for-the-maintainer">Open decisions for the maintainer<a class="headerlink" href="#open-decisions-for-the-maintainer" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>A vs. B — ship the minimal setter now, or do the <code>role</code>→<code>autonomy</code>
+   rename in the same pass?</strong> This spec recommends A now, B later-if-ever.
+   Confirm or override.</li>
+<li><strong><code>register_peer</code> re-register behavior</strong>: should re-registering an
+   existing peer with a different <code>--role</code> be <em>left as-is</em> (documented
+   footgun, <code>set_role</code> becomes the intended path per this spec), <em>warned</em>
+   (non-fatal notice that autonomy changed), or <em>hard-blocked</em> (require
+   <code>set_role</code> explicitly, reject a <code>--role</code> mismatch on re-register)? This
+   spec proposes documentation-only as the minimal option; a stricter
+   behavior is a legitimate but separate call.</li>
+<li><strong>Value naming, if B is ever taken</strong>: keep the literal strings
+   <code>"parent"</code>/<code>"child"</code> under a renamed field (<code>autonomy: str  # "parent" |
+   "child"</code>, minimizing value-level churn), or also rename the values
+   themselves (e.g. <code>"auto"</code>/<code>"ask"</code>, more literally describing the
+   autonomy behavior but a larger blast radius across
+   <code>relay-monitor.md</code>/<code>relay-inbox.py</code>/<code>SKILL.md</code> string comparisons)?</li>
+<li><strong>TUI binding key</strong>: <code>r</code> is proposed for "set role" on <code>PeersScreen</code>
+   (<code>BINDINGS</code>, <code>screens/peers.py:15-23</code>) — it's currently unused there, but
+   confirm no conflict with a planned future binding before landing.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.top", "navigation.footer", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

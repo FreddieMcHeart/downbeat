@@ -1,0 +1,1059 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine">
+      
+      
+      
+        <link rel="canonical" href="https://freddiemcheart.github.io/downbeat/roadmap/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../plugin/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Roadmap - downbeat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#downbeat-roadmap" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="downbeat" class="md-header__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            downbeat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Roadmap
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="downbeat" class="md-nav__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    downbeat
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#recently-shipped-through-v0144" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recently shipped (through v0.14.4)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#now-open-ready-to-pick-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Now — open, ready to pick up
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-planned-shape-is-clear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next — planned, shape is clear
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#later-direction-set-design-open" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Later — direction set, design open
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exploring-plausible-deferred-on-purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exploring — plausible, deferred on purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#principles-carried-across-all-of-the-above" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Principles carried across all of the above
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributing
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#recently-shipped-through-v0144" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recently shipped (through v0.14.4)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#now-open-ready-to-pick-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Now — open, ready to pick up
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-planned-shape-is-clear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next — planned, shape is clear
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#later-direction-set-design-open" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Later — direction set, design open
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exploring-plausible-deferred-on-purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exploring — plausible, deferred on purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#principles-carried-across-all-of-the-above" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Principles carried across all of the above
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contributing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contributing
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/FreddieMcHeart/downbeat/edit/main/docs/roadmap.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="downbeat-roadmap">downbeat roadmap<a class="headerlink" href="#downbeat-roadmap" title="Permanent link">&para;</a></h1>
+<p>downbeat is a local relay + TUI for handing work between parallel Claude Code
+sessions on one machine. This roadmap is <strong>directional, not dated</strong> — it says
+what we're likely to build next and in roughly what order of confidence, not
+when. Committed, actionable work lives in
+<a href="https://github.com/FreddieMcHeart/downbeat/issues">GitHub issues</a>; this file is
+the map above them.</p>
+<p>Horizons are ordered by confidence, not calendar:</p>
+<ul>
+<li><strong>Now</strong> — open and ready to pick up.</li>
+<li><strong>Next</strong> — planned, shape is clear, not yet started.</li>
+<li><strong>Later</strong> — direction we intend to take; design still open.</li>
+<li><strong>Exploring</strong> — plausible, deliberately deferred until there's a real need.</li>
+</ul>
+<hr />
+<h2 id="recently-shipped-through-v0144">Recently shipped (through v0.14.4)<a class="headerlink" href="#recently-shipped-through-v0144" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>A name collision can no longer re-home a peer behind your back.</strong> The peer
+  registry is keyed by name, and re-registering a known name used to be treated
+  as "the same peer reattaching" — carrying its identity over while silently
+  overwriting its parent. Someone who meant <em>a new child that happens to share a
+  name</em> got a destructive move instead, with no warning: the peer vanished from
+  one parent's view and appeared under another looking empty, while its history
+  stayed on disk attributed to the old pairing. Registering with a parent that
+  disagrees with the stored one is now refused, and the refusal says what is in
+  the way — current parent, when it was registered, how many messages it holds —
+  so the choice is visible before anything is written. Reattaching still works
+  unchanged; a deliberate move goes through <code>peers set-parent</code>. (issue #70)</li>
+<li><strong><code>last_seen</code> finally means what it says, and the write it made hot is
+  locked.</strong> The peers table's one liveness signal was a registration timestamp
+  wearing a liveness name: the function that updates it existed and had no
+  callers, so peers that had been sending and receiving all day read weeks
+  stale — making live peers look dead. It now updates on the two events that
+  mean a peer took part: sending, and draining its own inbox. That wiring turned
+  a latent race live, since every such update rewrites the whole registry, so
+  registry writes are now mutually excluded by a lock. Atomic writes were never
+  enough on their own — they make the <em>write</em> indivisible, not the
+  read-modify-write around it. (issue #72)</li>
+<li><strong>Identity survives a resume when the lineage is provable.</strong> If the current
+  session id is one a single peer previously held, that is recorded evidence
+  rather than a guess, so the binding repairs itself instead of failing. Where
+  the evidence is ambiguous — or absent — it still refuses rather than picking a
+  winner, because binding a session to the wrong peer is worse than an error.
+  This covers less than it sounds like: a resume that mints an entirely new
+  session id leaves no trace to match on, and that case is still open. (issue
+  #71, in part)</li>
+<li><strong>Stable peer identity.</strong> A peer now carries a <code>peer_id</code> assigned once and
+  never reassigned — not by rename, not by rebind, not by re-registration —
+  while <code>name</code> becomes a display alias. Messages carry both: <code>from</code>/<code>to</code> keep
+  the name <em>at send time</em> (real history, and what the TUI renders), while
+  <code>from_peer_id</code>/<code>to_peer_id</code> carry identity, and <code>list_thread</code> compares those.
+  A rename can no longer punch a hole in a conversation, and neither can a
+  message the rename sweep failed to reach. Legacy peers get a <strong>deterministic</strong>
+  id derived from their name, so two sessions loading the registry concurrently
+  can never mint competing identities for the same peer. A message whose sender
+  is no longer registered stays unresolved rather than being given an invented
+  identity — the name comparison still carries it. (issue #40, Option A)</li>
+<li><strong>Message-store schema versioning.</strong> Every message file now records a
+  <code>schema_version</code>, and <code>Message.from_dict</code> runs a migration ladder before
+  reading any field — so a future structural change (a key renamed, a value's
+  meaning changed) is a registered rung with a test, not hand-editing files
+  across four directories. Files written before versioning existed are v0 by
+  the absence of the key, so there is no backfill: they upgrade on read and
+  self-heal on the next write. <code>downbeat migrate [--dry-run]</code> is the eager
+  flush for archives nothing reads again. A file from a <em>newer</em> downbeat is
+  refused rather than silently rewritten, since reading it would drop fields
+  this build does not know. v1 ships the mechanism only — no data change — so
+  the first real migration lands on proven plumbing. (issue #42)</li>
+<li><strong>Kind-aware reconciliation.</strong> <code>reconcile()</code> no longer redelivers mail that
+  carries no work back. A message is <em>terminal</em> when its <code>kind</code> is terminal
+  (<code>backflow-ready</code>, <code>status</code>) or it carries an <code>in_reply_to</code> — the original
+  sender absorbed it on arrival and has no ack path. Terminal messages are
+  auto-acked into <code>processed/</code> instead of churning through redeliveries into
+  quarantine; genuine tasks still requeue and quarantine exactly as before. The
+  delivery window still governs, so an awake recipient keeps its normal chance
+  to ack. <code>downbeat reconcile</code> reports the new outcome as <code>auto_acked=N</code>.
+  (issue #47)</li>
+<li><strong>Atomic peer rename.</strong> <code>downbeat peers rename &lt;old&gt; &lt;new&gt;</code> migrates a peer's
+  full on-disk identity in one shot — <code>from</code>/<code>to</code> across every message, all four
+  per-peer directories, <code>sessions.json</code> (key + parent pointers), and group
+  membership — so renaming is no longer a data-corrupting operation. Resumable
+  via an in-progress marker; validates names against path traversal. (v0.11.0,
+  hardened in v0.11.1 — issue #40 Option B.)</li>
+<li><strong>Honest relay CLI for background sessions.</strong> When a session can't
+  auto-identify, the error now names the flag the subcommand actually accepts
+  (<code>--peer</code>, not a hardcoded <code>--from</code>), <code>whoami</code> gained a <code>--peer</code> override, and
+  <code>ack</code> explains why a message couldn't be acked instead of failing silently.
+  (v0.10.8)</li>
+<li><strong>Clipboard that works on Terminal.app + honest dependency floors.</strong> The TUI
+  copies via OSC 52 <strong>and</strong> the local clipboard (⌘C / <code>c</code> / <code>y</code> all work now),
+  and a <code>min-versions</code> CI job exercises the declared dependency floors so they
+  can't silently drift below what the code needs. (v0.10.5 / v0.10.6)</li>
+<li><strong>Honest UTC logs + keyboard-navigable message finder.</strong> Log timestamps are now
+  real UTC (the trailing <code>Z</code> was previously local time wearing a UTC label), and
+  the find-message modal hands keyboard focus from the search box to the results
+  so a match can be picked without the mouse. (v0.10.4)</li>
+<li><strong>General peer tree.</strong> Any peer can be both a child and a parent — arbitrary
+  depth in the data model, with a bounded cycle check. <code>role</code> no longer gates
+  structure; it only sets the relay-monitor autonomy default.</li>
+<li><strong>One-command updates.</strong> <code>/downbeat:update</code> moves <em>both</em> artifacts (the plugin
+  and the <code>downbeat</code> CLI), a <code>SessionStart</code> hook warns when the two versions
+  drift, and <code>--version</code> reports provenance so an editable install can't lie
+  about what code is actually running.</li>
+<li><strong>TUI-hosted relay notifications.</strong> Native OS notification when a peer has idle
+  mail, fired from the TUI's resident file-watcher when it's open and from a
+  send/reply hook when it isn't, with heartbeat arbitration against double-fire.</li>
+<li><strong>Reliability wave.</strong> Fixed a family of "state on disk vs. what's rendered
+  diverge silently" bugs — empty-thread-on-tab-switch, peer removal orphaning
+  its children, a message-archival write/unlink race, and inbox/tab desync.</li>
+</ul>
+<p>See <a href="CHANGELOG.md">CHANGELOG.md</a> for the full, versioned release history.</p>
+<hr />
+<h2 id="now-open-ready-to-pick-up">Now — open, ready to pick up<a class="headerlink" href="#now-open-ready-to-pick-up" title="Permanent link">&para;</a></h2>
+<p>Two issues are labelled <strong>good first issue</strong> — both are narrow in scope and
+land against an existing test suite.</p>
+<ul>
+<li><strong>Group writes during a rename</strong> (<a href="https://github.com/FreddieMcHeart/downbeat/issues/56">#56</a>).
+  <code>_rename_in_groups</code> (<code>core/store.py</code>) rewrites <code>groups.json</code> once for <em>every</em>
+  group the peer belongs to, so a peer in five groups means five full rewrites
+  of the same file — five windows in which an interrupted rename leaves it
+  half-updated. Collect the membership edits and write once. One function, with
+  the rename path already covered in <code>tests/test_store_rename.py</code>.</li>
+<li><strong>Copy beyond the detail screen</strong> (<a href="https://github.com/FreddieMcHeart/downbeat/issues/48">#48</a>).
+  <code>c</code> (copy id) and <code>y</code> (copy body) exist only on the message-detail screen, and
+  nothing anywhere hints that a mouse drag plus <code>Ctrl+C</code> copies a selection.
+  Extend the bindings to the chat and peers views and surface the
+  selection-copy path. The clipboard mechanics are already factored out
+  (<code>tui/widgets/clipboard.py</code>, tested in <code>tests/test_tui_clipboard.py</code>), so this
+  is wiring bindings into more screens rather than new plumbing.</li>
+</ul>
+<p>See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a> for setup, and please comment on the
+issue before starting so effort isn't duplicated.</p>
+<hr />
+<h2 id="next-planned-shape-is-clear">Next — planned, shape is clear<a class="headerlink" href="#next-planned-shape-is-clear" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Per-peer autonomy control.</strong> A peer's relay-monitor autonomy (auto-execute
+  vs. surface-and-ask) is fixed at registration by <code>role</code> and can't be changed
+  afterward. Now that any node can be both a parent and a child, autonomy no
+  longer follows from tree position — it's a value the human should set
+  consciously per peer. Expose it: view and change a peer's autonomy after
+  registration, independent of its structure.
+  (<a href="https://github.com/FreddieMcHeart/downbeat/issues/41">#41</a>)</li>
+<li><strong>Cross-branch send from the TUI.</strong> Routing is already flat — any peer can
+  <code>downbeat send</code> to any other by name, regardless of tree position — but the
+  TUI only surfaces the current group's peers, so a message to a far branch
+  gets hand-forwarded hop-by-hop through a common ancestor instead. That chain
+  is fragile: every intermediary has to wake, pick up, and consciously forward.
+  Add a "send to any peer" action — a fuzzy picker over all registered peers —
+  so reaching a distant branch is one step, not a relay chain.
+  (<a href="https://github.com/FreddieMcHeart/downbeat/issues/60">#60</a>)</li>
+<li><strong>First-class message forwarding.</strong> Forwarding a received message today means
+  hand-copying its body into a fresh send. Add <code>downbeat forward &lt;msg_id&gt;
+  &lt;target&gt;</code> that re-sends the original verbatim — preserving the source
+  <code>from</code>/subject/body and adding a "forwarded by" trail — so passing an ask
+  along is lossless and attributed instead of a manual paste.
+  (<a href="https://github.com/FreddieMcHeart/downbeat/issues/61">#61</a>)</li>
+</ul>
+<hr />
+<h2 id="later-direction-set-design-open">Later — direction set, design open<a class="headerlink" href="#later-direction-set-design-open" title="Permanent link">&para;</a></h2>
+<p><strong>The message-system rework</strong>
+(<a href="https://github.com/FreddieMcHeart/downbeat/issues/43">#43</a>) — one coherent
+redesign of how sessions exchange mail:</p>
+<ul>
+<li><strong>A single source of truth</strong> for cross-session messages, so "read/unread" and
+  "processed" state can't disagree between channels.</li>
+<li><strong>Explicit semantic states</strong> — inbox → relayed → processed → completed — rather
+  than state inferred from which directory a file happens to sit in.</li>
+<li><strong>Layered separation of concerns</strong>: transport (physical delivery) · relay
+  (routing between sessions) · inbox (a peer's personal queue) · downbeat (the UI
+  and filters on top).</li>
+<li><strong>Lossless migration</strong> from the current on-disk layout, with no thread history
+  dropped.</li>
+</ul>
+<p>Alongside it, a few narrower directions:</p>
+<ul>
+<li><strong>Idle-peer inbox controls + an honest unread badge.</strong> A background peer that
+  isn't taking prompts never drains its own inbox — pickup is per-turn, not
+  event-driven — so <code>new</code> messages pile up behind a <code>●N</code> badge that reads as
+  "unread" when it actually means "undelivered, recipient idle". Two moves: (a)
+  a <strong>CLI</strong> bulk-ack — the TUI already has one (<code>c</code> on the inbox tab: confirmed,
+  recoverable, and role-aware, since clearing a <em>child</em>'s inbox can bury
+  unstarted tasks), but nothing scripted or headless can do it without reaching
+  into the store; (b) an honest badge — the substantial half, and a bigger
+  question than filtering terminal noise. <code>state == "new"</code> requires <strong>both</strong> no
+  <code>delivered_at</code> <strong>and</strong> no <code>read_at</code>, so the badge collapses two unrelated
+  facts and either moves it: it overstates work owed by counting terminal
+  replies, and it understates to <em>zero</em> because opening a message in the TUI
+  sets <code>read_at</code> — a human scrolling clears the badge while the recipient
+  session has received nothing. Measured on a live store: <code>delivered</code> was <code>no</code>
+  for every message a peer had ever been sent, and three genuine four-day-old
+  tasks went <code>●3</code> → <code>●0</code> from scrolling alone. So the question is which fact the
+  badge is <em>for</em> — what a human has seen, or what the recipient has actually
+  received. Kind-aware reconciliation (shipped) does <strong>not</strong> help: <code>reconcile()</code>
+  scans <code>delivered/</code> only, and an idle peer's mail never leaves <code>inbox/</code> for it
+  to find — #47 stopped churn at a <em>live</em> recipient, this is an <em>idle</em> one.
+  (<a href="https://github.com/FreddieMcHeart/downbeat/issues/62">#62</a>)</li>
+<li><strong>A session still cannot reliably say who it is.</strong> Stable <code>peer_id</code> gives the
+  <em>peer</em> a durable key; it does not tell a <em>running session</em> which peer it is,
+  and that binding is where identity keeps breaking. Three distinct failures sit
+  underneath one symptom. A session in the background can't be identified at all
+  — detection walks ancestor processes looking for <code>claude</code>, and a background
+  process wears a title rather than a path, so the one ancestor holding the
+  session marker is the one rejected
+  (<a href="https://github.com/FreddieMcHeart/downbeat/issues/75">#75</a>). A resume that
+  mints a brand-new session id leaves nothing to match against; the fix that
+  shipped only covers resuming <em>back into</em> an id already on record, and for the
+  rest there may be no provable signal at all — which argues the remedy is to
+  fail loudly at resume rather than guess harder
+  (<a href="https://github.com/FreddieMcHeart/downbeat/issues/71">#71</a>). And the older,
+  broader question of how a session should claim an identity in the first place
+  — a recorded claim, a handshake, an explicit variable — is still open
+  (<a href="https://github.com/FreddieMcHeart/downbeat/issues/53">#53</a>). Worth treating
+  as one theme: patched individually, each fix leaves the symptom alive.</li>
+<li><strong>Two parents, one child name.</strong> A name like <code>Dev One</code> is a <em>role</em> someone
+  plays in several trees, not a globally unique entity, and being pushed into
+  <code>Dev One 2</code> is the storage model leaking into what things are called. But
+  names are currently <strong>addresses</strong> — any peer reaches any other by name in one
+  hop — so making them non-unique makes <code>send "Dev One"</code> ambiguous, which is why
+  this is a design question rather than a change to a dictionary key. The clean
+  resolution is probably to finish what stable identity started: let <code>peer_id</code>
+  be the address and names be free-form labels, with message directories keyed
+  by id (a store migration, which the schema ladder exists for). Scoping the key
+  to <code>(parent, name)</code> is the tempting shortcut and the wrong one — parents can
+  change, and keying identity on a <em>view</em> is the same category error <code>role</code>
+  made before the tree was generalized.
+  (<a href="https://github.com/FreddieMcHeart/downbeat/issues/73">#73</a>)</li>
+<li><strong>One home for registry writes, and one for delivery.</strong> Two places where the
+  same operation exists twice. Half the registry's mutators take the lock added
+  with the liveness fix and half do not, and since the lock is advisory an
+  unlocked writer doesn't merely go unprotected — it defeats the protection on
+  the locked side too
+  (<a href="https://github.com/FreddieMcHeart/downbeat/issues/78">#78</a>). Separately,
+  the per-turn hook that actually delivers mail reimplements draining instead of
+  calling the store's, so the store's version runs only when a human types
+  <code>downbeat drain</code>. That divergence already silently halved a shipped fix, and
+  it duplicates invariants — crash-safe write ordering, delivery stamping — that
+  should have exactly one definition
+  (<a href="https://github.com/FreddieMcHeart/downbeat/issues/79">#79</a>). Same principle
+  as <em>"skills call the CLI; they don't reimplement it"</em>, one layer down.</li>
+</ul>
+<hr />
+<h2 id="exploring-plausible-deferred-on-purpose">Exploring — plausible, deferred on purpose<a class="headerlink" href="#exploring-plausible-deferred-on-purpose" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Standalone watcher daemon.</strong> A long-lived file-watcher process would close the
+  one coverage gap the current notify design accepts — a headless recipient whose
+  sender isn't a Claude session. Deferred because it adds a real lifecycle
+  (supervise, single-instance lock, reboot-persistence); revisit when that gap is
+  actually felt.</li>
+<li><strong>Multi-level tree UI.</strong> The data model already supports arbitrary depth; the
+  TUI deliberately renders two levels at a time and navigates deeper by
+  re-rooting. A genuine nested tree view is a larger TUI change, worth it only
+  once someone runs trees deep enough to need it.</li>
+<li><strong>New message kinds</strong> — <code>workflow-request</code> / <code>workflow-result</code> — for structured
+  hand-offs beyond free-form relay messages.</li>
+<li><strong>Cross-user / cross-machine relay.</strong> Today's model assumes one human with many
+  tabs. Going cross-user needs an explicit owner/account on each peer and changes
+  the notification story; a deliberate topology jump, not an increment.</li>
+</ul>
+<hr />
+<h2 id="principles-carried-across-all-of-the-above">Principles carried across all of the above<a class="headerlink" href="#principles-carried-across-all-of-the-above" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Identity is data, not a display alias</strong> — a peer's <code>peer_id</code> is assigned once
+  and never reassigned; <code>name</code> is what a human reads. Compare on the id, render
+  the name, and never let a rename become a data migration again.</li>
+<li><strong>Every tree traversal is bounded</strong> — a visited-set/iteration cap on every
+  <code>.parent</code> walk, not just the cycle check, so corrupt on-disk data can't hang a
+  read.</li>
+<li><strong>Routing is flat; the tree is a view</strong> — any peer can address any peer
+  directly by name. The parent/child tree only groups the TUI and sets autonomy
+  defaults; it is not a delivery topology, so a cross-branch message never needs
+  hop-by-hop forwarding. The cost of this, worth stating plainly: it makes the
+  <em>name</em> an address, which is why non-unique names are a design question and not
+  a small change.</li>
+<li><strong>Verify against the real artifact, not its test double</strong> — drive the real
+  binary / real TUI / real store; a check that fakes what it's checking passes for
+  the wrong reason.</li>
+<li><strong>Skills call the CLI; they don't reimplement it</strong> — any filtering logic
+  duplicated into skill text will drift from the store at the next change.</li>
+</ul>
+<hr />
+<h2 id="contributing">Contributing<a class="headerlink" href="#contributing" title="Permanent link">&para;</a></h2>
+<p>New contributors: start with the two <strong>Now</strong> items — both are labelled <em>good
+first issue</em>, touch one file, and land against an existing test suite. Past
+those, the <strong>Next</strong> section holds the strongest near-term candidates, and #41
+and #61 carry <em>help wanted</em>. See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a> for setup,
+and please check open issues <strong>and</strong> PRs before starting so effort isn't
+duplicated.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href=".." class="md-footer__link md-footer__link--prev" aria-label="Previous: Home">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Home
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../plugin/" class="md-footer__link md-footer__link--next" aria-label="Next: Claude Code plugin">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Claude Code plugin
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.top", "navigation.footer", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

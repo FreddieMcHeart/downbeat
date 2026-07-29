@@ -1,0 +1,1034 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine">
+      
+      
+      
+        <link rel="canonical" href="https://freddiemcheart.github.io/downbeat/superpowers/specs/2026-07-14-tui-hosted-relay-notify-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>TUI-hosted relay staleness notify (replaces standalone downbeat watch) - downbeat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tui-hosted-relay-staleness-notify-replaces-standalone-downbeat-watch" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="downbeat" class="md-header__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            downbeat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              TUI-hosted relay staleness notify (replaces standalone downbeat watch)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="downbeat" class="md-nav__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    downbeat
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#humans-call-2026-07-1314-verbatim-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Human's call (2026-07-13/14, verbatim decisions)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implementation-constraint-hooks-cannot-import-the-downbeat-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation constraint: hooks cannot import the downbeat package
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Components
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Components">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-corenotifypy-new" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. core/notify.py (new)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-corestorepy-extend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. core/store.py (extend)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-corestatepy-extend-tui_statejson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. core/state.py (extend tui_state.json)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-tuiapppy-extend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. tui/app.py (extend)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-assetshooksrelay-poll-offerpy-extend-self-contained-see-constraint-above" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. assets/hooks/relay-poll-offer.py (extend, self-contained — see constraint above)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-flow-headless-case-worked-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data flow (headless case, worked example)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#removal-scope-standalone-downbeat-watch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removal scope: standalone downbeat watch
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versioning
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-limitations-accepted-not-blockers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known limitations (accepted, not blockers)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/FreddieMcHeart/downbeat/edit/main/docs/superpowers/specs/2026-07-14-tui-hosted-relay-notify-design.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="tui-hosted-relay-staleness-notify-replaces-standalone-downbeat-watch">TUI-hosted relay staleness notify (replaces standalone <code>downbeat watch</code>)<a class="headerlink" href="#tui-hosted-relay-staleness-notify-replaces-standalone-downbeat-watch" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> approved, ready for implementation plan
+<strong>Branch:</strong> <code>feat/tui-hosted-relay-notify</code> (from <code>origin/main</code>)
+<strong>Breaking change:</strong> yes — removes the public <code>downbeat watch</code> CLI subcommand</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>This design closes a feasibility thread run this session (relay task
+<code>e0c1e418427c</code> → <code>feature-dev:code-architect</code> analysis → several rounds of
+correction with the parent session <code>Claude-Cost-Optimazing</code>). Full thread is
+recorded in <code>ideas/downbeat/cloud-relay-downbeat-inbox-rework.md</code> in the wiki
+(<code>~/dev/claude-core-wiki</code>). Summary of what's settled and out of scope here:</p>
+<ul>
+<li><strong>Core verdict (unchanged):</strong> a genuine push/interrupt <em>into</em> an idle Claude
+  Code session is not possible with current harness primitives
+  (<code>ScheduleWakeup</code>/<code>Cron</code> only schedules a future turn of an already-resident
+  session; there is no way to wake a fully-exited process). This design does
+  <strong>not</strong> attempt that. It only pushes a native OS notification <em>to the human</em>,
+  not into any session.</li>
+<li><strong>Rejected:</strong> a standalone long-running daemon (<code>downbeat watch --notify</code> or
+  similar) as a new process the human would need to start/supervise
+  (singleton lock, reboot persistence). Explicitly ruled out by the human —
+  see "Human's call" below.</li>
+<li><strong>Also rejected as its own deliverable:</strong> keeping the standalone <code>downbeat
+  watch</code> CLI command at all. The human doesn't want it as a user-facing
+  feature; only the underlying <code>FsWatcher</code> primitive (<code>core/watcher.py</code>) is
+  worth reusing, and it already has a resident consumer: the TUI
+  (<code>tui/app.py</code>).</li>
+<li><strong>Deferred, not rejected:</strong> a true standalone C-daemon remains a possible
+  future follow-up for the coverage gap this design consciously accepts
+  (headless recipient + non-Claude sender — see "Known limitations"). Tracked
+  as a near-term wiki roadmap item, not built now.</li>
+</ul>
+<h2 id="humans-call-2026-07-1314-verbatim-decisions">Human's call (2026-07-13/14, verbatim decisions)<a class="headerlink" href="#humans-call-2026-07-1314-verbatim-decisions" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Build the <code>watcher_active</code>-style dedup mechanism against double-fire (do
+   not silently accept duplicate notifications).</li>
+<li>Remove the standalone <code>downbeat watch</code> CLI component entirely — keep only
+   what this design describes (<code>FsWatcher</code> reused inside the TUI + headless
+   hook fallback).</li>
+<li>The daemon question (a real standalone C-daemon) is raised later, not now
+   — added to the wiki roadmap as a deferred near-term item.</li>
+</ol>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<p>No new process. Two independent triggers, <strong>not</strong> sharing code — see
+"Implementation constraint" below:</p>
+<div class="highlight"><pre><span></span><code>TUI resident FsWatcher (tui/app.py, already running when TUI is open)
+    → core/notify.py (subprocess: osascript / notify-send)
+
+relay-poll-offer.py (PostToolUse hook on Bash send/reply, headless)
+    → self-contained duplicate notify logic inline in the same hook file
+</code></pre></div>
+<h3 id="implementation-constraint-hooks-cannot-import-the-downbeat-package">Implementation constraint: hooks cannot import the <code>downbeat</code> package<a class="headerlink" href="#implementation-constraint-hooks-cannot-import-the-downbeat-package" title="Permanent link">&para;</a></h3>
+<p>Verified directly: both existing hooks
+(<code>src/downbeat/assets/hooks/relay-poll-offer.py</code>,
+<code>.../relay-inbox.py</code>) are stdlib-only (<code>json</code>, <code>re</code>, <code>sys</code>, <code>tempfile</code>,
+<code>traceback</code>, <code>datetime</code>, <code>pathlib</code> — no <code>downbeat.core</code> imports anywhere).
+<code>hooks/hooks.json</code> invokes them by absolute path with a bare
+<code>#!/usr/bin/env python3</code> shebang — confirmed <code>python3 -c "import downbeat"</code>
+fails with <code>ModuleNotFoundError</code> on this machine's system Python, which is
+what actually runs the hook (not the uv-tool venv the <code>downbeat</code> CLI itself
+runs under). So <code>relay-poll-offer.py</code> <strong>cannot</strong> call
+<code>core.notify.notify()</code>, <code>core.store.is_recipient_stale()</code>, or
+<code>core.state.*</code> — those only work for code invoked through the installed
+<code>downbeat</code> package (the TUI, via <code>downbeat tui</code>).</p>
+<p>Consequence: the headless path re-implements the same <strong>contract</strong> (same
+<code>sessions.json</code>/<code>tui_state.json</code> file paths and formats, same 10-minute
+threshold constant, same notify mechanism) as a <strong>second, independent,
+stdlib-only implementation inside the hook file itself</strong> — matching the
+existing pattern where <code>relay-poll-offer.py</code> already duplicates its own
+small state-file read/write helpers (<code>_load_state</code>/<code>_save_state</code> for
+<code>loop_offer_state.json</code>) rather than importing anything. This is a
+deliberate, acknowledged DRY violation forced by the hook's execution
+environment, not an oversight — noted explicitly so nobody "fixes" it later
+by adding an import that will silently break the hook (fails open, so the
+whole feature would just stop firing with no visible error).</p>
+<p>The hook's own <code>CLAUDE_RELAY_DIR</code> env var handling: the <em>existing</em> hook code
+hardcodes <code>Path.home() / ".claude" / "relay"</code> for its own
+<code>loop_offer_state.json</code> (pre-existing gap, not fixed here — out of scope).
+The <strong>new</strong> staleness-notify code added by this design reads that same env
+var (<code>os.environ.get("CLAUDE_RELAY_DIR")</code>, mirroring <code>core/paths.py</code>'s own
+one-liner) so it's testable via the project's existing <code>relay_dir</code> pytest
+fixture, without changing the old code path's behavior.</p>
+<ul>
+<li><strong>Recipient-TUI open</strong> → notify fires from the TUI's own resident
+  <code>FsWatcher.on_change</code> path. Recipient-side: the process that has the
+  message already knows its own state directly, no inference needed. Zero
+  new infrastructure — reuses the watcher instance the TUI already starts in
+  <code>on_mount</code>.</li>
+<li><strong>Headless</strong> (no TUI open) → fallback fires from the <code>relay-poll-offer.py</code>
+  hook, sender-side (infers recipient state via <code>sessions.json</code>). Zero
+  infrastructure, hook-adjacent cadence (only checked when <em>someone</em> sends a
+  message, not on the actual event) — this is the accepted trade-off for not
+  running a daemon.</li>
+</ul>
+<h2 id="components">Components<a class="headerlink" href="#components" title="Permanent link">&para;</a></h2>
+<h3 id="1-corenotifypy-new">1. <code>core/notify.py</code> (new)<a class="headerlink" href="#1-corenotifypy-new" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">notify</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</code></pre></div>
+<p>Detects OS via <code>sys.platform</code>. Shells out via <code>subprocess.run(..., timeout=3)</code>:
+- macOS: <code>osascript -e 'display notification "&lt;message&gt;" with title "&lt;title&gt;"'</code>
+- Linux: <code>notify-send &lt;title&gt; &lt;message&gt;</code>
+- Any other platform, missing binary, or exception (e.g.
+  <code>FileNotFoundError</code>, <code>TimeoutExpired</code>) → log a warning and return. Never
+  raises. No new dependencies.</p>
+<h3 id="2-corestorepy-extend">2. <code>core/store.py</code> (extend)<a class="headerlink" href="#2-corestorepy-extend" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">is_recipient_stale</span><span class="p">(</span><span class="n">peer_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">threshold_minutes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</code></pre></div>
+<p>Reads <code>last_seen</code> via the existing <code>get_peer</code> / <code>sessions.json</code> path. Missing
+peer (e.g. race with <code>unregister</code>) → <code>False</code> (don't notify for a peer that no
+longer exists), never raises <code>PeerNotFound</code> into the caller.</p>
+<p>Threshold is a hardcoded constant (<code>10</code> minutes) for this iteration — not
+config/env-configurable. Revisit only if it proves wrong in practice.</p>
+<p>The same constant is reused as the <strong>cooldown window</strong> for
+<code>notify_last_sent</code> (see <code>core/state.py</code> below) — a recipient is "in
+cooldown" if <code>now - notify_last_sent[peer] &lt; 10 minutes</code>. One magic number,
+not two independent ones to keep in sync.</p>
+<h3 id="3-corestatepy-extend-tui_statejson">3. <code>core/state.py</code> (extend <code>tui_state.json</code>)<a class="headerlink" href="#3-corestatepy-extend-tui_statejson" title="Permanent link">&para;</a></h3>
+<p>Three new fields, alongside the existing <code>last_acting_as</code> / <code>last_active_peer</code>:</p>
+<ul>
+<li><code>watcher_heartbeat_at: str | None</code> — global fact "a TUI is open right now."
+  Written by the TUI on mount and refreshed on a periodic timer (~30s).
+  Self-healing: if the TUI crashes without cleanup, the heartbeat simply goes
+  stale on its own — no pidfile/lock needed.</li>
+<li><code>notify_last_sent: dict[str, str]</code> — per-recipient cooldown timestamp
+  (peer name → ISO timestamp of last notification sent for that peer),
+  shared by both the TUI path and the hook path so cooldown is coherent
+  regardless of which path fires.</li>
+</ul>
+<p>Read/write goes through the existing <code>_atomic_write_text</code> helper already used
+by <code>core/state.py</code>. A rare near-simultaneous write from both the TUI process
+and a hook process can lose one of the two timestamp updates — acceptable
+(worst case: one extra notification), not specially guarded against.</p>
+<h3 id="4-tuiapppy-extend">4. <code>tui/app.py</code> (extend)<a class="headerlink" href="#4-tuiapppy-extend" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>on_mount</code>: start a heartbeat timer (<code>set_interval</code>) that refreshes
+  <code>watcher_heartbeat_at</code> in <code>tui_state.json</code>.</li>
+<li><code>_on_change</code> (currently fires on <em>any</em> filesystem event anywhere under
+  <code>INBOX_DIR</code>/<code>PROCESSED_DIR</code>, with no information about which peer/message
+  changed): for each registered peer, call <code>store.poll_new(peer,
+  seen[peer])</code> using a per-instance <code>seen</code> dict on <code>RelayApp</code> (same pattern
+  the old <code>cmd_watch</code>/<code>_watch_emit</code> used, just fanned out across every
+  registered peer instead of one). For each genuinely new message: if
+  <code>is_recipient_stale(recipient)</code> and the recipient isn't in cooldown per
+  <code>notify_last_sent</code>, call <code>core.notify.notify(...)</code> and update
+  <code>notify_last_sent[recipient]</code>.</li>
+</ul>
+<h3 id="5-assetshooksrelay-poll-offerpy-extend-self-contained-see-constraint-above">5. <code>assets/hooks/relay-poll-offer.py</code> (extend, self-contained — see constraint above)<a class="headerlink" href="#5-assetshooksrelay-poll-offerpy-extend-self-contained-see-constraint-above" title="Permanent link">&para;</a></h3>
+<p>All of the following is added as new <strong>private, stdlib-only functions
+inside this file</strong> — no imports from <code>downbeat.core</code>:</p>
+<ul>
+<li><code>_relay_dir() -&gt; Path</code>: <code>Path(os.environ.get("CLAUDE_RELAY_DIR", str(Path.home() / ".claude" / "relay")))</code>
+  — mirrors <code>core/paths.py</code>'s <code>RELAY_DIR</code> one-liner, for test redirection.</li>
+<li><code>_is_recipient_stale(peer_name, threshold_minutes=10) -&gt; bool</code>: reads
+  <code>_relay_dir() / "sessions.json"</code> directly (<code>json.loads</code>), looks up
+  <code>peer_name</code>'s <code>last_seen</code>, compares via <code>datetime.fromisoformat</code> +
+  <code>timedelta</code> against <code>datetime.now(UTC)</code>. Missing peer or missing/malformed
+  <code>last_seen</code> → <code>False</code> (matches <code>core.store.is_recipient_stale</code>'s
+  fail-quiet contract, independently).</li>
+<li><code>_notify(title, message) -&gt; None</code>: same subprocess logic as
+  <code>core/notify.py</code>'s <code>notify()</code> (<code>osascript</code>/<code>notify-send</code> by
+  <code>sys.platform</code>, <code>timeout=3</code>, fail-open on any exception) — a private
+  duplicate, not a shared import.</li>
+<li><code>_read_tui_state() -&gt; dict</code> / <code>_write_tui_state(data: dict) -&gt; None</code>:
+  reads/writes <code>_relay_dir() / "tui_state.json"</code> as a whole dict, same
+  load-mutate-save shape as this file's existing <code>_load_state</code>/<code>_save_state</code>
+  for <code>loop_offer_state.json</code>. The hook only ever <strong>reads</strong>
+  <code>watcher_heartbeat_at</code> (never writes it — only the TUI writes that key)
+  and only <strong>writes</strong> <code>notify_last_sent[peer]</code> (read-modify-write,
+  preserving every other key already in the file, including
+  <code>watcher_heartbeat_at</code> and <code>last_acting_as</code>/<code>last_active_peer</code> written by
+  the TUI).</li>
+</ul>
+<p>After the existing <code>send</code>/<code>reply</code> regex match (unchanged): determine the
+recipient. This differs by verb, since only <code>send</code>'s command line actually
+contains the recipient name:
+- <code>send &lt;to&gt; &lt;subject&gt; &lt;body&gt;</code> — <code>to_peer</code> is the first positional argument
+  after <code>send</code>. Parse via <code>shlex.split(command)</code>, taking the token after the
+  matched <code>send</code> (handles quoted subjects/bodies containing spaces).
+- <code>reply &lt;msg_id&gt; &lt;body&gt;</code> — the command line has no recipient at all; the
+  recipient is the <em>original sender</em> of the message being replied to. Parse
+  <code>msg_id</code> the same way (first positional after <code>reply</code>), then resolve it to
+  a peer name by reading the message file directly off disk (glob
+  <code>_relay_dir() / "{inbox,delivered,processed}" / "*" / f"{msg_id}.json"</code>,
+  read <code>from_peer</code>) — a minimal, read-only, stdlib-only lookup, not a call
+  into <code>core.store</code>. If no matching file is found (message already moved
+  somewhere the glob doesn't cover, or genuinely absent), skip the
+  staleness-notify silently; this is a best-effort nudge, not a guaranteed
+  delivery path.</p>
+<p>If <code>_is_recipient_stale(to_peer)</code> <strong>and</strong> <code>watcher_heartbeat_at</code> from
+<code>_read_tui_state()</code> is not fresh (TUI not open — avoids double-firing with
+the TUI path) <strong>and</strong> the recipient isn't in cooldown per
+<code>notify_last_sent</code> → call <code>_notify(...)</code> and update
+<code>notify_last_sent[to_peer]</code> via <code>_write_tui_state</code>.</p>
+<p>This is <strong>independent of</strong> the existing once-per-session <code>/loop</code>-offer gate
+(<code>hinted_at</code> in <code>loop_offer_state.json</code>) — that gate is about the <code>/loop</code>
+polling <em>offer</em>, a separate feature. The staleness-notify fires every time a
+send/reply targets a peer that is currently stale (subject to the
+per-recipient cooldown above), not once per session.</p>
+<h2 id="data-flow-headless-case-worked-example">Data flow (headless case, worked example)<a class="headerlink" href="#data-flow-headless-case-worked-example" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Human runs <code>downbeat send Claude-Relay "subject" "body"</code> from a Claude
+   Code session.</li>
+<li><code>PostToolUse</code> fires <code>relay-poll-offer.py</code> with the Bash command in its
+   payload.</li>
+<li>Hook matches the <code>send</code> regex (unchanged), parses <code>to_peer = "Claude-Relay"</code>.</li>
+<li>Hook reads <code>sessions.json</code> → <code>Claude-Relay.last_seen</code> → stale (&gt;10min)?</li>
+<li>Hook reads <code>tui_state.json</code> → <code>watcher_heartbeat_at</code> → stale/absent (no
+   TUI open)?</li>
+<li>Hook reads <code>tui_state.json</code> → <code>notify_last_sent["Claude-Relay"]</code> → outside
+   cooldown?</li>
+<li>If all three hold → <code>core.notify.notify("downbeat", "New message for
+   Claude-Relay")</code>, update <code>notify_last_sent["Claude-Relay"]</code>.</li>
+<li>Existing <code>/loop</code>-offer hint logic (unchanged) still runs independently on
+   its own once-per-session gate.</li>
+</ol>
+<h2 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>core/notify.py</code>'s <code>notify()</code> fails open (see above) — never raises into
+  its one caller (the TUI).</li>
+<li><code>relay-poll-offer.py</code> already wraps <code>main()</code> in <code>try/except</code> with
+  <code>sys.exit(0)</code> on any exception (never blocks the Bash tool). The new
+  staleness logic (<code>_is_recipient_stale</code>/<code>_notify</code>/<code>_read_tui_state</code>/
+  <code>_write_tui_state</code>) sits inside that same envelope — no new failure
+  contract, and its own <code>_notify</code> fails open independently of
+  <code>core/notify.py</code>'s (see "Implementation constraint" above — they're two
+  separate functions, not one shared import).</li>
+<li><code>tui/app.py</code>'s <code>_on_change</code> staleness/notify logic wraps in <code>try/except</code>
+  matching the existing pattern used elsewhere in <code>on_mount</code> (e.g. the
+  rebind-notification block already does this) — a notify failure must never
+  crash the TUI.</li>
+<li><code>core.store.is_recipient_stale</code> never raises <code>PeerNotFound</code> — returns
+  <code>False</code> instead. The hook's independent <code>_is_recipient_stale</code> matches this
+  contract by construction (a missing key in a <code>dict.get()</code> chain, not an
+  exception path).</li>
+</ul>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>tests/test_notify.py</code> (new): <code>core.notify.notify()</code> — mock
+  <code>subprocess.run</code>; assert correct binary selected per <code>sys.platform</code>
+  (<code>osascript</code> vs <code>notify-send</code>); assert fail-open on
+  <code>FileNotFoundError</code>/<code>TimeoutExpired</code>/unknown platform.</li>
+<li><code>tests/test_store_messages.py</code> (extend): <code>is_recipient_stale</code> — fresh
+  <code>last_seen</code>, stale <code>last_seen</code>, missing peer. Also <strong>migrate in</strong> the 4
+  pure <code>poll_new</code> tests currently in <code>tests/test_watch.py</code> (tests 1-4:
+  first-call, second-call-empty, incremental, excludes-non-new-states) —
+  unchanged, they're already fully isolated from the watcher/CLI layer.</li>
+<li><code>tests/test_tui_notify.py</code> (new): mock <code>store.poll_new</code> /
+  <code>is_recipient_stale</code> / <code>core.notify.notify</code>; assert <code>_on_change</code> notifies
+  only when the recipient is stale and not in cooldown, and does not
+  notify otherwise.</li>
+<li><code>tests/test_relay_poll_offer_hook.py</code> (new — no test coverage exists for
+  this hook today besides manifest-parity). Since the hook has no <code>__init__.py</code>/
+  package context and its filename has a hyphen (<code>relay-poll-offer.py</code>,
+  not importable via a normal <code>import</code> statement), load it per-test via
+  <code>importlib.util.spec_from_file_location("relay_poll_offer", path)</code> +
+  <code>spec.loader.exec_module(module)</code>, then call the loaded module's private
+  functions directly (<code>module._is_recipient_stale(...)</code>,
+  <code>module._notify(...)</code>, <code>module.main()</code> with a monkeypatched <code>sys.stdin</code>).
+  Set <code>CLAUDE_RELAY_DIR</code> via <code>monkeypatch.setenv</code> (reusing the project's
+  <code>relay_dir</code> fixture works here too, since the new hook code reads that
+  same env var) before loading the module, so <code>_relay_dir()</code> resolves into
+  <code>tmp_path</code>, never touching the real <code>~/.claude/relay/</code>. Cases: stale+no-TUI
+  → notify; stale+TUI-heartbeat-live → skip (avoid double-fire); not-stale →
+  skip; in-cooldown → skip; recipient resolution for <code>send</code> (parsed directly
+  from the command string) vs <code>reply</code> (resolved via the on-disk message
+  file's <code>from_peer</code>, including the not-found-message case → skip silently).</li>
+<li><code>tests/test_watch.py</code> — <strong>deleted entirely</strong> after the 4 pure-<code>poll_new</code>
+  tests are migrated out (the rest test <code>cmd_watch</code>/<code>_watch_emit</code>, which no
+  longer exist).</li>
+</ul>
+<h2 id="removal-scope-standalone-downbeat-watch">Removal scope: standalone <code>downbeat watch</code><a class="headerlink" href="#removal-scope-standalone-downbeat-watch" title="Permanent link">&para;</a></h2>
+<p>Delete:
+- <code>src/downbeat/cli/commands/relay_cmds.py</code> — <code>cmd_watch()</code>, <code>_watch_emit()</code>;
+  remove now-unused <code>threading</code> and <code>watcher as watcher_mod</code> imports
+  (<code>datetime</code>/<code>UTC</code>/<code>timedelta</code> stay — used elsewhere in the file, e.g.
+  <code>gc-stale</code>)
+- <code>src/downbeat/cli/__main__.py</code> — the <code>sp_watch</code> subcommand registration</p>
+<p>Edit (remove watch references, note the replacement mechanism):
+- <code>README.md</code> — remove the "Always-on inbox watch" section (cost table,
+  watch-vs-<code>/relay-monitor</code> comparison table); add a short new section
+  describing the automatic staleness-notify (TUI-hosted + headless fallback)
+- <code>src/downbeat/skill/SKILL.md</code> — remove "Registration + always-on watch";
+  note that notification is now automatic, no manual step
+- <code>examples/parent-child-handoff/README.md</code> — remove the <code>downbeat watch
+  --peer demo-child</code> line
+- <code>src/downbeat/assets/commands/relay-monitor.md</code> — in "Notes", replace the
+  <code>downbeat watch</code> mention (command no longer exists) with a pointer to the
+  new automatic mechanism</p>
+<p>Do <strong>not</strong> touch:
+- <code>docs/decisions.md</code> — the existing entry about the <code>FsWatcher.stop()</code>
+  deadlock is about the underlying class, not the CLI wrapper; stays as
+  historical record.
+- <code>CHANGELOG.md</code> — generated by <code>python-semantic-release</code> from conventional
+  commits, never hand-edited.</p>
+<p>Keep unchanged:
+- <code>src/downbeat/core/watcher.py</code> (<code>FsWatcher</code>/<code>PollWatcher</code>) — the reused
+  primitive, not touched structurally.</p>
+<h2 id="versioning">Versioning<a class="headerlink" href="#versioning" title="Permanent link">&para;</a></h2>
+<p>Commit as <code>feat!: remove standalone downbeat-watch CLI, replace with
+automatic staleness notify</code> with a <code>BREAKING CHANGE:</code> footer describing that
+<code>downbeat watch</code> no longer exists as a subcommand;
+<code>python-semantic-release</code> will pick this up as a major bump automatically —
+no manual version editing.</p>
+<h2 id="known-limitations-accepted-not-blockers">Known limitations (accepted, not blockers)<a class="headerlink" href="#known-limitations-accepted-not-blockers" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Headless recipient + non-Claude sender</strong> (e.g. a plain script calling
+  <code>downbeat send</code> directly, not through a Claude Code session with the hook
+  wired up): neither path fires. This is the conscious price of not running
+  a daemon — deferred to the wiki roadmap as a possible future C-daemon
+  follow-up, not solved here.</li>
+<li><strong>Rename-staleness cosmetic gap</strong>: if a peer is renamed mid-flight, the
+  notify text may show a stale display name momentarily — same caveat
+  already noted for the earlier C-lite sketch, doesn't change with this
+  design.</li>
+<li><strong>Near-simultaneous TUI+hook write to <code>tui_state.json</code></strong>: can lose one of
+  two timestamp updates in a race; worst case is one extra notification, not
+  file corruption (whole-file atomic write). Not specially guarded against.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.top", "navigation.footer", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
