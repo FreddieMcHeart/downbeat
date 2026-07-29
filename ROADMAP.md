@@ -16,7 +16,7 @@ Horizons are ordered by confidence, not calendar:
 
 ---
 
-## Recently shipped (through v0.11.1)
+## Recently shipped (through v0.14.1)
 
 - **Stable peer identity.** A peer now carries a `peer_id` assigned once and
   never reassigned — not by rename, not by rebind, not by re-registration —
@@ -88,10 +88,25 @@ See [CHANGELOG.md](CHANGELOG.md) for the full, versioned release history.
 
 ## Now — open, ready to pick up
 
-Nothing open right now — the two good-first-issues (#30, #31) shipped in v0.10.4.
-The **Next** items below are the strongest near-term candidates; if you'd like to
-take one, opening an issue (or a PR) is the way in — see
-[CONTRIBUTING.md](CONTRIBUTING.md).
+Two issues are labelled **good first issue** — both are narrow in scope and
+land against an existing test suite.
+
+- **Group writes during a rename** ([#56](https://github.com/FreddieMcHeart/downbeat/issues/56)).
+  `_rename_in_groups` (`core/store.py`) rewrites `groups.json` once for *every*
+  group the peer belongs to, so a peer in five groups means five full rewrites
+  of the same file — five windows in which an interrupted rename leaves it
+  half-updated. Collect the membership edits and write once. One function, with
+  the rename path already covered in `tests/test_store_rename.py`.
+- **Copy beyond the detail screen** ([#48](https://github.com/FreddieMcHeart/downbeat/issues/48)).
+  `c` (copy id) and `y` (copy body) exist only on the message-detail screen, and
+  nothing anywhere hints that a mouse drag plus `Ctrl+C` copies a selection.
+  Extend the bindings to the chat and peers views and surface the
+  selection-copy path. The clipboard mechanics are already factored out
+  (`tui/widgets/clipboard.py`, tested in `tests/test_tui_clipboard.py`), so this
+  is wiring bindings into more screens rather than new plumbing.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, and please comment on the
+issue before starting so effort isn't duplicated.
 
 ---
 
@@ -103,12 +118,29 @@ take one, opening an issue (or a PR) is the way in — see
   longer follows from tree position — it's a value the human should set
   consciously per peer. Expose it: view and change a peer's autonomy after
   registration, independent of its structure.
+  ([#41](https://github.com/FreddieMcHeart/downbeat/issues/41))
+- **Cross-branch send from the TUI.** Routing is already flat — any peer can
+  `downbeat send` to any other by name, regardless of tree position — but the
+  TUI only surfaces the current group's peers, so a message to a far branch
+  gets hand-forwarded hop-by-hop through a common ancestor instead. That chain
+  is fragile: every intermediary has to wake, pick up, and consciously forward.
+  Add a "send to any peer" action — a fuzzy picker over all registered peers —
+  so reaching a distant branch is one step, not a relay chain.
+  ([#60](https://github.com/FreddieMcHeart/downbeat/issues/60))
+- **First-class message forwarding.** Forwarding a received message today means
+  hand-copying its body into a fresh send. Add `downbeat forward <msg_id>
+  <target>` that re-sends the original verbatim — preserving the source
+  `from`/subject/body and adding a "forwarded by" trail — so passing an ask
+  along is lossless and attributed instead of a manual paste.
+  ([#61](https://github.com/FreddieMcHeart/downbeat/issues/61))
+
 ---
 
 ## Later — direction set, design open
 
-**The message-system rework** — one coherent redesign of how sessions exchange
-mail:
+**The message-system rework**
+([#43](https://github.com/FreddieMcHeart/downbeat/issues/43)) — one coherent
+redesign of how sessions exchange mail:
 
 - **A single source of truth** for cross-session messages, so "read/unread" and
   "processed" state can't disagree between channels.
@@ -122,10 +154,6 @@ mail:
 
 Alongside it, a few narrower directions:
 
-- **Copy anywhere in the TUI.** The copy affordance (`c` id / `y` body) lives
-  only on the message-detail screen, and mouse-selection copy (drag-select +
-  `Ctrl+C`) isn't surfaced anywhere. Extend copy to the chat and peers views and
-  make the selection-copy path discoverable.
 - **Idle-peer inbox controls + an honest unread badge.** A background peer that
   isn't taking prompts never drains its own inbox — pickup is per-turn, not
   event-driven — so `new` messages pile up behind a `●N` badge that reads as
@@ -146,18 +174,17 @@ Alongside it, a few narrower directions:
   received. Kind-aware reconciliation (shipped) does **not** help: `reconcile()`
   scans `delivered/` only, and an idle peer's mail never leaves `inbox/` for it
   to find — #47 stopped churn at a *live* recipient, this is an *idle* one.
-- **Cross-branch send from the TUI.** Routing is already flat — any peer can
-  `downbeat send` to any other by name, regardless of tree position — but the
-  TUI only surfaces the current group's peers, so a message to a far branch
-  gets hand-forwarded hop-by-hop through a common ancestor instead. That chain
-  is fragile: every intermediary has to wake, pick up, and consciously forward.
-  Add a "send to any peer" action — a fuzzy picker over all registered peers —
-  so reaching a distant branch is one step, not a relay chain.
-- **First-class message forwarding.** Forwarding a received message today means
-  hand-copying its body into a fresh send. Add `downbeat forward <msg_id>
-  <target>` that re-sends the original verbatim — preserving the source
-  `from`/subject/body and adding a "forwarded by" trail — so passing an ask
-  along is lossless and attributed instead of a manual paste.
+  ([#62](https://github.com/FreddieMcHeart/downbeat/issues/62))
+- **Peer identity for a background session.** A session that didn't register
+  itself has to guess which peer it is, and the guess keys off `session_id` —
+  which changes when a session is resumed or re-launched, so the match silently
+  fails and the CLI falls back to "can't auto-identify, pass `--peer`". Stable
+  `peer_id` (shipped) gives the *peer* a durable key but doesn't tell a running
+  session which peer it is; the binding between a live session and a peer is
+  still the open question. Design deferred until the shape of that binding is
+  clear — a recorded claim, a handshake, or an explicit env var are all
+  plausible and they don't cost the same.
+  ([#53](https://github.com/FreddieMcHeart/downbeat/issues/53))
 
 ---
 
@@ -182,8 +209,9 @@ Alongside it, a few narrower directions:
 
 ## Principles carried across all of the above
 
-- **Identity is data, not a display alias** — until a stable key exists, treat any
-  rename as a migration.
+- **Identity is data, not a display alias** — a peer's `peer_id` is assigned once
+  and never reassigned; `name` is what a human reads. Compare on the id, render
+  the name, and never let a rename become a data migration again.
 - **Every tree traversal is bounded** — a visited-set/iteration cap on every
   `.parent` walk, not just the cycle check, so corrupt on-disk data can't hang a
   read.
@@ -201,7 +229,9 @@ Alongside it, a few narrower directions:
 
 ## Contributing
 
-New contributors: with the good-first-issues shipped, the **Next** section holds
-the strongest near-term candidates — open an issue or PR to claim one. See
-[CONTRIBUTING.md](CONTRIBUTING.md) for setup, and please check open issues **and**
-PRs before starting so effort isn't duplicated.
+New contributors: start with the two **Now** items — both are labelled *good
+first issue*, touch one file, and land against an existing test suite. Past
+those, the **Next** section holds the strongest near-term candidates, and #41
+and #61 carry *help wanted*. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup,
+and please check open issues **and** PRs before starting so effort isn't
+duplicated.
