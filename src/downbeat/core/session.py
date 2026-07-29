@@ -58,7 +58,18 @@ def _process_is_claude(pid: int) -> bool:
     # Matching an EXACT path segment (split on "/") handles both: it accepts
     # "claude" as a full segment anywhere in the path, but rejects a
     # look-alike segment like "downbeat".
-    return "claude" in comm.split("/")
+    #
+    # Claude Code ALSO sets a process TITLE (not a path) on its background
+    # worker processes, e.g. "claude bg-spare" or "claude bg-pty-host" — so
+    # `comm` is not reliably a path at all. Take just the first
+    # whitespace-delimited token and run the same exact-segment rule against
+    # it: "claude bg-spare" -> token "claude" -> accepted; a plain binary
+    # path or a versioned install path has no whitespace, so the token is
+    # the whole string and the rule behaves exactly as before. This must NOT
+    # regress into a substring match — "claudette --serve" -> token
+    # "claudette" -> rejected, since "claudette" != "claude".
+    token = comm.split(None, 1)[0] if comm else ""
+    return "claude" in token.split("/")
 
 
 def detect_session_id() -> str | None:

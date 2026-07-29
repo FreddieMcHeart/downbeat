@@ -78,6 +78,73 @@ def test_process_is_claude_matches_versioned_install_path(monkeypatch):
     assert session._process_is_claude(12345) is True
 
 
+def test_process_is_claude_matches_bg_spare_process_title(monkeypatch):
+    """Claude Code sets a process TITLE (not a path) on its background
+    spare-worker process: `comm` comes back as 'claude bg-spare'. The first
+    whitespace-delimited token ('claude') must be accepted via the same
+    exact-segment rule used for paths."""
+    import subprocess as sp
+
+    def fake_check_output(cmd, **kw):
+        return b"claude bg-spare\n"
+
+    monkeypatch.setattr(sp, "check_output", fake_check_output)
+    assert session._process_is_claude(12345) is True
+
+
+def test_process_is_claude_matches_bg_pty_host_process_title(monkeypatch):
+    """Same as bg-spare but for the pty-host background process title."""
+    import subprocess as sp
+
+    def fake_check_output(cmd, **kw):
+        return b"claude bg-pty-host\n"
+
+    monkeypatch.setattr(sp, "check_output", fake_check_output)
+    assert session._process_is_claude(12345) is True
+
+
+def test_process_is_claude_matches_full_path_to_claude_binary(monkeypatch):
+    """A plain install path like '/Users/x/.local/bin/claude' — no process
+    title, just the resolved binary path — must still be accepted."""
+    import subprocess as sp
+
+    fake_path = "/Users/x/.local/bin/claude"
+
+    def fake_check_output(cmd, **kw):
+        return fake_path.encode()
+
+    monkeypatch.setattr(sp, "check_output", fake_check_output)
+    assert session._process_is_claude(12345) is True
+
+
+def test_process_is_claude_rejects_substring_directory_in_path(monkeypatch):
+    """'claude' as a substring of a longer, unrelated directory name
+    ('notclaude') must still be rejected — the widened rule must not
+    regress into a substring match."""
+    import subprocess as sp
+
+    fake_path = "/Users/x/notclaude/bin/python3"
+
+    def fake_check_output(cmd, **kw):
+        return fake_path.encode()
+
+    monkeypatch.setattr(sp, "check_output", fake_check_output)
+    assert session._process_is_claude(12345) is False
+
+
+def test_process_is_claude_rejects_process_title_starting_with_claude(monkeypatch):
+    """A process title whose first token merely STARTS WITH 'claude' (e.g.
+    a hypothetical 'claudette' tool) must be rejected — the first token has
+    to equal 'claude' exactly, not just have it as a prefix."""
+    import subprocess as sp
+
+    def fake_check_output(cmd, **kw):
+        return b"claudette --serve\n"
+
+    monkeypatch.setattr(sp, "check_output", fake_check_output)
+    assert session._process_is_claude(12345) is False
+
+
 def test_detect_skips_marker_when_pid_is_not_claude(relay_dir, monkeypatch):
     """If an ancestor PID has a marker but the PID is not a claude process
     (dead or recycled), detect_session_id must skip it and look at the next
