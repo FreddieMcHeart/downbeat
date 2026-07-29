@@ -3,6 +3,7 @@
   "events": [
     {"event": "UserPromptSubmit", "matcher": null, "command": "relay-inbox.py", "timeout": 3},
     {"event": "SessionStart", "matcher": "startup|resume", "command": "relay-inbox.py", "timeout": 3},
+    {"event": "SessionStart", "matcher": "resume", "command": "relay-resume-check.py", "timeout": 3},
     {"event": "PostToolUse", "matcher": "Bash", "command": "relay-poll-offer.py", "timeout": 3}
   ]
 }

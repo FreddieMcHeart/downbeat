@@ -31,6 +31,16 @@
             "timeout": 8
           }
         ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/relay-resume-check.py",
+            "timeout": 3
+          }
+        ]
       }
     ],
     "PostToolUse": [

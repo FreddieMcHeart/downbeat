@@ -48,7 +48,7 @@ os.execvp(EXE, ["downbeat", *sys.argv[1:]])
 """
 
 # Relay-owned filenames (used for idempotent settings detection + uninstall).
-HOOK_NAMES = ("relay-inbox.py", "relay-poll-offer.py")
+HOOK_NAMES = ("relay-inbox.py", "relay-poll-offer.py", "relay-resume-check.py")
 
 
 class SettingsParseError(Exception):
