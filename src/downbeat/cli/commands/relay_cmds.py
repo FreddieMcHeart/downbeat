@@ -34,7 +34,30 @@ def _detect_peer_or_error(name: str | None, *, flag: str = "--peer") -> str:
     for peer in store.list_peers():
         if peer.session_id == sid:
             return peer.name
+    # Self-heal (resume): session_id_history is provable lineage — the
+    # current sid was, at some earlier point, itself a peer's live
+    # session_id. Unlike a name guess, this is evidence recorded by
+    # register_peer/rebind_session, not an assumption about which peer
+    # "this must be". Checked before the claude_pid path below because
+    # resume is a new OS process (new claude_pid too), so claude_pid never
+    # matches for resume — this is the path that actually fires for it.
+    history_candidates = store.find_peer_by_session_history(sid)
+    if len(history_candidates) == 1:
+        peer = history_candidates[0]
+        old_sid = peer.session_id
+        store.rebind_session(peer.name, new_session_id=sid)
+        print(f"[rebind] {peer.name}: session_id restored from history "
+              f"{old_sid[:8]}→{sid[:8]} (provable via session_id_history)",
+              file=sys.stderr)
+        return peer.name
+    if len(history_candidates) > 1:
+        names = [c.name for c in history_candidates]
+        print(f"error: ambiguous — session {sid} appears in the "
+              f"session_id_history of multiple peers ({names}); pass {flag} "
+              "explicitly to disambiguate", file=sys.stderr)
+        raise SystemExit(2)
     # Slow path: try auto-rebind via (claude_pid, claude_pid_start) tuple
+    # (/clear: same OS process, new session id)
     claude_pid = session.detect_live_claude_pid()
     if claude_pid is None:
         print(f"error: session {sid} is not registered; run "
