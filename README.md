@@ -31,7 +31,7 @@ downbeat init                # one command installs the WHOLE runtime
 - bootstraps `~/.claude/relay/` data dirs and migrates legacy messages,
 - installs the **skill** → `~/.claude/skills/downbeat/`,
 - writes the `relay.py` **shim** → `~/.claude/relay/relay.py`,
-- installs the bundled **hooks** (`relay-inbox.py`, `relay-poll-offer.py`) → `~/.claude/hooks/` (chmod +x),
+- installs the bundled **hooks** (`relay-inbox.py`, `relay-poll-offer.py`, `relay-resume-check.py`) → `~/.claude/hooks/` (chmod +x),
 - installs the bundled **slash commands** (`relay-register/send/reply/peers/monitor.md`) → `~/.claude/commands/`,
 - **registers** the relay hooks in `~/.claude/settings.json` (idempotent, backed up, atomic).
 

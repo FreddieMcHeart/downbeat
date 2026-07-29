@@ -15,7 +15,8 @@ def _relay_reg_count(settings_path: Path) -> int:
         for entry in lst:
             for h in entry.get("hooks", []):
                 cmd = h.get("command", "")
-                if "relay-inbox.py" in cmd or "relay-poll-offer.py" in cmd:
+                if ("relay-inbox.py" in cmd or "relay-poll-offer.py" in cmd
+                        or "relay-resume-check.py" in cmd):
                     n += 1
     return n
 
@@ -98,6 +99,7 @@ def test_init_installs_hooks_commands_and_registers_settings(tmp_path, monkeypat
     hooks = tmp_path / ".claude" / "hooks"
     assert (hooks / "relay-inbox.py").exists()
     assert (hooks / "relay-poll-offer.py").exists()
+    assert (hooks / "relay-resume-check.py").exists()
     # hooks must be executable
     assert os.access(hooks / "relay-inbox.py", os.X_OK)
     # commands copied
@@ -105,9 +107,9 @@ def test_init_installs_hooks_commands_and_registers_settings(tmp_path, monkeypat
     for name in ("relay-register.md", "relay-send.md", "relay-reply.md",
                  "relay-peers.md", "relay-monitor.md"):
         assert (cmds / name).exists(), name
-    # settings gains the 3 relay regs
+    # settings gains the 4 relay regs
     settings = tmp_path / ".claude" / "settings.json"
-    assert _relay_reg_count(settings) == 3
+    assert _relay_reg_count(settings) == 4
 
 
 def test_init_is_idempotent_on_settings(tmp_path, monkeypatch, relay_dir):
@@ -116,7 +118,7 @@ def test_init_is_idempotent_on_settings(tmp_path, monkeypatch, relay_dir):
     first = _relay_reg_count(tmp_path / ".claude" / "settings.json")
     run_init(backup_suffix="TEST2")
     second = _relay_reg_count(tmp_path / ".claude" / "settings.json")
-    assert first == second == 3
+    assert first == second == 4
     # Second run added nothing → no second backup file created
     assert not (tmp_path / ".claude" / "settings.json.bak-TEST2").exists()
 
@@ -125,18 +127,22 @@ def test_init_leaves_preexisting_relay_regs(tmp_path, monkeypatch, relay_dir):
     monkeypatch.setenv("HOME", str(tmp_path))
     settings = tmp_path / ".claude" / "settings.json"
     settings.parent.mkdir(parents=True, exist_ok=True)
-    # Pre-seed the exact live nested layout with all 3 relay regs present
+    # Pre-seed the exact live nested layout with all 4 relay regs present
     hp = str(tmp_path / ".claude" / "hooks")
     settings.write_text(json.dumps({"hooks": {
         "UserPromptSubmit": [{"hooks": [
             {"type": "command", "command": f"{hp}/relay-inbox.py", "timeout": 3}]}],
-        "SessionStart": [{"matcher": "startup|resume", "hooks": [
-            {"type": "command", "command": f"{hp}/relay-inbox.py", "timeout": 3}]}],
+        "SessionStart": [
+            {"matcher": "startup|resume", "hooks": [
+                {"type": "command", "command": f"{hp}/relay-inbox.py", "timeout": 3}]},
+            {"matcher": "resume", "hooks": [
+                {"type": "command", "command": f"{hp}/relay-resume-check.py", "timeout": 3}]},
+        ],
         "PostToolUse": [{"matcher": "Bash", "hooks": [
             {"type": "command", "command": f"{hp}/relay-poll-offer.py", "timeout": 3}]}],
     }}, indent=2))
     run_init(backup_suffix="TEST")
-    assert _relay_reg_count(settings) == 3
+    assert _relay_reg_count(settings) == 4
     # nothing added → no backup
     assert not (tmp_path / ".claude" / "settings.json.bak-TEST").exists()
 
@@ -155,7 +161,7 @@ def test_init_preserves_other_hooks_and_interleaves(tmp_path, monkeypatch, relay
     # cost-discipline preserved
     assert any("cost-discipline.py" in c for c in cmds)
     # relay-inbox added alongside it (interleaved into same no-matcher entry)
-    assert _relay_reg_count(settings) == 3
+    assert _relay_reg_count(settings) == 4
     # a backup of the pre-existing file was made
     assert (tmp_path / ".claude" / "settings.json.bak-TEST").exists()
 
@@ -166,7 +172,7 @@ def test_init_creates_settings_when_missing(tmp_path, monkeypatch, relay_dir):
     assert not settings.exists()
     run_init(backup_suffix="TEST")
     assert settings.exists()
-    assert _relay_reg_count(settings) == 3
+    assert _relay_reg_count(settings) == 4
     # created fresh → no backup of a prior file
     assert not (tmp_path / ".claude" / "settings.json.bak-TEST").exists()
 
@@ -180,13 +186,14 @@ def test_uninstall_removes_relay_regs_keeps_others(tmp_path, monkeypatch, relay_
             {"type": "command", "command": "/x/cost-discipline.py", "timeout": 5}]}],
     }}, indent=2))
     run_init(backup_suffix="TEST")
-    assert _relay_reg_count(settings) == 3
+    assert _relay_reg_count(settings) == 4
     run_uninstall(backup_suffix="TEST")
     # relay regs gone, cost-discipline preserved
     assert _relay_reg_count(settings) == 0
     assert any("cost-discipline.py" in c for c in _all_commands(settings))
     # hook + command files removed
     assert not (tmp_path / ".claude" / "hooks" / "relay-inbox.py").exists()
+    assert not (tmp_path / ".claude" / "hooks" / "relay-resume-check.py").exists()
     assert not (tmp_path / ".claude" / "commands" / "relay-send.md").exists()
 
 
