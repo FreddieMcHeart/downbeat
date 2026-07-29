@@ -166,3 +166,21 @@ def test_gc_stale_markers_removes_dead_pid_markers(relay_dir):
     counts = session.gc_stale_markers()
     assert counts["relay"] >= 1
     assert not (relay_dir / ".sid-99999999").exists()
+
+
+def test_process_is_claude_matches_install_path_containing_a_space(monkeypatch):
+    """An install path with a space in it keeps working.
+
+    The process-title rule reads only the FIRST whitespace-delimited token,
+    so on its own it would truncate '/Users/x/My Apps/claude' to
+    '/Users/x/My' and reject a path the original exact-segment rule
+    accepted. Guards that regression: the whole string is tested too."""
+    import subprocess as sp
+
+    fake_path = "/users/x/my apps/claude"
+
+    def fake_check_output(cmd, **kw):
+        return fake_path.encode()
+
+    monkeypatch.setattr(sp, "check_output", fake_check_output)
+    assert session._process_is_claude(12345) is True
