@@ -13,6 +13,7 @@ from ...core.errors import (
     MessageNotFound,
     PeerNameCollision,
     PeerNotFound,
+    PeerReparentConflict,
 )
 from ...core.models import CURRENT_SCHEMA_VERSION
 
@@ -106,7 +107,7 @@ def cmd_register(args: argparse.Namespace) -> int:
             claude_pid=claude_pid, claude_pid_start=claude_pid_start,
             parent=getattr(args, "parent", None),
         )
-    except (AmbiguousParent, InvalidParent) as e:
+    except (AmbiguousParent, InvalidParent, PeerReparentConflict) as e:
         print(f"error: {e}", file=sys.stderr)
         return 1
     session.write_marker_for_self(sid)

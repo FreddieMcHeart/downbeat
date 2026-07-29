@@ -1,7 +1,15 @@
+import subprocess
+import sys
+
 import pytest
 
 from downbeat.core import store
-from downbeat.core.errors import AmbiguousParent, InvalidParent, PeerNotFound
+from downbeat.core.errors import (
+    AmbiguousParent,
+    InvalidParent,
+    PeerNotFound,
+    PeerReparentConflict,
+)
 
 
 def test_register_creates_peer(relay_dir):
@@ -98,6 +106,83 @@ def test_touch_peer_updates_last_seen(relay_dir):
     store.touch_peer("p")
     after = store.get_peer("p").last_seen
     assert after >= before
+
+
+# --- Concurrent read-modify-write race (PR #74 review) --------------------
+#
+# touch_peer/register_peer/rebind_session all do
+#   sessions = _load_sessions(); ...mutate...; _save_sessions(sessions)
+# against the SAME sessions.json, with no lock. Wiring touch_peer into every
+# send/drain (#72) made that unlocked snapshot-of-the-whole-registry hot: two
+# real OS processes -- one repeatedly touching an existing peer (what a busy
+# sender/drainer now does), one concurrently registering brand-new peers --
+# can race, and whichever saves last silently reverts whatever the other one
+# just wrote (the exact failure mode of #71: a reverted registration).
+#
+# This MUST use two real subprocesses, not two calls from one process /
+# thread: the GIL would serialize the Python-level dict mutations and the
+# test would pass for a reason that says nothing about the actual disk race.
+# Each worker monkeypatches store._save_sessions to sleep briefly between its
+# own load and save, deterministically widening the interleave window so the
+# race reproduces every run instead of depending on incidental OS timing.
+
+_TOUCH_WORKER = """
+import sys, time
+from downbeat.core import store
+from downbeat.core.errors import PeerNotFound
+
+_orig_save = store._save_sessions
+def _slow_save(data):
+    time.sleep(0.05)
+    _orig_save(data)
+store._save_sessions = _slow_save
+
+n = int(sys.argv[1])
+name = sys.argv[2]
+for _ in range(n):
+    try:
+        store.touch_peer(name)
+    except PeerNotFound:
+        pass
+"""
+
+_REGISTER_WORKER = """
+import sys, time
+from downbeat.core import store
+
+_orig_save = store._save_sessions
+def _slow_save(data):
+    time.sleep(0.05)
+    _orig_save(data)
+store._save_sessions = _slow_save
+
+n = int(sys.argv[1])
+prefix = sys.argv[2]
+for i in range(n):
+    store.register_peer(name=f"{prefix}{i}", session_id=f"s-{prefix}{i}",
+                        cwd="/tmp", role="parent")
+"""
+
+
+def test_touch_peer_concurrent_with_register_peer_does_not_lose_writes(relay_dir):
+    store.register_peer(name="p", session_id="s-p", cwd="/tmp", role="parent")
+
+    n = 20
+    touch_proc = subprocess.Popen([sys.executable, "-c", _TOUCH_WORKER, str(n), "p"])
+    register_proc = subprocess.Popen(
+        [sys.executable, "-c", _REGISTER_WORKER, str(n), "q"])
+    assert touch_proc.wait(timeout=60) == 0
+    assert register_proc.wait(timeout=60) == 0
+
+    names = {peer.name for peer in store.list_peers()}
+    expected = {f"q{i}" for i in range(n)}
+    missing = expected - names
+    assert not missing, (
+        f"lost {len(missing)}/{n} concurrent registrations to an unlocked "
+        f"touch_peer read-modify-write race: {sorted(missing)[:5]}"
+    )
+    # touch_peer's own target must survive too -- not just the registrations.
+    assert "p" in names
 
 
 def test_rebind_updates_session_id_only(relay_dir):
@@ -424,3 +509,87 @@ def test_remove_heals_a_dangling_grandparent(relay_dir):
     }))
     store.remove_peer("Mid")
     assert _parent_of("W") is None
+
+
+# --- issue #70: register_peer must refuse to silently re-home a name that
+# already belongs to a different parent, instead of overwriting it. Option
+# (b) from the issue: names stay globally unique; the collision becomes an
+# explicit, actionable refusal instead of a silent overwrite. ---
+
+def test_register_explicit_parent_conflicting_with_stored_raises(relay_dir):
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s-2", cwd="/tmp", role="parent")
+    store.register_peer(name="Dev One", session_id="s-3", cwd="/tmp", role="child",
+                        parent="parent-a")
+    with pytest.raises(PeerReparentConflict):
+        store.register_peer(name="Dev One", session_id="s-4", cwd="/tmp", role="child",
+                            parent="parent-b")
+    # Refusal must not write -- the peer's parent must be unchanged.
+    assert store.get_peer("Dev One").parent == "parent-a"
+
+
+def test_register_conflict_message_is_actionable(relay_dir):
+    """The refusal must state the existing peer's current parent, when it was
+    registered, and how many messages it holds -- a bare 'name taken' is not
+    enough, since the whole point is showing the human what they'd destroy."""
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s-2", cwd="/tmp", role="parent")
+    store.register_peer(name="Dev One", session_id="s-3", cwd="/tmp", role="child",
+                        parent="parent-a")
+    store.send_message(from_peer="parent-a", to_peer="Dev One",
+                       subject="s1", body="x")
+    store.send_message(from_peer="parent-a", to_peer="Dev One",
+                       subject="s2", body="x")
+    with pytest.raises(PeerReparentConflict) as exc_info:
+        store.register_peer(name="Dev One", session_id="s-4", cwd="/tmp", role="child",
+                            parent="parent-b")
+    message = str(exc_info.value)
+    assert "parent-a" in message                # existing parent
+    assert "Dev One" in message
+    registered_at = store.get_peer("Dev One").registered_at
+    assert registered_at in message              # when it was registered
+    assert "2" in message                        # message count (inbox)
+    assert "set-parent" in message               # the escape hatch
+
+
+def test_register_explicit_parent_equal_to_stored_is_not_a_conflict(relay_dir):
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="Dev One", session_id="s-2", cwd="/tmp", role="child",
+                        parent="parent-a")
+    # Re-registering with the SAME explicit parent must succeed -- it isn't a
+    # conflict, it's confirming the existing pairing.
+    again = store.register_peer(name="Dev One", session_id="s-3", cwd="/tmp",
+                                role="child", parent="parent-a")
+    assert again.parent == "parent-a"
+
+
+def test_register_no_parent_argument_reattaches_as_today(relay_dir):
+    """The plain resume/reattach path (no --parent passed at all) must behave
+    exactly as before this fix -- carry the existing parent over silently,
+    no error, no --reparent needed."""
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="Dev One", session_id="s-2", cwd="/tmp", role="child",
+                        parent="parent-a")
+    again = store.register_peer(name="Dev One", session_id="s-3", cwd="/tmp", role="child")
+    assert again.parent == "parent-a"
+    assert again.session_id == "s-3"
+
+
+def test_register_genuinely_new_name_unaffected(relay_dir):
+    store.register_peer(name="parent-a", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="parent-b", session_id="s-2", cwd="/tmp", role="parent")
+    peer = store.register_peer(name="Brand New", session_id="s-3", cwd="/tmp",
+                               role="child", parent="parent-b")
+    assert peer.parent == "parent-b"
+
+
+def test_register_peer_with_no_parent_reregistered_stays_rootless(relay_dir):
+    """A role=parent peer with parent=None (a root), re-registered with no
+    --parent, must stay parentless and must not raise -- this is the
+    plain-resume path applied to a root peer specifically, since a naive
+    conflict check keyed on truthiness of the stored parent could special-case
+    None incorrectly."""
+    store.register_peer(name="Root One", session_id="s-1", cwd="/tmp", role="parent")
+    again = store.register_peer(name="Root One", session_id="s-2", cwd="/tmp",
+                                role="parent")
+    assert again.parent is None

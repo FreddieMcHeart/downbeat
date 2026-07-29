@@ -26,6 +26,47 @@ def test_send_to_unknown_peer_raises(relay_dir):
                            subject="x", body="x")
 
 
+def _backdate_last_seen(relay_dir, name, days_ago=21):
+    import json
+    from datetime import UTC, datetime, timedelta
+
+    sessions_file = relay_dir / "sessions.json"
+    sessions = json.loads(sessions_file.read_text())
+    old = (datetime.now(UTC) - timedelta(days=days_ago)).isoformat()
+    sessions[name]["last_seen"] = old
+    sessions_file.write_text(json.dumps(sessions))
+    return old
+
+
+def test_send_message_touches_sender_last_seen(relay_dir):
+    """#72: sending is one of the two events that mean 'this peer is alive' --
+    the sender proved it's participating, so its last_seen must move even
+    though it neither registered nor rebound just now."""
+    _peers("parent", "child")
+    old = _backdate_last_seen(relay_dir, "parent")
+    store.send_message(from_peer="parent", to_peer="child", subject="s", body="b")
+    assert store.get_peer("parent").last_seen > old
+
+
+def test_send_message_does_not_touch_recipient_last_seen(relay_dir):
+    """Sending proves the SENDER is alive, not the recipient -- the recipient
+    hasn't acted yet, so its last_seen must be untouched by someone else's send."""
+    _peers("parent", "child")
+    old = _backdate_last_seen(relay_dir, "child")
+    store.send_message(from_peer="parent", to_peer="child", subject="s", body="b")
+    assert store.get_peer("child").last_seen == old
+
+
+def test_send_message_from_unregistered_sender_does_not_raise(relay_dir):
+    """The sender doesn't need to be registered (CLI may send before its own
+    register completes) -- touching a nonexistent sender's last_seen must be
+    best-effort and never turn a successful send into a PeerNotFound."""
+    _peers("child")
+    msg = store.send_message(from_peer="nobody", to_peer="child",
+                             subject="s", body="b")
+    assert msg is not None
+
+
 def test_mark_read_sets_read_at(relay_dir):
     _peers("parent", "child")
     msg = store.send_message(from_peer="parent", to_peer="child",
