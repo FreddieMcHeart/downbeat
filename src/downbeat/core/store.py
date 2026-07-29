@@ -565,6 +565,14 @@ def send_message(from_peer: str, to_peer: str, subject: str, body: str,
         to_peer_id=recipient.peer_id,
     )
     _write_message(msg)
+    # Sending is one of the two events that mean "this peer is alive" (#72) --
+    # touch the SENDER, not the recipient, who hasn't acted yet. Best-effort:
+    # the sender doesn't need to be registered to send (see comment above), so
+    # an unregistered from_peer must not turn a successful send into an error.
+    try:
+        touch_peer(from_peer)
+    except PeerNotFound:
+        pass
     _log.info("send from=%s to=%s msg=%s kind=%s broadcast=%s in_reply_to=%s bytes=%d",
               from_peer, to_peer, msg.id, kind, broadcast_id, in_reply_to, len(body))
     return msg
@@ -574,6 +582,15 @@ def deliver_messages(peer_name: str, session_id: str,
                      max: int = 20) -> list[Message]:
     """Move up to max messages from inbox/<peer>/ to delivered/<peer>/,
     stamping delivered_at + delivered_to_session_id."""
+    # Draining its own inbox is one of the two events that mean "this peer is
+    # alive" (#72) -- touch unconditionally, including the empty/no-inbox
+    # case: the peer asking for its mail is the participation signal, not
+    # whether any happened to be waiting. Best-effort, same as send_message's
+    # touch: a touch must never turn a successful drain into an error.
+    try:
+        touch_peer(peer_name)
+    except PeerNotFound:
+        pass
     inbox_dir = paths.INBOX_DIR / peer_name
     if not inbox_dir.exists():
         return []
