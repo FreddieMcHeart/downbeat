@@ -16,8 +16,26 @@ Horizons are ordered by confidence, not calendar:
 
 ---
 
-## Recently shipped (through v0.14.4)
+## Recently shipped (through v0.14.6)
 
+- **A background session can identify itself.** Detection walks ancestor
+  processes looking for `claude` and matched the process name as a path segment —
+  a rule chosen deliberately, and correct for every shape that existed when it
+  was written. Background workers wear a process *title* rather than a path, so
+  the one ancestor holding the session marker was the only one being rejected,
+  and `whoami`, `send`, `reply` and `inbox` all failed with "could not detect
+  session id" — no name to pass, and no way to discover it. A background peer is
+  the shape the relay exists to coordinate, so this was the more severe of the
+  identity defects. (issue #75)
+- **A stale identity announces itself at resume, not at the first send.** A
+  resume that mints an unseen session id leaves no lineage to repair from, and
+  the refusal used to surface only when a message was finally worth sending —
+  everything up to that point looked healthy. A resume-only check now reports the
+  stale binding and names the repair. It never rebinds: every available signal
+  for *which* peer this is would be a guess, and a guess binds a session to the
+  wrong identity. The check stays silent unless the evidence is unambiguous,
+  because one that cries wolf gets turned off and then protects nothing.
+  (issue #71, completing it)
 - **A name collision can no longer re-home a peer behind your back.** The peer
   registry is keyed by name, and re-registering a known name used to be treated
   as "the same peer reattaching" — carrying its identity over while silently
@@ -45,8 +63,8 @@ Horizons are ordered by confidence, not calendar:
   the evidence is ambiguous — or absent — it still refuses rather than picking a
   winner, because binding a session to the wrong peer is worse than an error.
   This covers less than it sounds like: a resume that mints an entirely new
-  session id leaves no trace to match on, and that case is still open. (issue
-  #71, in part)
+  session id leaves no trace to match on. That half is what the resume-time
+  warning above exists for. (issue #71, in part)
 - **Stable peer identity.** A peer now carries a `peer_id` assigned once and
   never reassigned — not by rename, not by rebind, not by re-registration —
   while `name` becomes a display alias. Messages carry both: `from`/`to` keep
@@ -204,23 +222,18 @@ Alongside it, a few narrower directions:
   scans `delivered/` only, and an idle peer's mail never leaves `inbox/` for it
   to find — #47 stopped churn at a *live* recipient, this is an *idle* one.
   ([#62](https://github.com/FreddieMcHeart/downbeat/issues/62))
-- **A session still cannot reliably say who it is.** Stable `peer_id` gives the
-  *peer* a durable key; it does not tell a *running session* which peer it is,
-  and that binding is where identity keeps breaking. Three distinct failures sit
-  underneath one symptom. A session in the background can't be identified at all
-  — detection walks ancestor processes looking for `claude`, and a background
-  process wears a title rather than a path, so the one ancestor holding the
-  session marker is the one rejected
-  ([#75](https://github.com/FreddieMcHeart/downbeat/issues/75)). A resume that
-  mints a brand-new session id leaves nothing to match against; the fix that
-  shipped only covers resuming *back into* an id already on record, and for the
-  rest there may be no provable signal at all — which argues the remedy is to
-  fail loudly at resume rather than guess harder
-  ([#71](https://github.com/FreddieMcHeart/downbeat/issues/71)). And the older,
-  broader question of how a session should claim an identity in the first place
-  — a recorded claim, a handshake, an explicit variable — is still open
-  ([#53](https://github.com/FreddieMcHeart/downbeat/issues/53)). Worth treating
-  as one theme: patched individually, each fix leaves the symptom alive.
+- **How a session should *claim* an identity is still open.** The two acute
+  failures underneath this are fixed — a background session can be identified
+  now, and a resume that cannot repair itself says so at resume instead of at the
+  first send. What remains is the design question they were symptoms of: a
+  session's identity is currently *inferred*, by walking ancestor processes to a
+  marker file and matching a session id against the registry. Inference has no
+  ceiling on how many ways it can be wrong; each fix so far has closed one shape
+  and left the mechanism intact. The alternative is for a session to **assert**
+  who it is — a recorded claim written at registration, a handshake, or an
+  explicit variable in the environment. Those do not cost the same and none is
+  obviously right, which is why this stays a direction rather than a plan.
+  ([#53](https://github.com/FreddieMcHeart/downbeat/issues/53))
 - **Two parents, one child name.** A name like `Dev One` is a *role* someone
   plays in several trees, not a globally unique entity, and being pushed into
   `Dev One 2` is the storage model leaking into what things are called. But
