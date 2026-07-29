@@ -4,6 +4,8 @@ All write operations are atomic via os.replace(). Read operations tolerate
 missing files and return empty containers."""
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import logging
 import os
@@ -86,6 +88,49 @@ def _load_sessions() -> dict[str, dict]:
     return raw
 
 
+def _sessions_lock_path() -> Path:
+    # A dedicated lock file, not SESSIONS_FILE itself: _atomic_write_text
+    # replaces sessions.json's inode on every save (tempfile + os.replace), so
+    # an flock held on a file descriptor opened against the OLD inode would
+    # stop protecting anything the moment a save happens underneath it. A
+    # lock file that no writer ever replaces keeps the same inode for the
+    # life of the process, which is what flock's exclusion actually needs.
+    return paths.RELAY_DIR / ".sessions.lock"
+
+
+@contextlib.contextmanager
+def _sessions_lock():
+    """Exclusive lock around a sessions.json read-modify-write cycle.
+
+    PR #74 review (fixing #72): _load_sessions/_save_sessions is an
+    unlocked snapshot-of-the-whole-registry read-modify-write. Wiring
+    touch_peer into every send/drain made that hot -- two real OS processes
+    racing on it can silently revert each other's writes, including a
+    concurrent register_peer/rebind_session (the exact failure mode of #71:
+    a peer whose registration got reverted can no longer identify itself).
+
+    flock is advisory: it only excludes OTHER holders of the same lock, so
+    every writer that can race the newly-hot touch_peer must take it too --
+    a lock held by touch_peer alone would not have closed the touch-vs-
+    register race this exists to fix. Scoped to touch_peer, register_peer,
+    and rebind_session (the three functions that mutate last_seen and are
+    named in the review); set_parent/remove_peer/rename_peer share the same
+    unlocked-RMW shape against the same file but are administrative,
+    rarely-called ops -- rename_peer in particular interleaves its sessions
+    mutation with heavy per-message-file IO across four directories, so
+    locking it correctly deserves its own follow-up rather than being
+    folded into this fix.
+    """
+    lock_path = _sessions_lock_path()
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+
 def _save_sessions(data: dict[str, dict]) -> None:
     _atomic_write_text(paths.SESSIONS_FILE, json.dumps(data, indent=2))
 
@@ -161,32 +206,34 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
                   claude_pid_start: str | None = None,
                   parent: str | None = None) -> Peer:
     name = _validate_peer_name(name)
-    sessions = _load_sessions()
-    existing = sessions.get(name)
-    registered_at = existing["registered_at"] if existing else now_iso()
-    history = list(existing.get("session_id_history", [])) if existing else []
-    if existing and existing.get("session_id") and existing["session_id"] != session_id:
-        if existing["session_id"] not in history:
-            history.append(existing["session_id"])
-    resolved_parent = (
-        _resolve_parent(name, sessions, existing, parent)
-        if role == "child" or parent is not None or (existing and existing.get("parent"))
-        else None
-    )
-    # Identity is assigned once. Re-registering an existing name is the same
-    # peer reattaching, not a new one, so its id must carry over untouched.
-    peer_id = (existing or {}).get("peer_id") or new_id()
-    peer = Peer(
-        name=name, session_id=session_id, cwd=cwd, role=role,
-        registered_at=registered_at, last_seen=now_iso(),
-        claude_pid=claude_pid,
-        claude_pid_start=claude_pid_start,
-        session_id_history=history,
-        parent=resolved_parent,
-        peer_id=peer_id,
-    )
-    sessions[name] = peer.to_dict()
-    _save_sessions(sessions)
+    with _sessions_lock():
+        sessions = _load_sessions()
+        existing = sessions.get(name)
+        registered_at = existing["registered_at"] if existing else now_iso()
+        history = list(existing.get("session_id_history", [])) if existing else []
+        if existing and existing.get("session_id") and existing["session_id"] != session_id:
+            if existing["session_id"] not in history:
+                history.append(existing["session_id"])
+        resolved_parent = (
+            _resolve_parent(name, sessions, existing, parent)
+            if role == "child" or parent is not None or (existing and existing.get("parent"))
+            else None
+        )
+        # Identity is assigned once. Re-registering an existing name is the
+        # same peer reattaching, not a new one, so its id must carry over
+        # untouched.
+        peer_id = (existing or {}).get("peer_id") or new_id()
+        peer = Peer(
+            name=name, session_id=session_id, cwd=cwd, role=role,
+            registered_at=registered_at, last_seen=now_iso(),
+            claude_pid=claude_pid,
+            claude_pid_start=claude_pid_start,
+            session_id_history=history,
+            parent=resolved_parent,
+            peer_id=peer_id,
+        )
+        sessions[name] = peer.to_dict()
+        _save_sessions(sessions)
     _log.info("register peer=%s session=%s role=%s parent=%s claude_pid=%s",
               name, session_id, role, resolved_parent, claude_pid)
     return peer
@@ -433,11 +480,12 @@ def rename_peer(old_name: str, new_name: str) -> Peer:
 
 
 def touch_peer(name: str) -> None:
-    sessions = _load_sessions()
-    if name not in sessions:
-        raise PeerNotFound(name)
-    sessions[name]["last_seen"] = now_iso()
-    _save_sessions(sessions)
+    with _sessions_lock():
+        sessions = _load_sessions()
+        if name not in sessions:
+            raise PeerNotFound(name)
+        sessions[name]["last_seen"] = now_iso()
+        _save_sessions(sessions)
 
 
 STALE_THRESHOLD_MINUTES = 10
@@ -1022,28 +1070,30 @@ def rebind_session(name: str, new_session_id: str | None = None) -> Peer:
     from . import session as session_mod
     from .errors import RelayError
 
-    sessions = _load_sessions()
-    if name not in sessions:
-        raise PeerNotFound(name)
+    with _sessions_lock():
+        sessions = _load_sessions()
+        if name not in sessions:
+            raise PeerNotFound(name)
 
-    if new_session_id is None:
-        new_session_id = session_mod.detect_session_id()
         if new_session_id is None:
-            raise RelayError(
-                "could not auto-detect a session id; pass --session-id explicitly"
-            )
+            new_session_id = session_mod.detect_session_id()
+            if new_session_id is None:
+                raise RelayError(
+                    "could not auto-detect a session id; pass --session-id "
+                    "explicitly"
+                )
 
-    entry = sessions[name]
-    old_sid = entry.get("session_id")
-    history = list(entry.get("session_id_history", []))
-    if old_sid and old_sid != new_session_id and old_sid not in history:
-        history.append(old_sid)
-    entry["session_id"] = new_session_id
-    entry["session_id_history"] = history
-    entry["last_rebind_at"] = now_iso()
-    entry["last_seen"] = now_iso()
-    sessions[name] = entry
-    _save_sessions(sessions)
+        entry = sessions[name]
+        old_sid = entry.get("session_id")
+        history = list(entry.get("session_id_history", []))
+        if old_sid and old_sid != new_session_id and old_sid not in history:
+            history.append(old_sid)
+        entry["session_id"] = new_session_id
+        entry["session_id_history"] = history
+        entry["last_rebind_at"] = now_iso()
+        entry["last_seen"] = now_iso()
+        sessions[name] = entry
+        _save_sessions(sessions)
     _log.info("rebind peer=%s old_session=%s new_session=%s",
               name, old_sid, new_session_id)
     # Append to rebind_log.jsonl
