@@ -1154,6 +1154,19 @@ def _append_rebind_log(event: dict) -> None:
         f.write(line + "\n")
 
 
+def find_peer_by_session_history(session_id: str) -> list[Peer]:
+    """Return peers whose session_id_history contains session_id.
+
+    Provable-lineage signal for resume (new OS process AND new session id,
+    so find_peer_by_claude_pid never fires): if session_id was, at some
+    earlier point, itself the live session_id of exactly one peer — e.g. a
+    resume that returns to an older checkpoint whose id was later
+    superseded by rebind_session/register_peer — that is evidence this
+    peer's own past, not a guess. Does not consider a peer's CURRENT
+    session_id; callers already check that via the direct fast-path match."""
+    return [p for p in list_peers() if session_id in p.session_id_history]
+
+
 def find_peer_by_claude_pid(claude_pid: int,
                             claude_pid_start: str | None) -> list[Peer]:
     """Return peers whose claude_pid matches.
