@@ -1,3 +1,6 @@
+import subprocess
+import sys
+
 import pytest
 
 from downbeat.core import store
@@ -103,6 +106,83 @@ def test_touch_peer_updates_last_seen(relay_dir):
     store.touch_peer("p")
     after = store.get_peer("p").last_seen
     assert after >= before
+
+
+# --- Concurrent read-modify-write race (PR #74 review) --------------------
+#
+# touch_peer/register_peer/rebind_session all do
+#   sessions = _load_sessions(); ...mutate...; _save_sessions(sessions)
+# against the SAME sessions.json, with no lock. Wiring touch_peer into every
+# send/drain (#72) made that unlocked snapshot-of-the-whole-registry hot: two
+# real OS processes -- one repeatedly touching an existing peer (what a busy
+# sender/drainer now does), one concurrently registering brand-new peers --
+# can race, and whichever saves last silently reverts whatever the other one
+# just wrote (the exact failure mode of #71: a reverted registration).
+#
+# This MUST use two real subprocesses, not two calls from one process /
+# thread: the GIL would serialize the Python-level dict mutations and the
+# test would pass for a reason that says nothing about the actual disk race.
+# Each worker monkeypatches store._save_sessions to sleep briefly between its
+# own load and save, deterministically widening the interleave window so the
+# race reproduces every run instead of depending on incidental OS timing.
+
+_TOUCH_WORKER = """
+import sys, time
+from downbeat.core import store
+from downbeat.core.errors import PeerNotFound
+
+_orig_save = store._save_sessions
+def _slow_save(data):
+    time.sleep(0.05)
+    _orig_save(data)
+store._save_sessions = _slow_save
+
+n = int(sys.argv[1])
+name = sys.argv[2]
+for _ in range(n):
+    try:
+        store.touch_peer(name)
+    except PeerNotFound:
+        pass
+"""
+
+_REGISTER_WORKER = """
+import sys, time
+from downbeat.core import store
+
+_orig_save = store._save_sessions
+def _slow_save(data):
+    time.sleep(0.05)
+    _orig_save(data)
+store._save_sessions = _slow_save
+
+n = int(sys.argv[1])
+prefix = sys.argv[2]
+for i in range(n):
+    store.register_peer(name=f"{prefix}{i}", session_id=f"s-{prefix}{i}",
+                        cwd="/tmp", role="parent")
+"""
+
+
+def test_touch_peer_concurrent_with_register_peer_does_not_lose_writes(relay_dir):
+    store.register_peer(name="p", session_id="s-p", cwd="/tmp", role="parent")
+
+    n = 20
+    touch_proc = subprocess.Popen([sys.executable, "-c", _TOUCH_WORKER, str(n), "p"])
+    register_proc = subprocess.Popen(
+        [sys.executable, "-c", _REGISTER_WORKER, str(n), "q"])
+    assert touch_proc.wait(timeout=60) == 0
+    assert register_proc.wait(timeout=60) == 0
+
+    names = {peer.name for peer in store.list_peers()}
+    expected = {f"q{i}" for i in range(n)}
+    missing = expected - names
+    assert not missing, (
+        f"lost {len(missing)}/{n} concurrent registrations to an unlocked "
+        f"touch_peer read-modify-write race: {sorted(missing)[:5]}"
+    )
+    # touch_peer's own target must survive too -- not just the registrations.
+    assert "p" in names
 
 
 def test_rebind_updates_session_id_only(relay_dir):

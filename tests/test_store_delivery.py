@@ -19,6 +19,39 @@ def test_deliver_moves_inbox_to_delivered(relay_dir):
     assert delivered[0].state == MessageState.DELIVERED
 
 
+def _backdate_last_seen(relay_dir, name, days_ago=21):
+    import json
+    from datetime import UTC, datetime, timedelta
+
+    sessions_file = relay_dir / "sessions.json"
+    sessions = json.loads(sessions_file.read_text())
+    old = (datetime.now(UTC) - timedelta(days=days_ago)).isoformat()
+    sessions[name]["last_seen"] = old
+    sessions_file.write_text(json.dumps(sessions))
+    return old
+
+
+def test_deliver_messages_touches_peer_last_seen(relay_dir):
+    """#72: draining its own inbox is the other event that means 'this peer
+    is alive' -- the peer pulled its mail, so its last_seen must move even
+    though it neither registered nor rebound just now."""
+    _peers("p", "c")
+    store.send_message(from_peer="p", to_peer="c", subject="x", body="y")
+    old = _backdate_last_seen(relay_dir, "c")
+    store.deliver_messages(peer_name="c", session_id="sess-1")
+    assert store.get_peer("c").last_seen > old
+
+
+def test_deliver_messages_touches_peer_last_seen_even_with_empty_inbox(relay_dir):
+    """Asking for mail is the participation signal, not whether any happened
+    to be waiting -- an empty/no-inbox drain still proves the peer is alive."""
+    _peers("c")
+    old = _backdate_last_seen(relay_dir, "c")
+    delivered = store.deliver_messages(peer_name="c", session_id="sess-1")
+    assert delivered == []
+    assert store.get_peer("c").last_seen > old
+
+
 def test_ack_promotes_to_processed(relay_dir):
     _peers("p", "c")
     msg = store.send_message(from_peer="p", to_peer="c", subject="x", body="y")
