@@ -18,10 +18,10 @@
 | src/downbeat/core/notify.py                    |       17 |        0 |    100% |           |
 | src/downbeat/core/paths.py                     |       17 |        0 |    100% |           |
 | src/downbeat/core/provenance.py                |       61 |        5 |     92% |93-94, 136-138 |
-| src/downbeat/core/session.py                   |       82 |       30 |     63% |26-27, 77, 94-103, 109-110, 115-116, 131-145, 152 |
+| src/downbeat/core/session.py                   |       83 |       30 |     64% |26-27, 93, 110-119, 125-126, 131-132, 147-161, 168 |
 | src/downbeat/core/state.py                     |       57 |        8 |     86% |49, 56, 60-65, 81 |
 | src/downbeat/core/store.py                     |      735 |       67 |     91% |51-53, 81-82, 296, 352, 393-394, 443-445, 448, 475, 478, 546, 550-551, 569, 573, 581, 685-686, 698-699, 739-741, 773-775, 802, 861, 868-869, 897, 900, 904-905, 907, 910-911, 927, 1003, 1008-1010, 1012-1013, 1069, 1072, 1076-1077, 1087, 1100, 1194-1195, 1211-1212, 1243-1247, 1320, 1323, 1329-1330 |
-| src/downbeat/core/watcher.py                   |       87 |       12 |     86% |37, 41-42, 52-53, 89, 93-94, 131, 134-136 |
+| src/downbeat/core/watcher.py                   |       87 |       14 |     84% |37, 41-42, 52-53, 89, 93-94, 118-120, 131, 134-136 |
 | src/downbeat/skill/\_\_init\_\_.py             |        0 |        0 |    100% |           |
 | src/downbeat/tui/\_\_init\_\_.py               |        0 |        0 |    100% |           |
 | src/downbeat/tui/app.py                        |      101 |       27 |     73% |69-73, 79-88, 99-100, 117, 124-135, 138-139, 149-150 |
@@ -49,7 +49,7 @@
 | src/downbeat/tui/widgets/peer\_tabs.py         |       54 |        2 |     96% |    41, 89 |
 | src/downbeat/tui/widgets/rebind\_modal.py      |       33 |       33 |      0% |      2-52 |
 | src/downbeat/tui/widgets/switch\_acting\_as.py |       33 |        6 |     82% | 39-43, 46 |
-| **TOTAL**                                      | **3325** |  **774** | **77%** |           |
+| **TOTAL**                                      | **3326** |  **776** | **77%** |           |
 
 
 ## Setup coverage badge
