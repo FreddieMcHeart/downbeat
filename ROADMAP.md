@@ -135,8 +135,8 @@ See [CHANGELOG.md](CHANGELOG.md) for the full, versioned release history.
 
 ## Now — open, ready to pick up
 
-Two issues are labelled **good first issue** — both are narrow in scope and
-land against an existing test suite.
+Three issues are labelled **good first issue** — each is narrow in scope and
+lands against an existing test suite.
 
 - **Group writes during a rename** ([#56](https://github.com/FreddieMcHeart/downbeat/issues/56)).
   `_rename_in_groups` (`core/store.py`) rewrites `groups.json` once for *every*
@@ -151,6 +151,17 @@ land against an existing test suite.
   selection-copy path. The clipboard mechanics are already factored out
   (`tui/widgets/clipboard.py`, tested in `tests/test_tui_clipboard.py`), so this
   is wiring bindings into more screens rather than new plumbing.
+- **Read a message from the CLI** ([#85](https://github.com/FreddieMcHeart/downbeat/issues/85)).
+  `downbeat inbox` lists messages and nothing prints one — no `show`, no
+  `--body`, no `--full`. Reading mail you have already listed means going around
+  the CLI and parsing the store by hand, which requires knowing the on-disk
+  layout and which of four directories a message currently sits in. It also
+  blocks anything headless: a script or a background peer can enumerate its mail
+  and cannot read it. The TUI renders bodies already, so the capability exists
+  and is simply absent from the CLI. Worth deciding rather than assuming: that it
+  searches all four directories and reports which one it found the message in
+  (that directory *is* the state), and that reading does **not** set `read_at` —
+  a debugging read that mutates state is a trap.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, and please comment on the
 issue before starting so effort isn't duplicated.
