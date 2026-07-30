@@ -7,15 +7,17 @@ Wired into:
   SessionStart  — matcher "resume" only
 
 Why this exists:
-  Resume assigns Claude Code a brand-new session_id. `session_id_history`
-  (PR #77) self-heals the common case — the new id was previously live for
-  some peer, recorded in that peer's history — but issue #71's correction
-  comment established there is a real, reported case where NO such lineage
-  exists: the new id was never registered anywhere, so
-  `find_peer_by_session_history` returns nothing and the self-heal falls
-  straight through to a refusal. Before this hook, that refusal only
-  surfaced at the moment a message was worth sending. This hook surfaces it
-  at resume instead.
+  Resume assigns Claude Code a brand-new session_id, so a resumed session's
+  binding goes stale and the CLI refuses to identify it. Before this hook,
+  that refusal only surfaced at the moment a message was worth sending —
+  everything up to that point looked healthy. This hook surfaces it at
+  resume instead.
+
+  Nothing repairs this automatically any more. PR #77 used to self-heal when
+  the new id sat in some peer's `session_id_history`; #88 removed that,
+  because the history cannot tell a resumed session apart from a different
+  one that once held the same name, and auto-rebinding on it made routing
+  nondeterministic between two live sessions.
 
   It does NOT guess an identity and rebind automatically — issue #71 argues
   at length that a guess (name, cwd, "the only peer with a stale binding")
@@ -29,10 +31,10 @@ session that was never a peer at all):
     never anyone's identity; nothing to warn about)
   - silent when this session_id is already some peer's current session_id
     (nothing wrong)
-  - silent when this session_id is in ANY peer's session_id_history — that
-    case self-heals silently on the next relay command (PR #77); warning
-    about it too would be noise about something that already resolves
-    itself
+  - WARNS when this session_id is in exactly one peer's session_id_history:
+    since #88 that no longer self-heals, so it is the strongest evidence
+    available and the session will be refused at its first relay command
+  - silent when it is in SEVERAL peers' histories — ambiguous, never guess
   - silent unless the resumed cwd matches EXACTLY ONE registered peer's cwd
     — that is the one piece of evidence available (this machine's registry
     previously bound a peer to this exact working directory). Zero matches
@@ -73,11 +75,22 @@ def find_stale_binding(session_id, cwd, sessions):
         if meta.get("session_id") == session_id:
             return None  # already correctly bound
 
-    for meta in sessions.values():
-        if not isinstance(meta, dict):
-            continue
-        if session_id in (meta.get("session_id_history") or []):
-            return None  # self-heal (PR #77) already covers this
+    # A history hit used to be a reason to stay QUIET, because the CLI
+    # self-healed it on the next command (PR #77). #88 removed that self-heal:
+    # the history cannot tell a resumed session apart from a different one that
+    # once held the name, and auto-rebinding on it made routing
+    # nondeterministic. So this is now the STRONGEST evidence available, not a
+    # reason for silence — the session will be refused at its first relay
+    # command, and this is where saying so is still cheap.
+    history_hits = [
+        (name, meta) for name, meta in sessions.items()
+        if isinstance(meta, dict)
+        and session_id in (meta.get("session_id_history") or [])
+    ]
+    if len(history_hits) == 1:
+        return history_hits[0]
+    if len(history_hits) > 1:
+        return None  # ambiguous across peers -- never guess
 
     candidates = [
         (name, meta) for name, meta in sessions.items()
