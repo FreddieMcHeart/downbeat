@@ -73,10 +73,32 @@ def test_silent_when_session_id_is_already_correctly_bound():
     assert hook.find_stale_binding("new-sid", "/my/project", sessions) is None
 
 
-def test_silent_when_self_heal_already_covers_it_via_history():
+def test_warns_when_session_id_is_in_exactly_one_peers_history():
+    """A history hit is now the STRONGEST evidence, not a reason for silence.
+
+    It used to return None because the CLI self-healed the case on the next
+    command (PR #77). #88 removed that self-heal -- the history cannot tell a
+    resumed session apart from a different one that once held the name -- so
+    the session will be refused at its first relay command, and saying so at
+    resume is the whole point of this hook.
+    """
     hook = _load_hook_module()
     sessions = {"Me": _peer("old-sid", "/my/project", history=["new-sid"])}
-    assert hook.find_stale_binding("new-sid", "/my/project", sessions) is None
+    hit = hook.find_stale_binding("new-sid", "/my/project", sessions)
+    assert hit is not None
+    name, meta = hit
+    assert name == "Me"
+    assert meta["session_id"] == "old-sid"
+
+
+def test_silent_when_session_id_is_in_several_peers_histories():
+    """Ambiguous across peers -- never guess which one this session is."""
+    hook = _load_hook_module()
+    sessions = {
+        "PeerA": _peer("live-a", "/a", history=["shared-old"]),
+        "PeerB": _peer("live-b", "/b", history=["shared-old"]),
+    }
+    assert hook.find_stale_binding("shared-old", "/a", sessions) is None
 
 
 def test_warns_when_cwd_matches_exactly_one_stale_peer():
@@ -224,7 +246,8 @@ def test_end_to_end_silent_on_empty_stdin(tmp_path):
     assert proc.stdout.strip() == ""
 
 
-def test_end_to_end_silent_when_history_self_heal_covers_it(tmp_path):
+def test_end_to_end_warns_when_history_holds_this_session_id(tmp_path):
+    """End-to-end counterpart of the unit test above (#88)."""
     sessions = {"Me": _peer("old-sid", "/my/project", history=["new-sid"])}
     out = _run(
         tmp_path,
@@ -232,4 +255,5 @@ def test_end_to_end_silent_when_history_self_heal_covers_it(tmp_path):
          "hook_event_name": "SessionStart"},
         sessions=sessions,
     )
-    assert out == ""
+    assert out != ""
+    assert "Me" in out

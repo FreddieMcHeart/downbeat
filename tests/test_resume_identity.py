@@ -31,23 +31,28 @@ def test_find_peer_by_session_history_no_match(relay_dir):
     assert store.find_peer_by_session_history("never-seen-sid") == []
 
 
-def test_detect_peer_rebinds_on_provable_history_match(relay_dir, monkeypatch):
-    # peer "p" resumed once already (manually reconciled): history=[resumed-sid],
-    # live=live-sid. Now the session detects as resumed-sid again (e.g. resume
-    # picked the older checkpoint back up) — provable lineage, self-heal must
-    # rebind rather than error.
+def test_detect_peer_reports_history_lead_without_taking_the_record(relay_dir, capsys, monkeypatch):
+    """Was: asserts the auto-rebind. Now: asserts it refuses (#88).
+
+    The scenario is unchanged -- a session whose id sits in exactly one peer's
+    history -- but the correct outcome inverted. Taking the record on that
+    evidence is the nondeterminism #88 describes.
+    """
     store.register_peer(name="p", session_id="resumed-sid", cwd="/tmp", role="parent")
     store.rebind_session("p", new_session_id="live-sid")
     monkeypatch.setattr(session, "detect_session_id", lambda: "resumed-sid")
-    # No claude_pid signal available — resume is a new OS process, so the
-    # pre-existing /clear-only auto-rebind path must not be what saves this.
     monkeypatch.setattr(session, "detect_live_claude_pid", lambda: None)
 
     from downbeat.cli.commands.relay_cmds import _detect_peer_or_error
-    name = _detect_peer_or_error(None)
+    with pytest.raises(SystemExit) as exc:
+        _detect_peer_or_error(None)
 
-    assert name == "p"
-    assert store.get_peer("p").session_id == "resumed-sid"
+    assert exc.value.code == 2
+    err = capsys.readouterr().err
+    assert "p" in err
+    assert "downbeat rebind" in err
+    assert "not proof" in err
+    assert store.get_peer("p").session_id == "live-sid"
 
 
 def test_detect_peer_refuses_when_sid_in_no_peer_history(relay_dir, capsys, monkeypatch):
@@ -85,9 +90,13 @@ def test_detect_peer_refuses_when_sid_in_multiple_peer_histories(relay_dir, caps
     assert "A" in err and "B" in err
 
 
-def test_whoami_self_heals_after_resume(relay_dir, capsys, monkeypatch):
-    # The issue's second reproduction: whoami itself couldn't identify the
-    # peer after resume. Confirm the fix benefits whoami too, not only send.
+def test_whoami_reports_the_lead_instead_of_self_healing(relay_dir, capsys, monkeypatch):
+    """Was: asserts whoami self-heals. Now: asserts it names the lead (#88).
+
+    whoami is the read-out path, so it is where a human most often meets this.
+    It must say which peer the session probably is and how to claim it --
+    without claiming it on their behalf.
+    """
     import sys
     store.register_peer(name="Skill-Builder", session_id="resumed-sid",
                         cwd="/tmp", role="parent")
@@ -97,7 +106,65 @@ def test_whoami_self_heals_after_resume(relay_dir, capsys, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["downbeat", "whoami"])
 
     from downbeat.cli.__main__ import main
-    rc = main()
-    assert rc == 0
-    out = capsys.readouterr().out
-    assert "Skill-Builder" in out
+    with pytest.raises(SystemExit) as exc:
+        main()
+
+    assert exc.value.code == 2
+    err = capsys.readouterr().err
+    assert "Skill-Builder" in err
+    assert "downbeat rebind" in err
+    assert store.get_peer("Skill-Builder").session_id == "live-sid"
+
+
+def test_history_match_reports_but_does_not_rebind(relay_dir, capsys, monkeypatch):
+    """A history hit is a lead, not a licence to take the record (#88).
+
+    session_id_history cannot distinguish "the same agent resumed" from "a
+    different agent that once held this name" -- on disk they are the same
+    shape. #71 established that a guess is worse than a refusal precisely
+    because it can bind a session to the wrong identity, so the history hit
+    must be reported for a human to act on, never acted on automatically.
+    """
+    store.register_peer(name="p", session_id="old-sid", cwd="/tmp", role="parent")
+    store.rebind_session("p", new_session_id="live-sid")
+    monkeypatch.setattr(session, "detect_session_id", lambda: "old-sid")
+    monkeypatch.setattr(session, "detect_live_claude_pid", lambda: None)
+
+    from downbeat.cli.commands.relay_cmds import _detect_peer_or_error
+    with pytest.raises(SystemExit) as exc:
+        _detect_peer_or_error(None)
+
+    assert exc.value.code == 2
+    err = capsys.readouterr().err
+    assert "p" in err                       # names the lead
+    assert "downbeat rebind" in err         # names the repair
+    # The record must be untouched: no silent takeover.
+    assert store.get_peer("p").session_id == "live-sid"
+
+
+def test_two_live_ids_in_one_history_do_not_oscillate(relay_dir, monkeypatch):
+    """Production reproduction of #88.
+
+    rebind_log.jsonl recorded six events for one record, five of them
+    alternating between two live session ids. Each self-heal was a theft in
+    the other direction and each printed as a success. Alternating detection
+    must leave the binding stable.
+    """
+    store.register_peer(name="Dev One", session_id="sid-a", cwd="/tmp", role="parent")
+    store.rebind_session("Dev One", new_session_id="sid-b")
+    store.rebind_session("Dev One", new_session_id="sid-a")
+    # Both live ids are now entitled by history -- the state that produced
+    # the ping-pong.
+    bound = store.get_peer("Dev One").session_id
+
+    from downbeat.cli.commands.relay_cmds import _detect_peer_or_error
+    for sid in ("sid-b", "sid-a", "sid-b", "sid-a"):
+        monkeypatch.setattr(session, "detect_session_id", lambda s=sid: s)
+        monkeypatch.setattr(session, "detect_live_claude_pid", lambda: None)
+        try:
+            _detect_peer_or_error(None)
+        except SystemExit:
+            pass
+        assert store.get_peer("Dev One").session_id == bound, (
+            f"binding moved after a command from {sid}"
+        )

@@ -35,22 +35,35 @@ def _detect_peer_or_error(name: str | None, *, flag: str = "--peer") -> str:
     for peer in store.list_peers():
         if peer.session_id == sid:
             return peer.name
-    # Self-heal (resume): session_id_history is provable lineage — the
-    # current sid was, at some earlier point, itself a peer's live
-    # session_id. Unlike a name guess, this is evidence recorded by
-    # register_peer/rebind_session, not an assumption about which peer
-    # "this must be". Checked before the claude_pid path below because
-    # resume is a new OS process (new claude_pid too), so claude_pid never
-    # matches for resume — this is the path that actually fires for it.
+    # A history hit is a LEAD, not a licence to take the record (#88).
+    #
+    # `session_id_history` cannot distinguish "the same agent, resumed under a
+    # new id" from "a different agent that once held this name" — on disk they
+    # are the same shape. Auto-rebinding on that signal made routing
+    # nondeterministic whenever two live sessions were both in one record's
+    # history: each session's next command took the record back, and printed
+    # the theft as a success. Measured in production as six rebinds on one
+    # record, five of them alternating between two live ids, none an error.
+    #
+    # #71 settled that a guess is worse than a refusal, because a guess binds a
+    # session to the WRONG identity. This is exactly that case, so it reports
+    # and hands the decision to a human. The word "provable" in the message
+    # this replaces was the tell: the history proves this id once held the
+    # name, which is not the question being asked.
     history_candidates = store.find_peer_by_session_history(sid)
     if len(history_candidates) == 1:
         peer = history_candidates[0]
-        old_sid = peer.session_id
-        store.rebind_session(peer.name, new_session_id=sid)
-        print(f"[rebind] {peer.name}: session_id restored from history "
-              f"{old_sid[:8]}→{sid[:8]} (provable via session_id_history)",
+        print(f"error: session {sid[:8]} is not registered.\n"
+              f"  It appears in the session_id_history of peer {peer.name!r}, "
+              f"currently bound to session {peer.session_id[:8]}.\n"
+              f"  That is a lead, not proof — the history cannot tell a "
+              f"resumed session apart from a different one that once held the "
+              f"name, so the identity is not reassigned automatically.\n"
+              f"  If this session IS {peer.name!r}:  downbeat rebind "
+              f"{peer.name!r}\n"
+              f"  If it is not, register under a different name.",
               file=sys.stderr)
-        return peer.name
+        raise SystemExit(2)
     if len(history_candidates) > 1:
         names = [c.name for c in history_candidates]
         print(f"error: ambiguous — session {sid} appears in the "
