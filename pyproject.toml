@@ -138,13 +138,18 @@ version_toml = ["pyproject.toml:project.version"]
 # PSR's own commit step picks it up alongside the version bump + changelog.
 #
 # Hardcoded "downbeat", NOT "$PACKAGE_NAME": PSR's docs assume that env var
-# is set by the action, but python-semantic-release/python-semantic-release
-# @v9 (pinned in release.yml) doesn't export it — it's apparently a v10+
-# action feature. With the var unset it expanded to "", and
-# `uv lock --upgrade-package ""` hard-errored on every release (0.1.1,
-# 0.1.2) — silently, because build_command has no `set -e`, so `git add` +
-# `uv build` kept running after the failed line and the job still reported
-# success. Confirmed via the actual job log, not assumed from docs alone.
+# is set by the action, but the action pinned at the time (@v9) didn't export
+# it. With the var unset it expanded to "", and `uv lock --upgrade-package ""`
+# hard-errored on every release (0.1.1, 0.1.2) — silently, because
+# build_command has no `set -e`, so `git add` + `uv build` kept running after
+# the failed line and the job still reported success. Confirmed via the actual
+# job log, not assumed from docs alone.
+#
+# release.yml now pins @v10, which may well export $PACKAGE_NAME. The literal
+# is kept anyway: it cannot break, and the failure it replaced was invisible
+# (a hard error that still reported success), so there is nothing to gain by
+# reintroducing a variable whose absence is silent. If you do switch, verify
+# from a real job log rather than the docs — that is how this was found.
 #
 # .claude-plugin/plugin.json's own `version` field is kept in sync with this
 # one via the same commit — stdlib re+json (not tomllib), verified working
@@ -171,6 +176,28 @@ allow_zero_version = true  # PSR defaults to False, which forces the FIRST
 # "Development Status :: 3 - Alpha" classifier above. Explicit true keeps
 # releases in 0.x until a deliberate 1.0.0 cut.
 commit_parser = "conventional"
+
+[tool.semantic_release.changelog]
+# BOTH keys are explicit on purpose: inheriting them across the v9 -> v10
+# action upgrade is what silently stopped this file being written for eleven
+# releases (v0.4.0 through v0.14.6 were simply absent from CHANGELOG.md).
+#
+# v10 writes in "update" mode — it does not regenerate the file, it INSERTS
+# the newest release immediately after `insertion_flag`. With that flag absent
+# there is nowhere to insert, so PSR does nothing: no error, no warning, exit
+# code 0. Reproduced locally against 10.5.3 — `semantic-release changelog` on
+# the pre-fix file left it byte-identical and printed nothing; adding the flag
+# and re-running inserted v0.14.6 on the first try.
+#
+# `--noop` does NOT surface this. It prints "would have written your changelog
+# to CHANGELOG.md" before attempting the insertion, so the broken case looks
+# healthy in a dry run. Only a real run distinguishes them.
+#
+# The string below and the literal marker in CHANGELOG.md are a matched pair:
+# deleting the marker from the file re-breaks generation silently. The
+# post-release check in release.yml exists to make that loud instead.
+mode = "update"
+insertion_flag = "<!-- version list -->"
 
 [tool.semantic_release.changelog.default_templates]
 changelog_file = "CHANGELOG.md"

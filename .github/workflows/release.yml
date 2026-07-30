@@ -69,3 +69,49 @@ jobs:
       - run: uv build
       - name: Publish to PyPI (Trusted Publishing)
         run: uv publish
+
+  # Deliberately a REPORT, not a gate. CHANGELOG.md going unwritten is only
+  # observable after semantic-release has already committed, tagged and pushed —
+  # and `publish` ships to PyPI from that same commit, which cannot be undone.
+  # So this job runs beside `publish` rather than before it: a red X on a
+  # release that already happened is useful, a gate that aborts a legitimate
+  # release for a condition created by that release is not.
+  #
+  # Exists because the changelog stopped being written at v0.3.0 and nobody
+  # noticed for eleven releases: PSR's update mode skips silently when the
+  # insertion flag is missing from the file (no error, exit 0), and `--noop`
+  # reports success in exactly that case. Nothing in CI was looking at the
+  # artifact itself. This looks at the artifact itself.
+  changelog-check:
+    needs: release
+    if: needs.release.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release.outputs.tag }}
+          fetch-depth: 2   # need the release commit's parent to diff against
+      - name: Assert the release commit wrote CHANGELOG.md
+        run: |
+          tag='${{ needs.release.outputs.tag }}'
+          if git diff --name-only HEAD~1 HEAD | grep -qx 'CHANGELOG.md'; then
+            echo "CHANGELOG.md was updated by the release commit for $tag."
+            exit 0
+          fi
+          echo "::error::Release $tag did not write CHANGELOG.md."
+          echo
+          echo "Files changed by the release commit:"
+          git diff --name-only HEAD~1 HEAD | sed 's/^/  /'
+          echo
+          echo "Most likely cause: the insertion flag configured as"
+          echo "[tool.semantic_release.changelog].insertion_flag is missing from"
+          echo "CHANGELOG.md, so python-semantic-release had nowhere to insert and"
+          echo "skipped without erroring. Check that the literal marker is still"
+          echo "present in the file."
+          echo
+          echo "The release itself succeeded and is published — this is a report,"
+          echo "not a failed release. Fix the changelog and the next release will"
+          echo "carry both entries."
+          exit 1
