@@ -2,6 +2,15 @@
 
 <!-- version list -->
 
+## v0.14.8 (2026-07-30)
+
+### Bug Fixes
+
+- Stop treating a history hit as licence to take a peer's identity
+  ([#91](https://github.com/FreddieMcHeart/downbeat/pull/91),
+  [`5656fae`](https://github.com/FreddieMcHeart/downbeat/commit/5656fae0b10438cf3b40902ddf53ef4a955ddca0))
+
+
 ## v0.14.7 (2026-07-30)
 
 ### Bug Fixes
