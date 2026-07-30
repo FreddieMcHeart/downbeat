@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.14.7 (2026-07-30)
+
+### Bug Fixes
+
+- Restore changelog generation, silently dead since v0.3.0
+  ([#87](https://github.com/FreddieMcHeart/downbeat/pull/87),
+  [`582fd36`](https://github.com/FreddieMcHeart/downbeat/commit/582fd36e67f209095bea282b9b498ba3ee1b8024))
+
+### Documentation
+
+- Put the missing CLI message reader on the map
+  ([#86](https://github.com/FreddieMcHeart/downbeat/pull/86),
+  [`77bc160`](https://github.com/FreddieMcHeart/downbeat/commit/77bc1607df272af1a819cfe1510ad031f874ff0b))
+
+- Refresh the roadmap for v0.14.6 ([#83](https://github.com/FreddieMcHeart/downbeat/pull/83),
+  [`88acdcf`](https://github.com/FreddieMcHeart/downbeat/commit/88acdcfd2b7bb0fa2b7eecb02533404435ba5b37))
+
+
 ## v0.14.6 (2026-07-29)
 
 ### Bug Fixes
