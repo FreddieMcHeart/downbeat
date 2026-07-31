@@ -16,8 +16,32 @@ Horizons are ordered by confidence, not calendar:
 
 ---
 
-## Recently shipped (through v0.14.6)
+## Recently shipped (through v0.14.8)
 
+- **A history hit no longer lets a session take another's identity.** A resumed
+  session used to repair itself whenever its id appeared in some peer's
+  recorded history. But that history cannot tell *the same agent, resumed*
+  apart from *a different agent that once held this name* — on disk they are
+  the same thing — so once two live sessions had both held a name, each one's
+  next command took the record back and reported the theft as a success. It
+  ran six times on one record in production, five of them alternating, none of
+  them an error, and it cost a code review credited to the wrong session and
+  now unresolvable, the same task built twice, and a review delivered to the
+  wrong author. A history hit is now *reported* — it names the peer, says
+  plainly that a lead is not proof, and leaves the decision to a human. The
+  resume-time check inverts with it: what used to be its reason for silence is
+  now its strongest warning. (issue #88)
+- **The changelog is written again.** `CHANGELOG.md` had not been touched since
+  v0.3.0 — eleven releases absent from it — while every release job reported
+  success. The generator was never broken: release notes rendered correctly the
+  whole time and went only to GitHub. What broke was the *write*, and it broke
+  silently, because the tool inserts each release after a marker that had gone
+  missing, and finding no marker it does nothing and exits cleanly. The dry-run
+  mode could not surface it either: it announces the write before attempting
+  it, so the broken state looked healthy in exactly the check meant to catch
+  it. Backfilled from tag history, and a post-release check now fails loudly
+  when a release does not touch the file — after publishing, never blocking it.
+  (issue #84)
 - **A background session can identify itself.** Detection walks ancestor
   processes looking for `claude` and matched the process name as a path segment —
   a rule chosen deliberately, and correct for every shape that existed when it
@@ -191,6 +215,21 @@ issue before starting so effort isn't duplicated.
   `from`/subject/body and adding a "forwarded by" trail — so passing an ask
   along is lossless and attributed instead of a manual paste.
   ([#61](https://github.com/FreddieMcHeart/downbeat/issues/61))
+- **An error message that is safe to follow from wherever it is read.** When
+  registering a name that is already taken, the refusal offers a way out —
+  reattach the same peer by leaving the parent off. That is correct from the
+  session that owns the record and destructive from any other, because
+  `register` takes its subject from *the calling session* and dropping the
+  parent skips the only check that fired. The remedy needs its precondition
+  attached, and should not be offered at all to a caller that demonstrably
+  isn't that session. Underneath sits the general rule worth encoding: a
+  command that names its subject **implicitly** means different things in
+  different windows, so it cannot be handed to a human in an error message the
+  way one that takes its target as an **argument** can. The same fix should
+  close the gap the guard only covers by accident — it refuses on a parent
+  mismatch and merely happens to prevent a session takeover, which stops being
+  true the moment that check is relaxed or routed around.
+  ([#89](https://github.com/FreddieMcHeart/downbeat/issues/89))
 
 ---
 
@@ -258,6 +297,20 @@ Alongside it, a few narrower directions:
   change, and keying identity on a *view* is the same category error `role`
   made before the tree was generalized.
   ([#73](https://github.com/FreddieMcHeart/downbeat/issues/73))
+- **A way to let go of a name.** A session that finds it is holding an identity
+  belonging to someone else cannot step aside. `register` only takes a claim,
+  `rebind` repoints a record — which from a squatter means reassigning *another
+  live session's* identity — and `peers rename` drags the message history along
+  with the name, so freeing a record would carry off the displaced session's
+  mail. The only remedy left is a human editing the registry by hand, which is
+  what makes a collision *persist* rather than resolve: both sessions can see
+  the problem and neither can stop taking part in it. The constraint that
+  should be built in rather than left to good judgement — **releasing your own
+  claim is the only identity operation a session may perform unilaterally;
+  repointing someone else's record is not.** Open, and worth deciding rather
+  than defaulting: what a record with no session bound to it should do when
+  mail arrives.
+  ([#90](https://github.com/FreddieMcHeart/downbeat/issues/90))
 - **One home for registry writes, and one for delivery.** Two places where the
   same operation exists twice. Half the registry's mutators take the lock added
   with the liveness fix and half do not, and since the lock is advisory an
