@@ -311,6 +311,22 @@ Alongside it, a few narrower directions:
   than defaulting: what a record with no session bound to it should do when
   mail arrives.
   ([#90](https://github.com/FreddieMcHeart/downbeat/issues/90))
+- **A way to say "received, nothing further" that the inbox believes.** A
+  message can already declare it needs no answer — that is what `kind` is for,
+  and `reconcile()` treats the terminal kinds as settled. What no part of the
+  system does is *show* it that way: a status report keeps appearing in the
+  inbox listing exactly like unanswered work, so the count stops meaning "work
+  owed" and starts getting ignored. `ack` is the verb for this and it only
+  reaches mail that has already been delivered, so the messages most in need of
+  clearing — sitting in a peer whose per-turn drain has not run — are the ones
+  it cannot touch. What remains is replying, which puts a fresh task in the
+  sender's inbox and restarts the exchange the status kind existed to end. The
+  likely shape is a listing that separates *owed* from *unread but not owed*,
+  which needs no decision about when to clear anything; auto-acking at delivery
+  is the tempting alternative and answers the wrong question, since it archives
+  a report before it has been read. Same disease as the unread badge above,
+  from a different cause, and much cheaper to cure.
+  ([#93](https://github.com/FreddieMcHeart/downbeat/issues/93))
 - **One home for registry writes, and one for delivery.** Two places where the
   same operation exists twice. Half the registry's mutators take the lock added
   with the liveness fix and half do not, and since the lock is advisory an
