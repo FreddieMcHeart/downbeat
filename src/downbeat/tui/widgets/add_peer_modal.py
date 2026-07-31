@@ -6,8 +6,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, Label, Select, Static
 
 from ...core import store
-from ...core.errors import (AmbiguousParent, InvalidParent,
-                          PeerReparentConflict, PeerSessionTakeover)
+from ...core.errors import AmbiguousParent, InvalidParent, PeerReparentConflict, PeerSessionTakeover
 
 
 class AddPeerModal(ModalScreen):
