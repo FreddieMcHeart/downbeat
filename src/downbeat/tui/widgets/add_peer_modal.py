@@ -6,7 +6,8 @@ from textual.screen import ModalScreen
 from textual.widgets import Input, Label, Select, Static
 
 from ...core import store
-from ...core.errors import AmbiguousParent, InvalidParent, PeerReparentConflict
+from ...core.errors import (AmbiguousParent, InvalidParent,
+                          PeerReparentConflict, PeerSessionTakeover)
 
 
 class AddPeerModal(ModalScreen):
@@ -78,7 +79,8 @@ class AddPeerModal(ModalScreen):
         cwd = self._cwd.value.strip() or os.getcwd()
         try:
             store.register_peer(name=name, session_id=sid, cwd=cwd, role=role, parent=parent)
-        except (AmbiguousParent, InvalidParent, PeerReparentConflict) as e:
+        except (AmbiguousParent, InvalidParent, PeerReparentConflict,
+            PeerSessionTakeover) as e:
             self.app.bell()
             self.notify(str(e), severity="error")
             return

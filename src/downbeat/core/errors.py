@@ -24,6 +24,24 @@ class PeerReparentConflict(RelayError):
     `downbeat peers set-parent`."""
 
 
+class PeerSessionTakeover(RelayError):
+    """Raised by register_peer when repointing an existing peer's session_id
+    would take it from a session that is demonstrably still alive (issue #89).
+
+    `register <name>` names its subject IMPLICITLY, from the calling session,
+    so the same command means different things typed in different windows.
+    That is what made #70's guard protect against a takeover only by accident:
+    it refuses on a PARENT mismatch, and the session re-home it also prevented
+    was never checked and never recorded.
+
+    "Demonstrably alive" is deliberately narrow -- the incumbent's recorded
+    claude_pid is still a live claude process AND its start time matches, so
+    the pid has not been recycled. A dead or recycled process is the ordinary
+    resume path and is allowed. Unknown liveness proceeds and is logged: it
+    cannot be proven either way, and refusing would block reattach for every
+    peer registered before pids were recorded."""
+
+
 class InvalidPeerName(RelayError):
     """Raised when a peer name is empty or whitespace-only."""
 

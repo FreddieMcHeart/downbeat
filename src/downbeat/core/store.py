@@ -26,6 +26,7 @@ from .errors import (
     PeerNameCollision,
     PeerNotFound,
     PeerReparentConflict,
+    PeerSessionTakeover,
     StoreCorrupt,
 )
 from .models import (
@@ -216,22 +217,80 @@ def _peer_message_counts(name: str) -> dict[str, int]:
     return counts
 
 
-def _reparent_conflict_message(name: str, existing: dict, new_parent: str) -> str:
+def _reparent_conflict_message(name: str, existing: dict, new_parent: str,
+                               session_id: str | None = None) -> str:
+    """Build the refusal text, choosing the remedy by WHO is asking (#89).
+
+    "To reattach the SAME peer, omit --parent" is correct from the session
+    that owns the record and destructive from any other, because
+    `register <name>` takes its subject from the CALLING session -- omitting
+    --parent skips the only check that fired and repoints session_id onto
+    whoever typed it. Printing it unconditionally handed every reader a way
+    out that re-creates the collision just prevented, and the reader most
+    likely to follow it is the one it is wrong for.
+
+    `peers set-parent` is offered to everyone: it names its target as an
+    ARGUMENT rather than implicitly, so it means the same thing typed in any
+    window. That property, not the semantics, is what makes a command safe to
+    put in an error message.
+    """
     counts = _peer_message_counts(name)
     total = sum(counts.values())
     existing_parent = existing.get("parent")
     parent_desc = (f"parent {existing_parent!r}" if existing_parent
                    else "no parent (a root peer)")
-    return (
+    incumbent = existing.get("session_id") or ""
+    caller_owns_record = bool(session_id) and session_id == incumbent
+
+    head = (
         f"{name!r} is already registered with {parent_desc} "
         f"(registered_at={existing.get('registered_at')}, {total} message"
         f"{'s' if total != 1 else ''} held: inbox={counts['inbox']} "
         f"delivered={counts['delivered']} processed={counts['processed']}). "
         f"Registering {name!r} with --parent {new_parent!r} would silently "
         f"re-home it, orphaning that history from its current parent's view. "
-        f"To reattach the SAME peer, omit --parent. To deliberately move it, "
-        f"run: downbeat peers set-parent {name!r} {new_parent!r}"
     )
+    move = (f"To deliberately move it, run: downbeat peers set-parent "
+            f"{name!r} {new_parent!r}")
+    if caller_owns_record:
+        return head + f"To reattach the SAME peer, omit --parent. {move}"
+    return head + (
+        f"This session is not the one {name!r} is bound to (that is "
+        f"{incumbent[:8] or 'unknown'}), so re-registering from here would "
+        f"take the binding as well as the parent. {move}"
+    )
+
+
+def _incumbent_liveness(existing: dict) -> bool | None:
+    """Is the session currently holding this record demonstrably still alive?
+
+    True  -- its recorded claude_pid is a live claude process AND the start
+             time matches, so the pid has not been recycled.
+    False -- demonstrably gone: process dead, no longer claude, or a different
+             process wearing the same pid.
+    None  -- cannot be determined. Deliberately NOT folded into False: a record
+             with no recorded pid proves nothing, and treating unknown as
+             "gone" is how a permissive default gets mistaken for a check that
+             ran and passed.
+    """
+    pid = existing.get("claude_pid")
+    if not pid:
+        return None
+    # Imported here rather than at module scope: the store is usable without
+    # process introspection, and only this check needs it.
+    from . import session as _session
+    try:
+        if not _session._process_is_claude(pid):
+            return False
+        stored_start = existing.get("claude_pid_start")
+        if not stored_start:
+            return None
+        live_start = _session.process_start_time(pid)
+        if live_start is None:
+            return None
+        return live_start == stored_start
+    except Exception:
+        return None
 
 
 def register_peer(name: str, session_id: str, cwd: str, role: str,
@@ -263,8 +322,41 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
         # and must never be gated here.
         if existing is not None and parent is not None and existing.get("parent") != parent:
             raise PeerReparentConflict(
-                _reparent_conflict_message(name, existing, parent)
+                _reparent_conflict_message(name, existing, parent, session_id)
             )
+        # The parent check above prevented a session takeover only BY ACCIDENT
+        # (#89): it refuses on a parent mismatch and never asks whether this
+        # write would repoint session_id onto a different, still-running
+        # session. Incidental protection is not protection -- omitting --parent
+        # routes around that check by design, and nothing recorded that it had
+        # been doing this job.
+        #
+        # Checked here rather than in the CLI because the TUI's add-peer modal
+        # calls register_peer too; guarding one caller is how half of a fix
+        # ends up inert in production.
+        if (existing is not None
+                and existing.get("session_id")
+                and existing["session_id"] != session_id):
+            live = _incumbent_liveness(existing)
+            if live is True:
+                raise PeerSessionTakeover(
+                    f"{name!r} is bound to session "
+                    f"{existing['session_id'][:8]}, whose process is still "
+                    f"running (claude_pid={existing.get('claude_pid')}). "
+                    f"Registering {name!r} from this session would take that "
+                    f"identity while its owner is using it. If you mean to "
+                    f"move the binding on purpose, run: downbeat rebind "
+                    f"{name!r} --session-id {session_id}"
+                )
+            if live is None:
+                # Not a refusal, and not a pass either. Say so, so that the
+                # absence of an error is not read as a check having succeeded.
+                _log.warning(
+                    "register peer=%s: incumbent liveness unknown "
+                    "(claude_pid=%s), allowing rebind from %s to %s",
+                    name, existing.get("claude_pid"),
+                    existing["session_id"][:8], str(session_id)[:8],
+                )
         # Identity is assigned once. Re-registering an existing name is the same
         # peer reattaching, not a new one, so its id must carry over untouched.
         peer_id = (existing or {}).get("peer_id") or new_id()
