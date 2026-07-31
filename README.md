@@ -9,9 +9,9 @@
 | src/downbeat/cli/\_\_main\_\_.py               |      115 |        1 |     99% |       233 |
 | src/downbeat/cli/commands/\_\_init\_\_.py      |        0 |        0 |    100% |           |
 | src/downbeat/cli/commands/init\_cmd.py         |      293 |       17 |     94% |98, 115-120, 176-177, 252, 264, 268-269, 310-311, 330, 341 |
-| src/downbeat/cli/commands/relay\_cmds.py       |      235 |       56 |     76% |101-103, 140-142, 148-156, 163-164, 192-193, 203-220, 227-232, 235, 267, 269, 273, 285, 306, 345-347, 351-354, 358-359 |
+| src/downbeat/cli/commands/relay\_cmds.py       |      235 |       56 |     76% |102-104, 142-144, 150-158, 165-166, 194-195, 205-222, 229-234, 237, 269, 271, 275, 287, 308, 347-349, 353-356, 360-361 |
 | src/downbeat/core/\_\_init\_\_.py              |        0 |        0 |    100% |           |
-| src/downbeat/core/errors.py                    |       11 |        0 |    100% |           |
+| src/downbeat/core/errors.py                    |       12 |        0 |    100% |           |
 | src/downbeat/core/groups.py                    |       22 |        0 |    100% |           |
 | src/downbeat/core/logging.py                   |       27 |        0 |    100% |           |
 | src/downbeat/core/models.py                    |      108 |        1 |     99% |        75 |
@@ -20,7 +20,7 @@
 | src/downbeat/core/provenance.py                |       61 |        5 |     92% |93-94, 136-138 |
 | src/downbeat/core/session.py                   |       83 |       30 |     64% |26-27, 93, 110-119, 125-126, 131-132, 147-161, 168 |
 | src/downbeat/core/state.py                     |       57 |        8 |     86% |49, 56, 60-65, 81 |
-| src/downbeat/core/store.py                     |      735 |       67 |     91% |51-53, 81-82, 296, 352, 393-394, 443-445, 448, 475, 478, 546, 550-551, 569, 573, 581, 685-686, 698-699, 739-741, 773-775, 802, 861, 868-869, 897, 900, 904-905, 907, 910-911, 927, 1003, 1008-1010, 1012-1013, 1069, 1072, 1076-1077, 1087, 1100, 1194-1195, 1211-1212, 1243-1247, 1320, 1323, 1329-1330 |
+| src/downbeat/core/store.py                     |      764 |       71 |     91% |52-54, 82-83, 287, 290, 292-293, 388, 444, 485-486, 535-537, 540, 567, 570, 638, 642-643, 661, 665, 673, 777-778, 790-791, 831-833, 865-867, 894, 953, 960-961, 989, 992, 996-997, 999, 1002-1003, 1019, 1095, 1100-1102, 1104-1105, 1161, 1164, 1168-1169, 1179, 1192, 1286-1287, 1303-1304, 1335-1339, 1412, 1415, 1421-1422 |
 | src/downbeat/core/watcher.py                   |       87 |       12 |     86% |37, 41-42, 52-53, 89, 93-94, 131, 134-136 |
 | src/downbeat/skill/\_\_init\_\_.py             |        0 |        0 |    100% |           |
 | src/downbeat/tui/\_\_init\_\_.py               |        0 |        0 |    100% |           |
@@ -34,7 +34,7 @@
 | src/downbeat/tui/screens/peers.py              |       85 |       32 |     62% |74-75, 90-97, 100, 111-120, 125, 129-138 |
 | src/downbeat/tui/screens/quarantine.py         |       73 |       73 |      0% |     2-115 |
 | src/downbeat/tui/widgets/\_\_init\_\_.py       |        0 |        0 |    100% |           |
-| src/downbeat/tui/widgets/add\_peer\_modal.py   |       56 |        9 |     84% |66, 72-74, 81-84, 88 |
+| src/downbeat/tui/widgets/add\_peer\_modal.py   |       56 |        9 |     84% |66, 72-74, 81-85, 89 |
 | src/downbeat/tui/widgets/chat\_composer.py     |       64 |       31 |     52% |54-57, 59-62, 68, 73-77, 80-101 |
 | src/downbeat/tui/widgets/chat\_stream.py       |      179 |       24 |     87% |26-27, 79-80, 177, 184, 250, 261, 285, 291, 299, 302, 307-308, 311-312, 316, 319, 322-324, 329-330, 337 |
 | src/downbeat/tui/widgets/clipboard.py          |       25 |       20 |     20% |     17-41 |
@@ -49,7 +49,7 @@
 | src/downbeat/tui/widgets/peer\_tabs.py         |       54 |        2 |     96% |    41, 89 |
 | src/downbeat/tui/widgets/rebind\_modal.py      |       33 |       33 |      0% |      2-52 |
 | src/downbeat/tui/widgets/switch\_acting\_as.py |       33 |        6 |     82% | 39-43, 46 |
-| **TOTAL**                                      | **3324** |  **774** | **77%** |           |
+| **TOTAL**                                      | **3354** |  **778** | **77%** |           |
 
 
 ## Setup coverage badge
