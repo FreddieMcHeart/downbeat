@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v0.14.9 (2026-07-31)
+
+### Bug Fixes
+
+- Make register's refusal safe to follow, and check the takeover it only prevented by accident
+  ([#95](https://github.com/FreddieMcHeart/downbeat/pull/95),
+  [`eb02d65`](https://github.com/FreddieMcHeart/downbeat/commit/eb02d658ca2ce41ab2bb4330b2eaa6e15bb271cd))
+
+### Documentation
+
+- Put the un-clearable status message on the map
+  ([#94](https://github.com/FreddieMcHeart/downbeat/pull/94),
+  [`6d86411`](https://github.com/FreddieMcHeart/downbeat/commit/6d86411cc9972f45b58eaf9824baf99e7b85f82b))
+
+- Refresh the roadmap for v0.14.8 ([#92](https://github.com/FreddieMcHeart/downbeat/pull/92),
+  [`b3c9cd8`](https://github.com/FreddieMcHeart/downbeat/commit/b3c9cd8c55da9357c4f019e4f043fc6fb25dde82))
+
+
 ## v0.14.8 (2026-07-30)
 
 ### Bug Fixes
