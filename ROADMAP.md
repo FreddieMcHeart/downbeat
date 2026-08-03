@@ -16,8 +16,27 @@ Horizons are ordered by confidence, not calendar:
 
 ---
 
-## Recently shipped (through v0.14.8)
+## Recently shipped (through v0.14.9)
 
+- **A refusal that is safe to follow from wherever it is read.** Registering a
+  name that is already taken is refused, and the refusal used to offer a way
+  out: reattach the same peer by leaving the parent off. That is correct from
+  the session that owns the record and destructive from any other, because
+  `register` takes its subject from *the calling session* — dropping the parent
+  skips the only check that fired and repoints the record onto whoever typed
+  it. The way out printed by the error, followed literally from the terminal
+  where that error most often appears, re-created the collision the guard had
+  just prevented. That branch is now gated on the caller actually owning the
+  record; everyone else is told which session holds it and pointed at `peers
+  set-parent`, which names its target as an *argument* and therefore means the
+  same thing typed in any window. The same change closes the gap the guard only
+  covered by accident: it refused on a parent mismatch and merely *happened* to
+  prevent a session takeover, which stopped being true the moment that check
+  was routed around. Repointing a binding is now refused outright when the
+  incumbent is demonstrably alive — its recorded pid is still a live `claude`
+  process and the start time matches, so the pid has not been recycled — while
+  unknown liveness proceeds and logs, since folding *unknown* into *gone* would
+  make a permissive default look like a check that ran. (issue #89)
 - **A history hit no longer lets a session take another's identity.** A resumed
   session used to repair itself whenever its id appeared in some peer's
   recorded history. But that history cannot tell *the same agent, resumed*
@@ -32,7 +51,7 @@ Horizons are ordered by confidence, not calendar:
   resume-time check inverts with it: what used to be its reason for silence is
   now its strongest warning. (issue #88)
 - **The changelog is written again.** `CHANGELOG.md` had not been touched since
-  v0.3.0 — eleven releases absent from it — while every release job reported
+  v0.3.0 — thirty releases absent from it — while every release job reported
   success. The generator was never broken: release notes rendered correctly the
   whole time and went only to GitHub. What broke was the *write*, and it broke
   silently, because the tool inserts each release after a marker that had gone
@@ -215,21 +234,6 @@ issue before starting so effort isn't duplicated.
   `from`/subject/body and adding a "forwarded by" trail — so passing an ask
   along is lossless and attributed instead of a manual paste.
   ([#61](https://github.com/FreddieMcHeart/downbeat/issues/61))
-- **An error message that is safe to follow from wherever it is read.** When
-  registering a name that is already taken, the refusal offers a way out —
-  reattach the same peer by leaving the parent off. That is correct from the
-  session that owns the record and destructive from any other, because
-  `register` takes its subject from *the calling session* and dropping the
-  parent skips the only check that fired. The remedy needs its precondition
-  attached, and should not be offered at all to a caller that demonstrably
-  isn't that session. Underneath sits the general rule worth encoding: a
-  command that names its subject **implicitly** means different things in
-  different windows, so it cannot be handed to a human in an error message the
-  way one that takes its target as an **argument** can. The same fix should
-  close the gap the guard only covers by accident — it refuses on a parent
-  mismatch and merely happens to prevent a session takeover, which stops being
-  true the moment that check is relaxed or routed around.
-  ([#89](https://github.com/FreddieMcHeart/downbeat/issues/89))
 
 ---
 
@@ -386,9 +390,10 @@ Alongside it, a few narrower directions:
 
 ## Contributing
 
-New contributors: start with the two **Now** items — both are labelled *good
-first issue*, touch one file, and land against an existing test suite. Past
-those, the **Next** section holds the strongest near-term candidates, and #41
-and #61 carry *help wanted*. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup,
+New contributors: start with the three **Now** items — all are labelled *good
+first issue* and land against an existing test suite. #56 is the smallest (one
+function); #85 adds a command; #48 wires existing clipboard plumbing into more
+screens. Past those, the **Next** section holds the strongest near-term
+candidates, and #41 and #61 carry *help wanted*. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup,
 and please check open issues **and** PRs before starting so effort isn't
 duplicated.
