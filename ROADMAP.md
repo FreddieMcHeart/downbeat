@@ -178,9 +178,26 @@ See [CHANGELOG.md](CHANGELOG.md) for the full, versioned release history.
 
 ## Now — open, ready to pick up
 
-Three issues are labelled **good first issue** — each is narrow in scope and
-lands against an existing test suite.
+One priority fix, then four issues labelled **good first issue** — each of those
+is narrow in scope and lands against an existing test suite.
 
+- **A guard that reads a field one writer doesn't maintain**
+  ([#100](https://github.com/FreddieMcHeart/downbeat/issues/100)). The takeover
+  check shipped in v0.14.9 refuses to repoint a peer's binding while the
+  incumbent session is demonstrably alive — its recorded `claude_pid` is still a
+  live `claude` process and the start time matches. `rebind_session` updates
+  `session_id` and `last_seen` and leaves both pid fields alone, so after any
+  rebind the record's session id describes the current process and its pid
+  describes the previous one. Observed on a live record: a binding rebound the
+  same day carrying a pid from two months earlier, whose process is gone — so
+  the check concludes "incumbent dead" and permits the write. It runs, logs
+  nothing unusual, and protects nothing. The severity is in the overlap: a peer
+  is rebound precisely when it has resumed, and a resumed peer is the one most
+  likely to reach the register path the guard sits on, so the guard is inert
+  exactly when it is most needed. Both directions are wrong — a still-running
+  older pid makes it refuse the *legitimate* owner instead. The invariant worth
+  encoding rather than patching: any field the liveness check reads must be
+  written by every path that rebinds a record.
 - **Group writes during a rename** ([#56](https://github.com/FreddieMcHeart/downbeat/issues/56)).
   `_rename_in_groups` (`core/store.py`) rewrites `groups.json` once for *every*
   group the peer belongs to, so a peer in five groups means five full rewrites
@@ -205,6 +222,19 @@ lands against an existing test suite.
   searches all four directories and reports which one it found the message in
   (that directory *is* the state), and that reading does **not** set `read_at` —
   a debugging read that mutates state is a trap.
+- **A version constant that has never moved**
+  ([#99](https://github.com/FreddieMcHeart/downbeat/issues/99)).
+  `downbeat.__version__` reads `0.1.0` and has through all 36 releases, because
+  `version_toml` names `pyproject.toml` as the only bump target and the constant
+  was never enrolled. Nothing is broken; it was simply never wired up. But a
+  wrong constant is worse than an absent one, and this one sits on the path
+  someone would use it for. Feature-detecting a capability by testing
+  `downbeat.__version__` against a threshold reads `0.1.0` every time, and so
+  concludes the feature is absent from a build that has it — a confident wrong
+  answer, with nothing to signal that it came from a constant nobody maintains. Either enrol it in the release bump or delete it and
+  point callers at `importlib.metadata`. The substance is the test that asserts
+  the attribute and the package metadata agree — it fails today, and its absence
+  is the whole reason this survived 36 releases.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, and please comment on the
 issue before starting so effort isn't duplicated.
@@ -409,10 +439,12 @@ Alongside it, a few narrower directions:
 
 ## Contributing
 
-New contributors: start with the three **Now** items — all are labelled *good
-first issue* and land against an existing test suite. #56 is the smallest (one
-function); #85 adds a command; #48 wires existing clipboard plumbing into more
-screens. Past those, the **Next** section holds the strongest near-term
-candidates, and #41 and #61 carry *help wanted*. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup,
+New contributors: take one of the four **Now** items labelled *good first issue*
+— #99 is the smallest and its test is the point of it; #56 is one function; #85
+adds a command; #48 wires existing clipboard plumbing into more screens. All
+four land against an existing test suite. #100 also sits in Now but is a
+priority fix in the identity code rather than a starter task. Past those, the
+**Next** section holds the strongest near-term candidates, and #41 and #61 carry
+*help wanted*. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup,
 and please check open issues **and** PRs before starting so effort isn't
 duplicated.
