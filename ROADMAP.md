@@ -234,6 +234,25 @@ issue before starting so effort isn't duplicated.
   `from`/subject/body and adding a "forwarded by" trail — so passing an ask
   along is lossless and attributed instead of a manual paste.
   ([#61](https://github.com/FreddieMcHeart/downbeat/issues/61))
+- **A broadcast that can say something other than "do this".** `broadcast()`
+  fans a message out to many peers and calls `send_message` without a `kind`, so
+  every one lands as a `task`. But the natural use of a broadcast is an
+  announcement — *"plugin updated, restart at a task boundary"*, *"branch X
+  merged"*, *"I am going idle"* — and every one of those is a `status`. Sent as
+  tasks, a single announcement to N peers creates N obligations to reply and
+  returns N replies saying nothing; the wider the audience, the worse the
+  amplification. The one shape a broadcast is most useful for is the one it
+  cannot express. It also has no CLI verb — seventeen subcommands and
+  `broadcast` is not among them — which rules it out of scripts, hooks, and
+  non-interactive sessions, which is exactly where an announcement to every peer
+  originates. The two gaps are one dead end rather than two: the TUI has the
+  right grouping and the wrong kind, while a shell loop over `downbeat peers`
+  has the right kind and no `broadcast_id`, so `broadcast_status` cannot see
+  what it sent. Pass `kind` through with a `task` default so existing callers
+  are unaffected, add `downbeat broadcast` echoing the `broadcast_id` so a
+  script can follow up, and give the TUI composer the same kind selector `send`
+  already has, so the two surfaces do not drift apart again.
+  ([#97](https://github.com/FreddieMcHeart/downbeat/issues/97))
 
 ---
 
