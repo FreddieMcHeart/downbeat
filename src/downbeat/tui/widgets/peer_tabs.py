@@ -49,10 +49,7 @@ class PeerTabs(Tabs):
             # --- Own-inbox tab (always first) ---
             inbox_unread = 0
             if acting_as:
-                inbox_unread = len([
-                    m for m in store.list_inbox(acting_as)
-                    if m.state.value == "new"
-                ])
+                inbox_unread, _ = store.inbox_summary(acting_as)
             inbox_label = (
                 OWN_INBOX_LABEL if inbox_unread == 0
                 else f"{OWN_INBOX_LABEL}  ●{inbox_unread}"
@@ -61,8 +58,7 @@ class PeerTabs(Tabs):
 
             # --- Member tabs ---
             for name in members:
-                unread = len([m for m in store.list_inbox(name)
-                              if m.state.value == "new"])
+                unread, _ = store.inbox_summary(name)
                 label = name if unread == 0 else f"{name}  ●{unread}"
                 await self.add_tab(Tab(label, id=f"tab-{self._safe_id(name)}"))
 

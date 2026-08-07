@@ -404,7 +404,7 @@ async def test_switch_acting_as_modal_lists_parents(relay_dir):
         app.push_screen(modal)
         await pilot.pause()
         # The modal listed exactly the two parents
-        assert modal._parents == ["P1", "P2"]
+        assert [r.name for r in modal._rows] == ["P1", "P2"]
         # And selected the current one
         assert modal._listview.index == 0
 
@@ -742,7 +742,7 @@ async def test_switch_acting_as_modal_includes_interior_child_node(relay_dir):
         modal = SwitchActingAsModal(current="Root")
         app.push_screen(modal)
         await pilot.pause()
-        assert set(modal._parents) == {"Root", "Child-A"}
+        assert {r.name for r in modal._rows} == {"Root", "Child-A"}
 
 
 @pytest.mark.asyncio

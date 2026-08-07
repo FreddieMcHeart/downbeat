@@ -966,6 +966,20 @@ def list_inbox(peer_name: str, include_archived: bool = False) -> list[Message]:
     return out
 
 
+def inbox_summary(peer_name: str) -> tuple[int, str | None]:
+    """Unread count and newest-message timestamp for peer_name, in one pass
+    over list_inbox — the single definition of "unread" for the whole TUI.
+
+    Newest is inbound only (list_inbox, not sent mail); None when the peer
+    has no messages. Unread means Message.state == NEW, matching what
+    peer_tabs computed inline before this helper existed (see #62 for why
+    that definition is known-imprecise; this issue does not change it)."""
+    messages = list_inbox(peer_name)
+    unread = sum(1 for m in messages if m.state.value == "new")
+    newest = messages[0].created_at if messages else None
+    return unread, newest
+
+
 # Kinds the recipient absorbs on arrival: they carry no work owed back, so
 # they have no natural ack path and redelivering them only churns the queue.
 TERMINAL_KINDS = frozenset({"backflow-ready", "status"})
