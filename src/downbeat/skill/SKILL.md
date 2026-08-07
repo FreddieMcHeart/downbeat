@@ -25,6 +25,23 @@ The CLI is `downbeat` (the `/relay-*` slash commands wrap these):
 > old slash commands keep working. `downbeat` is canonical — a fresh install that skipped
 > `downbeat init` has no shim, so always prefer `downbeat`.
 
+## Whether to delegate at all — decided elsewhere, on purpose
+
+This file documents the **transport**: how to send, receive and manage messages. The
+decision layer above it — whether a task should go to a peer at all, and which one —
+is harness behaviour and lives in `~/.claude/CLAUDE.md`, in the section titled
+**"Relay: Every Delegable Task Gets a Routing Dialog, and the Agent Proposes the Peer"**.
+
+Consult it before dispatching. It is named by section title rather than line number
+because that file is edited often and line numbers move.
+
+It lives there rather than here for a reason worth knowing, since the obvious instinct
+is to move it into this file: the installed copy of this skill is a **deployment
+target**, not a home. It is gitignored on the host and `downbeat init --force` replaces
+it with `rmtree` followed by `copytree`. Durable text placed in the installed copy is
+not an architecture choice with a downside — it is deferred data loss that leaves no
+trace in any history, because it was never tracked anywhere.
+
 ## When to use
 
 - User asks to hand off work to another running Claude Code terminal
