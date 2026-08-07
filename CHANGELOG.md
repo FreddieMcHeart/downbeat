@@ -2,6 +2,21 @@
 
 <!-- version list -->
 
+## v0.15.0 (2026-08-07)
+
+### Features
+
+- Sortable acting-as modal with unread badges
+  ([#109](https://github.com/FreddieMcHeart/downbeat/pull/109),
+  [`13eabdb`](https://github.com/FreddieMcHeart/downbeat/commit/13eabdb49f2a41eccf6d4595c8a50c8352908563))
+
+### Testing
+
+- Assert on the rendered order, not the pre-sort list
+  ([#109](https://github.com/FreddieMcHeart/downbeat/pull/109),
+  [`13eabdb`](https://github.com/FreddieMcHeart/downbeat/commit/13eabdb49f2a41eccf6d4595c8a50c8352908563))
+
+
 ## v0.14.10 (2026-08-07)
 
 ### Bug Fixes
