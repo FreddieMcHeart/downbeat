@@ -124,6 +124,7 @@ timeout_method = "thread"
 # PEP 621 `dynamic = ["version"]` field — hatchling still reads it as static
 # at build time; semantic-release just owns the edits.
 version_toml = ["pyproject.toml:project.version"]
+version_variables = ["src/downbeat/__init__.py:__version__"]
 # The python-semantic-release GitHub Action runs build_command INSIDE its own
 # Docker container (see action.yml: `runs: using: docker`), which is isolated
 # from the runner's PATH — `astral-sh/setup-uv` on the host has no effect
