@@ -496,7 +496,9 @@ def _rename_in_groups(old_name: str, new_name: str) -> None:
 
 
 def rename_peer(old_name: str, new_name: str) -> Peer:
-    """Atomically rename a peer, migrating ALL of its on-disk identity:
+    """Rename a peer, migrating ALL of its on-disk identity. Resumable, not
+    transactional: an interrupted run is completed by re-running with the same
+    (old_name, new_name); individual files never tear.
 
     - rewrites `from`/`to` on every message file across inbox/, delivered/,
       processed/, quarantine/ (both mail sent BY and TO the peer);

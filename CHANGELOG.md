@@ -2,6 +2,42 @@
 
 <!-- version list -->
 
+## v0.14.10 (2026-08-07)
+
+### Bug Fixes
+
+- Enroll __version__ in the release-time bump
+  ([#108](https://github.com/FreddieMcHeart/downbeat/pull/108),
+  [`5e0c772`](https://github.com/FreddieMcHeart/downbeat/commit/5e0c77203e538a9c20fa8efcf77fce228d14b868))
+
+### Documentation
+
+- Add #97 to Next — a broadcast that can say something other than 'do this'
+  ([#98](https://github.com/FreddieMcHeart/downbeat/pull/98),
+  [`aba6421`](https://github.com/FreddieMcHeart/downbeat/commit/aba6421bfcc8c3f2921d7dd8aa007c26274eeec0))
+
+- Fix rename_peer's self-contradicting summary line
+  ([#108](https://github.com/FreddieMcHeart/downbeat/pull/108),
+  [`5e0c772`](https://github.com/FreddieMcHeart/downbeat/commit/5e0c77203e538a9c20fa8efcf77fce228d14b868))
+
+- Put #99 and #100 in Now, and stop calling every Now item a starter task
+  ([#101](https://github.com/FreddieMcHeart/downbeat/pull/101),
+  [`65cf9ef`](https://github.com/FreddieMcHeart/downbeat/commit/65cf9efca127d092fba4c3b5f8918f42bda1a527))
+
+- Refresh the roadmap for v0.14.9 ([#96](https://github.com/FreddieMcHeart/downbeat/pull/96),
+  [`0d2d12b`](https://github.com/FreddieMcHeart/downbeat/commit/0d2d12beab1feb3d35a8454d74e5bf221de76ff0))
+
+- **skill**: Point at the routing-decision layer, and say why it is not here
+  ([#105](https://github.com/FreddieMcHeart/downbeat/pull/105),
+  [`72e4e6e`](https://github.com/FreddieMcHeart/downbeat/commit/72e4e6e65cf8098912b149444ae854eec8b81ff7))
+
+### Testing
+
+- Point #99's version test at pyproject.toml, not installed metadata
+  ([#108](https://github.com/FreddieMcHeart/downbeat/pull/108),
+  [`5e0c772`](https://github.com/FreddieMcHeart/downbeat/commit/5e0c77203e538a9c20fa8efcf77fce228d14b868))
+
+
 ## v0.14.9 (2026-07-31)
 
 ### Bug Fixes
