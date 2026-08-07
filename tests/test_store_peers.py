@@ -108,6 +108,36 @@ def test_touch_peer_updates_last_seen(relay_dir):
     assert after >= before
 
 
+def test_reply_to_touches_the_replying_peers_last_seen(relay_dir, monkeypatch):
+    """#104: built from the incident, not the happy path. A test that SENDS
+    passes against the pre-fix code and proves nothing about reply_to -- this
+    one drives reply_to specifically and pins the new value with a
+    monkeypatched clock so a no-op touch can't hide behind real-time
+    coincidence."""
+    store.register_peer(name="p", session_id="s-1", cwd="/tmp", role="parent")
+    store.register_peer(name="other", session_id="s-2", cwd="/tmp", role="parent")
+    msg = store.send_message("other", "p", "hi", "body")
+    before = store.get_peer("p").last_seen
+
+    monkeypatch.setattr(store, "now_iso", lambda: "2099-01-01T00:00:00+00:00")
+    store.reply_to(msg.id, "reply body", from_peer="p")
+
+    after = store.get_peer("p").last_seen
+    assert after == "2099-01-01T00:00:00+00:00"
+    assert after != before
+
+
+def test_reply_to_from_unregistered_peer_does_not_raise(relay_dir):
+    """The touch is best-effort (#104): reply_to's own docstring context
+    already bypasses the peer check for from_peer (broadcast fan-out case),
+    so an unregistered replier must not turn a successful reply into a
+    PeerNotFound error."""
+    store.register_peer(name="p", session_id="s-1", cwd="/tmp", role="parent")
+    msg = store.send_message("p", "p", "hi", "body")
+    reply = store.reply_to(msg.id, "reply body", from_peer="ghost-peer")
+    assert reply.from_peer == "ghost-peer"
+
+
 # --- Concurrent read-modify-write race (PR #74 review) --------------------
 #
 # touch_peer/register_peer/rebind_session all do

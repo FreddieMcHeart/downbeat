@@ -939,6 +939,13 @@ def reply_to(msg_id: str, body: str, from_peer: str,
         kind=kind,
     )
     _write_message(reply)
+    # Replying is also "this peer is alive" (#104, same event class as send
+    # under #72) -- same best-effort, PeerNotFound-tolerant touch as
+    # send_message's from_peer touch at :759-762.
+    try:
+        touch_peer(from_peer)
+    except PeerNotFound:
+        pass
     _log.info("reply original=%s reply=%s kind=%s", msg_id, reply.id, kind)
     return reply
 
