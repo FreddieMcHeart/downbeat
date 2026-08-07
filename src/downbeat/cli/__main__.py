@@ -119,7 +119,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp_gcm.set_defaults(func=relay_cmds.cmd_gc_markers)
 
     sp_rebind = sub.add_parser("rebind",
-                               help="update a peer's session_id (preserves role/cwd)",
+                               help=("rebind a peer's session-describing fields; "
+                                     "omit --session-id to adopt for the calling "
+                                     "process, pass it to act for another one"),
                                parents=[debug_parent])
     sp_rebind.add_argument("name")
     sp_rebind.add_argument("--session-id", dest="session_id", default=None,

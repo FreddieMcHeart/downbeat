@@ -1222,13 +1222,30 @@ def broadcast_status(broadcast_id: str) -> list[dict]:
 
 
 def rebind_session(name: str, new_session_id: str | None = None) -> Peer:
-    """Update only the session_id (and last_seen) for an existing peer.
-    role, cwd, registered_at are preserved. If new_session_id is None, the
-    function auto-detects via session.detect_session_id(); raises RelayError
-    if no detection is possible.
+    """Rewrite the session-describing fields as a set (#100): no field a
+    liveness check reads may be left describing a process that does not own
+    the record -- refresh it, or clear it, but never leave it.
+
+    new_session_id omitted (auto-detected): the caller IS the session --
+    session_id, claude_pid, claude_pid_start, and cwd all refresh from the
+    calling process.
+
+    new_session_id passed explicitly: the caller acts FOR another session --
+    claude_pid/claude_pid_start are CLEARED to None, since the caller cannot
+    know them and a stale pid would let _incumbent_liveness read a process
+    that no longer owns the record as a confident (wrong) answer instead of
+    the honest "unknown" it returns for an absent pid. cwd is left: the
+    shipped assets/hooks/relay-resume-check.py reads a peer's cwd as
+    identity evidence, matching a resuming session's cwd against every
+    registered peer's and requiring an exact, unique match before calling
+    a binding stale -- not decoration, but never for liveness.
+
+    Raises RelayError if new_session_id is omitted and auto-detection fails.
     Also appends to rebind_log.jsonl and updates session_id_history."""
     from . import session as session_mod
     from .errors import RelayError
+
+    auto_detected = new_session_id is None
 
     with _sessions_lock():
         sessions = _load_sessions()
@@ -1252,6 +1269,17 @@ def rebind_session(name: str, new_session_id: str | None = None) -> Peer:
         entry["session_id_history"] = history
         entry["last_rebind_at"] = now_iso()
         entry["last_seen"] = now_iso()
+        if auto_detected:
+            import os
+            claude_pid = session_mod.detect_live_claude_pid()
+            entry["claude_pid"] = claude_pid
+            entry["claude_pid_start"] = (
+                session_mod.process_start_time(claude_pid) if claude_pid else None
+            )
+            entry["cwd"] = os.getcwd()
+        else:
+            entry["claude_pid"] = None
+            entry["claude_pid_start"] = None
         sessions[name] = entry
         _save_sessions(sessions)
     _log.info("rebind peer=%s old_session=%s new_session=%s",
