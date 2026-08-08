@@ -71,21 +71,34 @@ def test_is_recipient_stale_false_for_fresh_last_seen(relay_dir):
 
 
 def test_is_recipient_stale_false_for_missing_peer(relay_dir):
+    """#106 PIN, not a driver: matches core/store.py's is_recipient_stale --
+    a peer that doesn't exist has nothing to nudge anyone about. Passes
+    today; must keep passing."""
     hook = _load_hook_module()
     _write_sessions(relay_dir, {})
     assert hook._is_recipient_stale("ghost") is False
 
 
-def test_is_recipient_stale_false_for_missing_last_seen(relay_dir):
+def test_is_recipient_stale_true_for_missing_last_seen(relay_dir):
+    """#106 driver: fails against pre-#106 code (was False).
+
+    The peer dict is NOT empty ({"child": {}}) on purpose: an empty dict is
+    falsy in Python, so `if not peer: return False` would short-circuit
+    before ever reaching _is_stale, and the test would pass for the wrong
+    reason (masking whichever behavior _is_stale actually has, exactly
+    the failure mode this issue is about). A registered peer never has an
+    empty dict in production; this gives it other fields and omits only
+    last_seen, so the assertion is actually driven by _is_stale."""
     hook = _load_hook_module()
-    _write_sessions(relay_dir, {"child": {}})
-    assert hook._is_recipient_stale("child") is False
+    _write_sessions(relay_dir, {"child": {"session_id": "s1", "role": "parent"}})
+    assert hook._is_recipient_stale("child") is True
 
 
-def test_is_recipient_stale_false_for_malformed_last_seen(relay_dir):
+def test_is_recipient_stale_true_for_malformed_last_seen(relay_dir):
+    """#106 driver: fails against pre-#106 code (was False)."""
     hook = _load_hook_module()
     _write_sessions(relay_dir, {"child": {"last_seen": "not-a-timestamp"}})
-    assert hook._is_recipient_stale("child") is False
+    assert hook._is_recipient_stale("child") is True
 
 
 def test_maybe_notify_fires_when_stale_and_no_tui(relay_dir):
