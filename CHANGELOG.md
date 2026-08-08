@@ -2,6 +2,23 @@
 
 <!-- version list -->
 
+## v0.15.1 (2026-08-08)
+
+### Bug Fixes
+
+- Keep last_seen honest and rewrite rebind's session fields as a set
+  ([#110](https://github.com/FreddieMcHeart/downbeat/pull/110),
+  [`58df87f`](https://github.com/FreddieMcHeart/downbeat/commit/58df87f0fba9a73f996daec87c74d77f5109a017))
+
+- Rebind_session rewrites session-describing fields as a set
+  ([#110](https://github.com/FreddieMcHeart/downbeat/pull/110),
+  [`58df87f`](https://github.com/FreddieMcHeart/downbeat/commit/58df87f0fba9a73f996daec87c74d77f5109a017))
+
+- Touch the replying peer's last_seen in reply_to
+  ([#110](https://github.com/FreddieMcHeart/downbeat/pull/110),
+  [`58df87f`](https://github.com/FreddieMcHeart/downbeat/commit/58df87f0fba9a73f996daec87c74d77f5109a017))
+
+
 ## v0.15.0 (2026-08-07)
 
 ### Features
