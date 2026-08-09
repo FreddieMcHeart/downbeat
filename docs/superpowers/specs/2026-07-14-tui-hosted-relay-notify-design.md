@@ -179,6 +179,13 @@ inside this file** — no imports from `downbeat.core`:
   `timedelta` against `datetime.now(UTC)`. Missing peer or missing/malformed
   `last_seen` → `False` (matches `core.store.is_recipient_stale`'s
   fail-quiet contract, independently).
+
+  **Revised by #106 (2026-08-08):** missing/malformed `last_seen` now
+  returns `True` (stale) in both implementations — a false negative there
+  is silence indistinguishable from nothing to say, and the cheap error
+  for a notify nudge is to speak. Missing peer is unchanged, `False`, on
+  the merits: there is nothing to nudge about a peer that doesn't exist.
+  Full reasoning in #106's decision comment.
 - `_notify(title, message) -> None`: same subprocess logic as
   `core/notify.py`'s `notify()` (`osascript`/`notify-send` by
   `sys.platform`, `timeout=3`, fail-open on any exception) — a private
