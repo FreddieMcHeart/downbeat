@@ -158,6 +158,32 @@ def cmd_reply(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_broadcast(args: argparse.Namespace) -> int:
+    sender = _detect_peer_or_error(args.from_peer, flag="--from")
+    # No default target set (#97 Decision 2): a broadcast with an implicit
+    # target is precisely the shape where one mistake reaches every peer at
+    # once, so the caller must say who -- --to, --all-children, or both,
+    # union'd and deduplicated, never a silent guess in either direction.
+    targets = list(dict.fromkeys(args.to or []))
+    if args.all_children:
+        for peer in store.children_of(sender):
+            if peer.name != sender and peer.name not in targets:
+                targets.append(peer.name)
+    if not targets:
+        print("error: no targets given; pass --to (repeatable) or "
+              "--all-children", file=sys.stderr)
+        return 2
+    try:
+        bc = store.broadcast(from_peer=sender, to_peers=targets,
+                             subject=args.subject, body=args.body,
+                             kind=args.kind)
+    except PeerNotFound as e:
+        print(f"error: no peer named {str(e)!r}", file=sys.stderr)
+        return 2
+    print(f"broadcast: {bc.id}")
+    return 0
+
+
 def cmd_inbox(args: argparse.Namespace) -> int:
     peer = _detect_peer_or_error(args.peer, flag="--peer")
     msgs = store.list_inbox(peer, include_archived=args.all)
