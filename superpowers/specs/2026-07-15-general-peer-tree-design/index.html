@@ -1,0 +1,898 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine">
+      
+      
+      
+        <link rel="canonical" href="https://freddiemcheart.github.io/downbeat/superpowers/specs/2026-07-15-general-peer-tree-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>General peer tree (decouple role from structure) - downbeat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#general-peer-tree-decouple-role-from-structure" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="downbeat" class="md-header__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            downbeat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              General peer tree (decouple role from structure)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="downbeat" class="md-nav__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    downbeat
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roles-three-meanings-today-why-this-needs-to-be-explicit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        role's three meanings today (why this needs to be explicit)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#invariant-autonomy-is-orthogonal-to-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Invariant: autonomy is orthogonal to structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#store-changes-corestorepy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Store changes (core/store.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Store changes (core/store.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-no-depth-cap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why no depth cap
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tui-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TUI changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-limitations-deferred-not-built-in-this-pass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known limitations / deferred (not built in this pass)
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/FreddieMcHeart/downbeat/edit/main/docs/superpowers/specs/2026-07-15-general-peer-tree-design.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="general-peer-tree-decouple-role-from-structure">General peer tree (decouple <code>role</code> from structure)<a class="headerlink" href="#general-peer-tree-decouple-role-from-structure" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> approved, ready for implementation plan
+<strong>Branch:</strong> <code>feat/general-peer-tree</code> (from <code>origin/main</code>, tip <code>3033b20</code> / v0.8.0)</p>
+<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
+<p>downbeat's peer registry (<code>Peer</code> in <code>core/models.py</code>) today enforces a
+strict two-tier parent/child structure: a peer with <code>role=="parent"</code> can
+have any number of children but can never itself have a parent; a peer with
+<code>role=="child"</code> has exactly one parent and can never itself have children.
+The human wants to go from this to a general tree, confirmed via a diagram
+(published as an artifact during design): a root with two children, one of
+which (<code>Child-A</code>) is <em>itself</em> a parent for its own children — an interior
+node, structurally both a child and a parent at once — with an explicit
+requirement that depth is not capped now and may grow further later.</p>
+<p>This spec is the result of a three-stage design process:
+1. An Opus exploration (no code touched) surveyed the current codebase and
+   proposed three options (A: decouple <code>role</code> from structure, keep the
+   TUI's 2-level viewport; B: full recursive tree UI; C: hard depth cap),
+   recommending A.
+2. The human confirmed the topology matches Option A's data model exactly
+   (via the diagram) and explicitly rejected a hard depth cap.
+3. The parent session (<code>Claude-Cost-Optimazing</code>) reviewed the resulting
+   design (relay thread <code>8644391e554b</code> → <code>27c1d6c7e7a9</code>) and corrected two
+   things the first pass under-addressed: the depth-cap question resolves
+   to <strong>no cap</strong> (bounded traversal is the real safety property, not a cap
+   — see "Cycle prevention" below), and a new concept — <strong>interior-node
+   autonomy</strong> — needs an explicit invariant, since <code>role</code>'s third meaning
+   (the <code>/relay-monitor</code> autonomy default) is exactly where the old
+   two-tier assumption was hiding.</p>
+<h2 id="roles-three-meanings-today-why-this-needs-to-be-explicit"><code>role</code>'s three meanings today (why this needs to be explicit)<a class="headerlink" href="#roles-three-meanings-today-why-this-needs-to-be-explicit" title="Permanent link">&para;</a></h2>
+<p><code>role</code> currently does three independent jobs, conflated onto one field:</p>
+<ol>
+<li><strong>Structural gate</strong> (<code>core/store.py</code>) — <code>_resolve_parent</code> rejects any
+   <code>--parent</code> target whose <code>role != "parent"</code>; <code>set_parent</code> requires the
+   peer being repointed to have <code>role=="child"</code> and the target to have
+   <code>role=="parent"</code>.</li>
+<li><strong>TUI acting-as filter</strong> — only <code>role=="parent"</code> peers are selectable as
+   <code>acting_as</code> across ~5 files (<code>screens/chat.py</code>, <code>screens/peers.py</code>,
+   <code>screens/main.py</code>, <code>widgets/peer_list.py</code>, <code>widgets/switch_acting_as.py</code>).</li>
+<li><strong><code>/relay-monitor</code> autonomy default</strong> — <code>child</code> auto-executes arriving
+   tasks; <code>parent</code> surfaces-and-asks (<code>assets/commands/relay-monitor.md</code>,
+   <code>skill/SKILL.md</code>, and a Fable-model nudge in <code>assets/hooks/relay-inbox.py</code>).</li>
+</ol>
+<p>This design removes meaning #1 entirely, repoints meaning #2 (see "TUI
+changes" below), and — this is the part the parent's review added — makes
+meaning #3 an <strong>explicit, orthogonal-to-structure invariant</strong> rather than
+letting it silently keep deriving from tree position.</p>
+<h2 id="data-model">Data model<a class="headerlink" href="#data-model" title="Permanent link">&para;</a></h2>
+<p><code>Peer</code> (<code>core/models.py</code>) is <strong>unchanged</strong> as a dataclass — no new fields,
+no renamed fields. <code>role: str</code> keeps the literal <code>"parent"</code>/<code>"child"</code>
+strings (renaming was considered and rejected: it would touch
+<code>relay-monitor.md</code>, <code>SKILL.md</code>, <code>relay-inbox.py</code>, and every
+<code>role=="parent"</code> TUI comparison for zero functional gain). <code>parent: str |
+None</code> is the existing adjacency pointer, unchanged in shape.</p>
+<p>Add a one-line comment directly on the <code>role</code> field in the <code>Peer</code>
+dataclass stating its new, narrowed meaning:</p>
+<div class="highlight"><pre><span></span><code><span class="n">role</span><span class="p">:</span> <span class="nb">str</span>   <span class="c1"># &quot;parent&quot; | &quot;child&quot; — the /relay-monitor autonomy DEFAULT only</span>
+            <span class="c1"># (auto-execute vs surface-and-ask). NOT structural position:</span>
+            <span class="c1"># a peer can be role=&quot;child&quot; and still have its own children:</span>
+            <span class="c1"># gaining/losing children never changes this field. See</span>
+            <span class="c1"># docs/superpowers/specs/2026-07-15-general-peer-tree-design.md.</span>
+</code></pre></div>
+<p>This is the single most important documentation change in this spec — per
+the parent's review, it's "the only place the two-tier assumption can
+silently survive the refactor" if left unstated.</p>
+<h3 id="invariant-autonomy-is-orthogonal-to-structure">Invariant: autonomy is orthogonal to structure<a class="headerlink" href="#invariant-autonomy-is-orthogonal-to-structure" title="Permanent link">&para;</a></h3>
+<p><strong>A peer's <code>role</code> never changes as a side effect of gaining or losing
+children.</strong> When a peer acquires its first child (becomes an interior
+node), its own autonomy behavior (how it handles its <em>own</em> inbox) stays
+exactly what it was explicitly set to at registration. The human sets
+<code>role</code> consciously per peer; nothing in <code>register_peer</code>/<code>set_parent</code>
+touches an existing peer's <code>role</code>. This is stated explicitly here (not left
+implicit) because a tree makes "child" peers that are also structural
+parents commonplace — the old model never had to make this call, since a
+node could never be both.</p>
+<h2 id="store-changes-corestorepy">Store changes (<code>core/store.py</code>)<a class="headerlink" href="#store-changes-corestorepy" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong><code>_resolve_parent</code></strong> (currently rejects <code>target.get("role") != "parent"</code>
+  at what's line 75 as of this spec's writing): remove that rejection. Any
+  existing, registered peer is a valid <code>--parent</code> target. Re-verify the
+  exact current line number/text at implementation time — re-read the file
+  fresh rather than trusting this spec's line numbers, matching this
+  project's established convention for exact-match old_string/new_string
+  edits.</li>
+<li><strong><code>register_peer</code></strong>: currently resolves a parent <code>if role == "child"</code>
+  only (line 107 as of writing) — a <code>role=="parent"</code> peer's <code>parent</code> is
+  force-set to <code>None</code>. Change to resolve a parent whenever one is given or
+  inferable, regardless of <code>role</code>.</li>
+<li><strong><code>set_parent</code></strong>: currently requires the peer being repointed to have
+  <code>role=="child"</code> (line ~128) and the target to have <code>role=="parent"</code> (line
+  ~131). Remove both checks.</li>
+<li><strong>New: cycle prevention.</strong> A single helper, called from both
+  <code>_resolve_parent</code> and <code>set_parent</code> (so neither write path can bypass it):
+  before accepting <code>parent=P</code> for peer <code>N</code>, walk upward from <code>P</code> following
+  <code>.parent</code> pointers in the loaded <code>sessions</code> dict, accumulating a
+  <strong>visited set</strong> (not a bare counter — the set is what lets the error
+  message list the actual offending chain, and is also the natural
+  building block for "bounded traversal" as a general property, not just
+  this one check). If the walk reaches <code>N</code>, reject. Self-parent
+  (<code>parent == name</code>) is the degenerate 1-cycle — reject explicitly with its
+  own clear message rather than letting it fall through the general walk.
+  Bound the walk by <code>len(sessions)</code> iterations so a pre-existing corrupt
+  cycle already on disk (e.g. from hand-edited <code>sessions.json</code>) can't hang
+  it — this is defense against corrupt <em>existing</em> data, not a design
+  constraint on new writes.</li>
+<li><strong>New error</strong>: <code>CycleDetected(InvalidParent)</code> in <code>core/errors.py</code>, e.g.
+  <code>"--parent 'A' would create a cycle: A → B → N → A"</code>. Because it
+  subclasses the existing <code>InvalidParent</code>, the two current catch sites
+  (<code>cli/commands/relay_cmds.py:cmd_register</code>,
+  <code>tui/widgets/add_peer_modal.py:submit</code>) need <strong>no new wiring</strong> — they
+  already print/surface <code>InvalidParent</code>'s message.</li>
+</ul>
+<h3 id="why-no-depth-cap">Why no depth cap<a class="headerlink" href="#why-no-depth-cap" title="Permanent link">&para;</a></h3>
+<p>The parent's review corrected the original draft here. A depth cap was
+originally floated as a "cheap safety net" alongside the cycle check. It's
+unnecessary and actively worse than the alternative:</p>
+<ul>
+<li>The cycle-prevention walk plus the single-parent-per-node invariant
+  already make the peer graph a forest — a path from any node to the root
+  cannot exceed the total peer count without revisiting a node, which the
+  cycle check already forbids. Depth is therefore <em>already</em> bounded by
+  <code>len(sessions)</code>, with no separate cap needed for correctness.</li>
+<li>A cap re-introduces exactly the restriction the human rejected, just at
+  a higher, arbitrary number. A future legitimately-deep tree would
+  silently trip it, and someone would have to go find and raise the
+  constant.</li>
+<li>The actual safety property a cap would be trying to buy — protecting
+  code that walks the tree from blowing up on corrupt/adversarial data —
+  is bought correctly by making <strong>every</strong> <code>.parent</code>-pointer traversal
+  bounded (visited-set, iterative, not naive unbounded recursion), not by
+  capping depth at write time. A write-time cap doesn't protect a
+  hypothetical future read-time traversal against data that's already on
+  disk (e.g. hand-edited). Bounded traversal is the standing invariant this
+  spec adopts for the cycle-check now, and must be adopted by any future
+  traversal added to this codebase (e.g. a hypothetical future recursive
+  <code>descendants_of()</code> — not built in this pass, since nothing in scope needs
+  it, but if it's ever added, it must reuse the same bounded-walk
+  discipline).</li>
+</ul>
+<h2 id="tui-changes">TUI changes<a class="headerlink" href="#tui-changes" title="Permanent link">&para;</a></h2>
+<p>Every place that currently filters "is this peer eligible to be
+<code>acting_as</code>" on <code>role=="parent"</code> alone must become a <strong>union</strong>: <code>role ==
+"parent" OR has_children(peer)</code>, where <code>has_children</code> is computed as <code>{p.parent
+for p in store.list_peers()} - {None}</code> (i.e. "does at least one other peer
+point at this one"). This is a union, not a replacement, because a pure
+<code>has_children</code>-only filter breaks two real cases the parent's review
+caught:</p>
+<ol>
+<li>A freshly-registered peer with <code>role=="parent"</code> but zero children yet
+   would be unselectable as <code>acting_as</code> — you couldn't act-as it to add its
+   <em>first</em> child, breaking top-down tree setup.</li>
+<li>An existing <code>role=="parent"</code> peer with zero children (a real, valid
+   state today — plenty of parents may have no children registered yet)
+   would silently disappear from the acting-as list on upgrade to this
+   model. This means the earlier "migration: none needed" framing was
+   correct for <em>data loading</em> but incomplete for <em>acting-as selectability</em>
+   — this spec corrects that: selectability changes for zero-child
+   <code>role=="parent"</code> peers unless the filter is the union, not the
+   replacement.</li>
+</ol>
+<p>Files needing this change (re-verify exact current line numbers at
+implementation time, same as always):
+- <code>tui/screens/chat.py</code> — <code>_populate_acting_as</code>, and the acting-as-target
+  check inside <code>find_message</code>.
+- <code>tui/widgets/peer_list.py</code> — the acting-as candidate list and its
+  dropdown.
+- <code>tui/widgets/switch_acting_as.py</code> — its parent-only candidate list.
+- <code>tui/screens/peers.py</code> — <code>group_key</code>/<code>sort_key</code> currently key off
+  <code>role=="parent"</code> for grouping/sorting; at implementation time, read the
+  current code fresh to determine whether the same union applies directly,
+  or whether this screen's grouping is already scoped inside one
+  <code>acting_as</code>'s world (in which case a different, scoped adjustment may be
+  correct instead of a blind copy of the union filter — do not assume,
+  verify against the actual current implementation).
+- <code>tui/screens/main.py</code> — has a <code>role=="parent"</code> check inside
+  <code>find_message</code>, but this screen is the legacy three-pane view already
+  marked <code>@pytest.mark.skip(reason="three-pane view replaced by chat
+  view")</code> in <code>tests/test_tui_smoke.py</code>. At implementation time, confirm
+  whether this screen is still reachable from any live code path. If it's
+  dead (never pushed anywhere reachable), delete it rather than leave it
+  holding stale two-tier logic next to the corrected version — silently
+  inconsistent dead code is worse than no code. If it's still reachable
+  for some reason, apply the same union fix.</p>
+<h2 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
+<p><code>CycleDetected</code> requires no new catch sites (see "Store changes" above) —
+it's caught wherever <code>InvalidParent</code> already is. No other new failure
+surface is introduced; <code>_resolve_parent</code>/<code>set_parent</code>/<code>register_peer</code> keep
+their existing behavior for every non-cycle case.</p>
+<h2 id="testing">Testing<a class="headerlink" href="#testing" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Cycle detection</strong> (<code>core/store.py</code>): direct 2-node cycle (A→B, then
+  B→A rejected), self-parent (A→A rejected, explicit distinct message),
+  multi-hop cycle (A→B→C, then C→A rejected, chain listed in the error), a
+  <em>valid</em> deep non-cyclic chain (e.g. 5+ levels) is accepted without
+  tripping any cap.</li>
+<li><strong>Structural gate removal</strong>: <code>_resolve_parent</code>/<code>set_parent</code> no longer
+  reject a <code>role=="child"</code> peer as a valid <code>--parent</code> target;
+  <code>register_peer</code> resolves a parent regardless of the registering peer's
+  <code>role</code>.</li>
+<li><strong>Autonomy orthogonality</strong>: register a peer with <code>role=="child"</code>, give it
+  a child via <code>set_parent</code>, assert its own <code>role</code> is still <code>"child"</code>
+  afterward (not auto-flipped to <code>"parent"</code>).</li>
+<li><strong>TUI acting-as union filter</strong>, all four combinations: pure leaf
+  (<code>role=="child"</code>, no children) → excluded; <code>role=="parent"</code> with zero
+  children → included (via <code>role</code>, not <code>has_children</code>); interior node with
+  <code>role=="child"</code> and one or more children → included (via <code>has_children</code>,
+  not <code>role</code>); interior node with <code>role=="parent"</code> and children → included
+  (either condition alone would include it — confirm no double-counting in
+  whatever data structure the filter builds, e.g. a set/dict keyed by
+  name, not a list that could append the same peer twice).</li>
+</ul>
+<h2 id="migration">Migration<a class="headerlink" href="#migration" title="Permanent link">&para;</a></h2>
+<p><strong>Data</strong>: none needed — <code>Peer.from_dict</code> already tolerates missing fields
+via <code>.get()</code> defaults, so every existing <code>sessions.json</code> entry loads as a
+valid degenerate case of the new model (old <code>role=="parent"</code> peers keep
+<code>parent=None</code>; old <code>role=="child"</code> peers keep their single parent).</p>
+<p><strong>Behavior</strong>: the one real change is TUI acting-as selectability for
+zero-child <code>role=="parent"</code> peers, corrected by using the union filter (not
+<code>has_children</code> alone) — see "TUI changes" above. With the union filter in
+place, there is no selectability regression either.</p>
+<h2 id="known-limitations-deferred-not-built-in-this-pass">Known limitations / deferred (not built in this pass)<a class="headerlink" href="#known-limitations-deferred-not-built-in-this-pass" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>No recursive tree UI</strong> (Option B, explicitly deferred). The TUI stays
+  a 2-level viewport; a user navigates deeper by re-rooting <code>acting_as</code>.
+  Revisit only if a concrete depth-3+ <em>simultaneous-view</em> workflow is
+  named — none exists today in the product's own docs (<code>SKILL.md</code>'s model
+  is a two-role handoff).</li>
+<li><strong>No <code>descendants_of()</code> / recursive tree-walk helper</strong> is added — nothing
+  in this pass's scope needs one. If a future task adds one, it must reuse
+  the bounded-visited-set-walk discipline established here for the
+  cycle-check, not a naive unbounded recursion.</li>
+<li><strong><code>screens/peers.py</code>'s exact grouping/sorting fix</strong> is intentionally left
+  as "verify against current code at implementation time" rather than
+  specified in detail here, since its current scoping (system-wide vs.
+  scoped-to-one-<code>acting_as</code>) needs to be re-confirmed by reading the live
+  file, not assumed from this spec's earlier exploration pass.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.top", "navigation.footer", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

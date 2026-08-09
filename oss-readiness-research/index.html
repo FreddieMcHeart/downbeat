@@ -1,0 +1,1315 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Local, human-in-the-loop message bus for coordinating parallel AI coding-agent sessions on one machine">
+      
+      
+      
+        <link rel="canonical" href="https://freddiemcheart.github.io/downbeat/oss-readiness-research/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>claude-relay — Open-Source Readiness Decision Report - downbeat</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#claude-relay-open-source-readiness-decision-report" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="downbeat" class="md-header__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            downbeat
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              claude-relay — Open-Source Readiness Decision Report
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="downbeat" class="md-nav__button md-logo" aria-label="downbeat" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    downbeat
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/FreddieMcHeart/downbeat" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    FreddieMcHeart/downbeat
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../plugin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code plugin
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code of Conduct
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#executive-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executive summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-oss-readiness-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current OSS-readiness checklist
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license-legal-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License &amp; legal setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#github-community-health-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitHub community health files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#python-packaging-pypi-publishing-readiness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python packaging &amp; PyPI publishing readiness
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cicd-quality-automation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD &amp; quality automation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tuicli-ux-polish" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TUI/CLI UX polish
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-channels-onboardingquickstart-ux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install channels + onboarding/quickstart UX
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#positioning-branding-go-to-market" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positioning, branding &amp; go-to-market
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#claude-code-integration-story" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claude Code integration story
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phased-adoption-roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phased adoption roadmap
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phased adoption roadmap">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-launch-blockers-before-repo-goes-public-first-pypi-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1 — Launch-blockers (before repo goes public / first PyPI release)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-polish-docs-site-demos-ux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2 — Polish (docs site, demos, UX)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-growth-branding-gtm-community" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3 — Growth (branding, GTM, community)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions-for-the-maintainer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open questions for the maintainer
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/FreddieMcHeart/downbeat/edit/main/docs/oss-readiness-research.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="claude-relay-open-source-readiness-decision-report">claude-relay — Open-Source Readiness Decision Report<a class="headerlink" href="#claude-relay-open-source-readiness-decision-report" title="Permanent link">&para;</a></h1>
+<h2 id="executive-summary">Executive summary<a class="headerlink" href="#executive-summary" title="Permanent link">&para;</a></h2>
+<p>claude-relay is functionally strong (161 passing tests, four clean surfaces: TUI, CLI, library, Claude Code skill) but pre-launch on every OSS-hygiene axis. The single highest-leverage, lowest-cost fixes are metadata and community-health files: add a real <code>LICENSE</code>, migrate <code>pyproject.toml</code> to PEP 639 SPDX license syntax, add <code>[project.urls]</code>/classifiers/keywords, and land CONTRIBUTING/CODE_OF_CONDUCT/SECURITY. The one genuine strategic risk is the <strong>name</strong>: <code>claude-relay</code> collides with several public repos, most notably the much larger Wei-Shaw/claude-relay-service (an unrelated API proxy) — resolve this <em>before</em> going public, when it is cheapest. Publishing should use uv-native Trusted Publishing (OIDC), keep version static for now, and verify data assets actually land in the wheel. Recommended sequencing is Phase 1 launch-blockers → Phase 2 docs/UX polish (VHS demo, rich-argparse, examples) → Phase 3 branding/GTM.</p>
+<h2 id="current-oss-readiness-checklist">Current OSS-readiness checklist<a class="headerlink" href="#current-oss-readiness-checklist" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Source + tests</td>
+<td>Have</td>
+<td>161 pass / 16 skip, 26 test files</td>
+</tr>
+<tr>
+<td>README</td>
+<td>Have (needs upgrade)</td>
+<td>156 lines, 9 headings, zero visual media, no badges</td>
+</tr>
+<tr>
+<td>CI workflow</td>
+<td>Have (needs upgrade)</td>
+<td>ruff + pytest 3.11–3.13, Linux-only, pip not uv</td>
+</tr>
+<tr>
+<td>License declared in pyproject</td>
+<td>Needs upgrade</td>
+<td>Legacy <code>license = {text="MIT"}</code>; migrate to SPDX <code>license = "MIT"</code></td>
+</tr>
+<tr>
+<td>LICENSE file</td>
+<td>Missing</td>
+<td>Blocks PyPI/GitHub detection, corp legal scans</td>
+</tr>
+<tr>
+<td>CONTRIBUTING.md</td>
+<td>Missing</td>
+<td>Also decide DCO vs CLA now</td>
+</tr>
+<tr>
+<td>CODE_OF_CONDUCT.md</td>
+<td>Missing</td>
+<td>Contributor Covenant 2.1 verbatim</td>
+</tr>
+<tr>
+<td>SECURITY.md</td>
+<td>Missing</td>
+<td>Point at GitHub Private Vulnerability Reporting</td>
+</tr>
+<tr>
+<td>CHANGELOG.md</td>
+<td>Missing</td>
+<td>Keep a Changelog, manual for now</td>
+</tr>
+<tr>
+<td>Issue/PR templates</td>
+<td>Missing</td>
+<td>Hybrid: Forms YAML for bugs, markdown/Discussions for ideas</td>
+</tr>
+<tr>
+<td><code>[project.urls]</code> / classifiers / keywords</td>
+<td>Missing</td>
+<td>Pure metadata; required for good PyPI page</td>
+</tr>
+<tr>
+<td>PyPI release</td>
+<td>Missing</td>
+<td>Documented <code>uv tool install</code> doesn't work until first release</td>
+</tr>
+<tr>
+<td>Type checking</td>
+<td>Missing</td>
+<td>Add pyright</td>
+</tr>
+<tr>
+<td>Coverage reporting</td>
+<td>Missing</td>
+<td>pytest-cov + coverage-comment action</td>
+</tr>
+<tr>
+<td>Pre-commit config</td>
+<td>Missing</td>
+<td>ruff check/format locally</td>
+</tr>
+<tr>
+<td>Release automation</td>
+<td>Missing</td>
+<td>release-please (human-gated)</td>
+</tr>
+<tr>
+<td>Dependency updates</td>
+<td>Missing</td>
+<td>Dependabot</td>
+</tr>
+<tr>
+<td><code>--version</code> flag</td>
+<td>Missing</td>
+<td>Wire to <code>importlib.metadata</code></td>
+</tr>
+<tr>
+<td>Demo GIF / asciinema</td>
+<td>Missing</td>
+<td>VHS <code>.tape</code> (TUI value is visual)</td>
+</tr>
+<tr>
+<td>examples/ directory</td>
+<td>Missing</td>
+<td>Parent/child transcript = best marketing asset</td>
+</tr>
+<tr>
+<td>Name uniqueness</td>
+<td>Needs decision</td>
+<td>Collides with Wei-Shaw/claude-relay-service + 3 others; PyPI name unconfirmed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="license-legal-setup">License &amp; legal setup<a class="headerlink" href="#license-legal-setup" title="Permanent link">&para;</a></h2>
+<p>The repo intends MIT (declared in <code>pyproject.toml</code>) but has <strong>no LICENSE file</strong> and uses the legacy PEP 621 table syntax that PEP 639 deprecates. GitHub's detector, PyPI's badge, and corporate dependency scanners all key off the actual file, not the TOML field. No patent-sensitive surface area exists in a local filesystem broker, so there is no real pull toward Apache-2.0.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Summary</th>
+<th>Effort</th>
+<th>Pros (top 2)</th>
+<th>Cons (top 2)</th>
+<th>Recommended?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MIT (keep, fix gaps)</td>
+<td>Add LICENSE file, migrate to SPDX string, skip per-file headers</td>
+<td>low</td>
+<td>Zero re-licensing decision; dominant in this exact ecosystem (Textual/Rich/Ruff)</td>
+<td>No explicit patent grant; no NOTICE mechanism</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Apache-2.0 (re-license)</td>
+<td>Switch for explicit patent grant + retaliation clause</td>
+<td>medium</td>
+<td>Corporate legal comfort; used by K8s/CNCF</td>
+<td>Longer text + NOTICE upkeep for solo maintainer; deviates from peer convention</td>
+<td></td>
+</tr>
+<tr>
+<td>BSD-3-Clause</td>
+<td>MIT-equivalent + non-endorsement clause</td>
+<td>low</td>
+<td>Same freedoms as MIT; HTTPie precedent</td>
+<td>No patent grant without MIT's brevity; reverses already-declared MIT for marginal gain</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> Keep MIT. Add a root <code>LICENSE</code> (real MIT text, maintainer name/year), migrate to <code>license = "MIT"</code> + <code>license-files = ["LICENSE"]</code>, add classifiers/urls while in the file, skip SPDX per-file headers. Separately, adopt <strong>DCO not CLA</strong> (one CONTRIBUTING.md line + free DCO app) and lock it in before the first external PR — retrofitting after unsigned merges is painful.</p>
+<p><strong>Sources:</strong>
+- https://opensource.org/license/mit/
+- https://github.com/Textualize/textual/blob/main/LICENSE
+- https://github.com/astral-sh/ruff/blob/main/LICENSE
+- https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
+- https://www.apache.org/licenses/LICENSE-2.0
+- https://opensource.org/license/bsd-3-clause/
+- https://github.com/httpie/cli/blob/master/LICENSE</p>
+<hr />
+<h2 id="github-community-health-files">GitHub community health files<a class="headerlink" href="#github-community-health-files" title="Permanent link">&para;</a></h2>
+<p>The community-profile checklist is near-empty: only README + CI exist. This is a single solo repo, so files belong in the repo root or <code>.github/</code>, not an org-wide <code>.github</code> meta-repo. This layer is the most leveraged low-effort pre-launch investment — it is the first thing GitHub's UI and new visitors surface.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Summary</th>
+<th>Effort</th>
+<th>Pros (top 2)</th>
+<th>Cons (top 2)</th>
+<th>Recommended?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Minimal solo baseline</td>
+<td>Hand-write core 4 + classic MD templates; Keep a Changelog manual</td>
+<td>low</td>
+<td>Covers community-profile checklist with near-zero upkeep; Contributor Covenant is a 10-min copy-paste</td>
+<td>Manual changelog/version-bump; MD templates yield lower-signal bug reports</td>
+<td>✅ (base)</td>
+</tr>
+<tr>
+<td>Best-README-Template + Issue Forms + release-please</td>
+<td>Marketing-style README, YAML Forms, auto changelog/version</td>
+<td>medium</td>
+<td>Structured per-surface triage; removes changelog toil</td>
+<td>Requires Conventional Commits discipline; template cruft risk</td>
+<td>✅ (borrow Forms only)</td>
+</tr>
+<tr>
+<td>Standard Readme spec + <code>.github/</code> meta-repo</td>
+<td>Linter-checkable README, files in <code>.github/</code>, FUNDING.yml</td>
+<td>medium</td>
+<td>Machine-checkable structure; scales to multi-repo</td>
+<td>Lower mindshare; premature multi-repo assumption</td>
+<td></td>
+</tr>
+<tr>
+<td>readme.so draft + hybrid templates</td>
+<td>Visual README draft, Forms for bugs + Discussions for ideas</td>
+<td>low</td>
+<td>Fast well-ordered draft; hybrid matches bug/idea asymmetry</td>
+<td>No linter; manual changelog risk</td>
+<td>✅ (borrow hybrid templates)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> Start with the <strong>Minimal baseline</strong> for pure risk-reduction (LICENSE, Contributor Covenant 2.1, SECURITY.md → GitHub Private Vulnerability Reporting, short CONTRIBUTING) — ~30–60 min. Borrow <strong>Best-README-Template's badge/ToC conventions only</strong> (not the hero-banner style — this is an infra tool). Borrow <strong>Option 4's hybrid issue templates</strong>: one Forms YAML for bugs with a "which surface (TUI/CLI/lib/skill)" dropdown, feature requests as markdown/Discussions. Keep CHANGELOG manual; defer release-please + Conventional Commits until a second contributor or frequent PyPI cadence appears. FUNDING.yml only if sponsorship is wanted.</p>
+<p><strong>Sources:</strong>
+- https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions/about-community-profiles-for-public-repositories
+- https://www.contributor-covenant.org/version/2/1/code_of_conduct/
+- https://docs.github.com/code-security/security-advisories/guidance-on-reporting-and-writing/privately-reporting-a-security-vulnerability
+- https://www.makeareadme.com/
+- https://github.com/othneildrew/Best-README-Template
+- https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms
+- https://github.com/googleapis/release-please-action
+- https://github.com/RichardLitt/standard-readme
+- https://readme.so/
+- https://keepachangelog.com/en/1.1.0/</p>
+<hr />
+<h2 id="python-packaging-pypi-publishing-readiness">Python packaging &amp; PyPI publishing readiness<a class="headerlink" href="#python-packaging-pypi-publishing-readiness" title="Permanent link">&para;</a></h2>
+<p>Metadata is minimum-viable, not release-ready: legacy license table, no LICENSE file, no <code>[project.urls]</code>/keywords/classifiers (PyPI page would render nearly blank), static version, and — critically — the wheel ships non-Python data (<code>skill/</code>, <code>assets/hooks</code>, <code>assets/commands</code>, <code>hooks_manifest.json</code>) that must be verified to actually land at runtime paths. hatchling is the right backend; no PyPI project exists yet, so Trusted Publishing can be wired from a clean slate.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Summary</th>
+<th>Effort</th>
+<th>Pros (top 2)</th>
+<th>Cons (top 2)</th>
+<th>Recommended?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trusted Publishing via <code>uv publish</code></td>
+<td>OIDC token exchange, <code>uv build</code>+<code>uv publish</code>, tag-triggered, <code>pypi</code> environment</td>
+<td>low</td>
+<td>No long-lived token; uv-native (matches toolchain)</td>
+<td>One-time PyPI publisher setup; OIDC mental model newer</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Trusted Publishing via <code>pypa/gh-action-pypi-publish</code></td>
+<td>Same OIDC, twine-based upload action</td>
+<td>low</td>
+<td>Most battle-tested integration; decouples build/publish tools</td>
+<td>Adds twine to an otherwise uv-native loop; no functional gain here</td>
+<td>(fallback)</td>
+</tr>
+<tr>
+<td>Static version, manual bump</td>
+<td><code>version = "0.1.0"</code> bumped by hand / <code>hatch version</code></td>
+<td>low</td>
+<td>Zero new dep; fully deterministic in-repo</td>
+<td>Easy to forget bump → duplicate-version rejection</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>hatch-vcs dynamic versioning</td>
+<td>Version derived from git tags</td>
+<td>low</td>
+<td>Single source of truth; pairs with tag-triggered CI</td>
+<td>Needs <code>fetch-depth: 0</code> (CI footgun); overkill for infrequent releases</td>
+<td>(later)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> Fix metadata first (LICENSE, SPDX license, urls/keywords/classifiers) — ~30 min, zero risk. Publish via <strong><code>uv publish</code> + Trusted Publishing</strong> (register a "pending" publisher now, gate on git tag + <code>pypi</code> environment with <code>id-token: write</code>, dry-run on TestPyPI). Keep <strong>static version</strong> for early 0.x; migrate to hatch-vcs later if cadence rises. <strong>Verify wheel contents regardless</strong> (<code>uv build</code> then <code>python -m zipfile -l dist/*.whl</code>) to confirm data assets land — use <code>[tool.hatch.build.targets.wheel].artifacts</code>/<code>force-include</code>, pin hatchling, re-verify after upgrades (known regressions pypa/hatch#478, #1130).</p>
+<p><strong>Sources:</strong>
+- https://docs.pypi.org/trusted-publishers/
+- https://docs.astral.sh/uv/guides/integration/github/
+- https://docs.astral.sh/uv/guides/package/
+- https://github.com/astral-sh/trusted-publishing-examples
+- https://github.com/pypa/gh-action-pypi-publish
+- https://github.com/ofek/hatch-vcs
+- https://hatch.pypa.io/1.16/config/build/</p>
+<hr />
+<h2 id="cicd-quality-automation">CI/CD &amp; quality automation<a class="headerlink" href="#cicd-quality-automation" title="Permanent link">&para;</a></h2>
+<p>Current CI (ruff + pytest across 3.11–3.13, Linux-only, pip install) is a fine floor but behind norms: no uv in CI (despite uv local dev), no type checking, no coverage, no pre-commit, no release automation, no dependency bot, no OS matrix (textual/watchdog have platform-specific paths and the audience runs locally, often macOS). Goal: close gaps with minimal ongoing burden, not enterprise release engineering.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Summary</th>
+<th>Effort</th>
+<th>Pros (top 2)</th>
+<th>Cons (top 2)</th>
+<th>Recommended?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Astral-native minimal</td>
+<td>uv + ruff + ty, GitHub-native coverage, Dependabot, tag-triggered publish, no pre-commit.ci</td>
+<td>low</td>
+<td>Same-vendor toolchain; uv in CI 10–100x faster than pip</td>
+<td>ty beta (~53% conformance) misses bugs; native coverage less battle-tested</td>
+<td>✅ (base)</td>
+</tr>
+<tr>
+<td>Established tooling</td>
+<td>uv + ruff + pyright + pre-commit.ci + Codecov + release-please</td>
+<td>medium</td>
+<td>Most battle-tested per axis; release-please gives human-gated Release PR</td>
+<td>Requires Conventional Commits; extra services/accounts</td>
+<td>✅ (borrow pyright + release-please)</td>
+</tr>
+<tr>
+<td>Full auto (python-semantic-release + Renovate)</td>
+<td>Auto-release on qualifying merge; Renovate for deps</td>
+<td>high</td>
+<td>Zero release ceremony; Renovate updates action SHAs</td>
+<td>Auto-publish of a bad merge with no human gate; strict commit discipline</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> Take the <strong>Astral-native base</strong> and borrow two items from Established tooling. Concretely: (1) switch CI to <code>astral-sh/setup-uv</code> + <code>uv sync --locked</code> (commit <code>uv.lock</code>); (2) add a <strong>macOS matrix leg</strong> (biggest real test gap); (3) type-check with <strong>pyright</strong> not ty (98% vs ~53% conformance); (4) coverage via <strong>pytest-cov + coverage-comment-action</strong> (skip Codecov); (5) releases via <strong>release-please</strong> (human-approved Release PR) wired to <code>uv build &amp;&amp; uv publish</code> behind Trusted Publishing — never full auto-publish this early; (6) <strong>Dependabot</strong> not Renovate; (7) add <code>.pre-commit-config.yaml</code> (ruff check/format) but skip pre-commit.ci for now; (8) fill classifiers/keywords/urls before first release.</p>
+<p><strong>Sources:</strong>
+- https://docs.astral.sh/uv/guides/integration/github/
+- https://github.com/astral-sh/setup-uv
+- https://docs.pypi.org/trusted-publishers/
+- https://pydevtools.com/handbook/explanation/how-do-mypy-pyright-and-ty-compare/
+- https://pre-commit.ci/
+- https://about.codecov.io/blog/python-code-coverage-using-github-actions-and-codecov/
+- https://github.com/googleapis/release-please
+- https://docs.renovatebot.com/bot-comparison/
+- https://github.com/dbrgn/coverage-comment-action</p>
+<hr />
+<h2 id="tuicli-ux-polish">TUI/CLI UX polish<a class="headerlink" href="#tuicli-ux-polish" title="Permanent link">&para;</a></h2>
+<p>Strong TUI bones (dedicated help screen, <code>BINDINGS</code>+<code>Footer</code> across screens, modal widgets) but weak "first 60 seconds": no README media despite an inherently visual TUI, <strong>no <code>--version</code> flag</strong> anywhere, stock argparse help, minimal error handling (<code>sys.exit(main())</code> likely surfaces raw tracebacks), unverified NO_COLOR handling. The <code>~/.claude/relay/</code> path is an intentional Claude Code coupling, not an XDG oversight.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Summary</th>
+<th>Effort</th>
+<th>Pros (top 2)</th>
+<th>Cons (top 2)</th>
+<th>Recommended?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VHS (Charmbracelet) demo</td>
+<td>Scripted <code>.tape</code> → GIF/MP4, regenerated in CI</td>
+<td>medium</td>
+<td>Reproducible; official vhs-action keeps demo fresh</td>
+<td>Go/Docker toolchain dep; GIF text not copyable</td>
+<td>✅ (demo)</td>
+</tr>
+<tr>
+<td>asciinema (+agg/svg-term)</td>
+<td>Records real sessions, copyable text</td>
+<td>low</td>
+<td>Copyable commands; tiny files</td>
+<td>Not CI-reproducible → drifts; needs conversion to embed</td>
+<td>(secondary)</td>
+</tr>
+<tr>
+<td>termtosvg / terminalizer</td>
+<td>Styled static/animated exports</td>
+<td>low</td>
+<td>Crisp SVG / polished window chrome</td>
+<td>Both declining/less-maintained; no CI story</td>
+<td></td>
+</tr>
+<tr>
+<td>rich-argparse</td>
+<td>Colorized argparse help, drop-in formatter</td>
+<td>low</td>
+<td>10-line change; rich already a dep</td>
+<td>Cosmetic only; doesn't add examples/--version</td>
+<td>✅ (complementary)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> These are complementary except the demo tool (either/or). Pick <strong>VHS</strong> — the value is visual/choreographed (<code>register</code>→<code>send</code>→<code>tui</code>→live inbox) and a committed <code>.tape</code> + vhs-action stays fresh for a solo maintainer; use asciinema only later for copyable CLI examples. Add <strong>rich-argparse</strong> now, plus <strong><code>--version</code>/<code>-V</code></strong> via <code>importlib.metadata.version("claude-relay")</code> and a top-level epilog with 2–3 real examples. <strong>Wrap <code>main()</code> dispatch</strong> to print human messages (+ suggested fix) for <code>FileNotFoundError</code>/<code>PermissionError</code>/relay errors instead of tracebacks. <strong>Verify</strong> <code>NO_COLOR=1</code> works and note it in README. Keybinding discoverability is largely done — just confirm every screen's Footer + help screen agree. Leave the <code>~/.claude/relay/</code> path as-is; add one README sentence explaining the intentional coupling.</p>
+<p><strong>Sources:</strong>
+- https://github.com/charmbracelet/vhs
+- https://github.com/charmbracelet/vhs-action
+- https://github.com/orangekame3/awesome-terminal-recorder
+- https://github.com/faressoft/terminalizer/issues/21
+- https://pypi.org/project/rich-argparse/
+- https://github.com/hamdanal/rich-argparse</p>
+<hr />
+<h2 id="install-channels-onboardingquickstart-ux">Install channels + onboarding/quickstart UX<a class="headerlink" href="#install-channels-onboardingquickstart-ux" title="Permanent link">&para;</a></h2>
+<p>The README already leads with the correct 2025–2026 convention (<code>uv tool install</code> headline, <code>pipx</code> fallback, then <code>claude-relay init</code>). Gaps: no LICENSE (blocks packaging + scans), no documented <code>uvx</code> zero-install trial, no <code>examples/</code>, no troubleshooting section, no documented uninstall despite a subcommand existing. Crucially, <strong>no PyPI release exists yet</strong>, so the documented install commands don't work as written today.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Summary</th>
+<th>Effort</th>
+<th>Pros (top 2)</th>
+<th>Cons (top 2)</th>
+<th>Recommended?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PyPI-first (uv headline, pipx/pip fallback)</td>
+<td>Publish to PyPI; <code>uvx claude-relay@latest &lt;cmd&gt;</code> as trial</td>
+<td>low</td>
+<td>Matches audience's installed tooling; zero new build infra</td>
+<td>New-name typosquat risk (mitigate w/ Trusted Publishing); Windows users need uv first</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Homebrew tap (secondary)</td>
+<td><code>brew install &lt;maint&gt;/tap/claude-relay</code></td>
+<td>medium</td>
+<td>Free upgrade UX; some devs live in brew</td>
+<td>Fiddly for a Python (not Go/Rust) formula; second channel to keep in lockstep</td>
+<td></td>
+</tr>
+<tr>
+<td>PyInstaller/shiv single binary</td>
+<td>Standalone executable per OS on Releases</td>
+<td>high</td>
+<td>Removes Python prerequisite</td>
+<td>Textual+watchdog native bindings make freezing fragile; conflicts with library surface</td>
+<td></td>
+</tr>
+<tr>
+<td>DX polish (LICENSE, examples/, troubleshooting, uninstall)</td>
+<td>Close docs gaps regardless of channel</td>
+<td>low</td>
+<td>Highest-leverage; LICENSE currently blocks everything else; examples/ is best marketing asset</td>
+<td>Doesn't solve distribution alone; content needs periodic re-verification</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> Do <strong>PyPI-first (Option 1)</strong> as the only channel, paired with <strong>DX polish (Option 4)</strong> in the same push. Add LICENSE, <code>[project.urls]</code>+classifiers, cut a first PyPI release via <code>uv build &amp;&amp; uv publish</code> + Trusted Publishing, document <code>uvx claude-relay@latest whoami</code> as the zero-install trial, add <code>examples/</code> (real parent/child transcript), a troubleshooting section (watchdog-unavailable poll fallback, stale-lock recovery, what <code>claude-relay uninstall</code> removes). <strong>Skip Homebrew and single-file binaries</strong> — real effort for a distribution problem this audience (already has Python/uv) doesn't have.</p>
+<p><strong>Sources:</strong>
+- https://docs.astral.sh/uv/guides/tools/
+- https://docs.astral.sh/ruff/installation/
+- https://github.com/simonw/llm/blob/main/README.md
+- https://til.simonwillison.net/homebrew/packaging-python-cli-for-homebrew
+- https://pyinstaller.org/en/stable/usage.html
+- https://github.com/othneildrew/Best-README-Template
+- https://www.tilburgsciencehub.com/topics/collaborate-share/share-your-work/content-creation/readme-best-practices/</p>
+<hr />
+<h2 id="positioning-branding-go-to-market">Positioning, branding &amp; go-to-market<a class="headerlink" href="#positioning-branding-go-to-market" title="Permanent link">&para;</a></h2>
+<p>Pre-launch with zero GTM assets. The biggest strategic risk is the <strong>name</strong>: <code>claude-relay</code> collides with npow/claude-relay, gvorwaller/claude-relay, chadbyte's project, and most importantly the much larger, actively-maintained <strong>Wei-Shaw/claude-relay-service</strong> (an unrelated API proxy that will out-rank a new repo). PyPI name availability is <strong>unconfirmed and must be checked directly</strong>. In the actual problem space (local file-based agent messaging), two live competitors exist — avivsinai/agent-message-queue (~64★) and non4me/cc2cc (~11★) — neither has a TUI, which is claude-relay's genuine differentiator. Explicitly do <strong>not</strong> compete with orchestration frameworks (Agent Teams, claude-flow, Claude Squad); position as the communication substrate underneath them.</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Summary</th>
+<th>Effort</th>
+<th>Pros (top 2)</th>
+<th>Cons (top 2)</th>
+<th>Recommended?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Keep name, differentiate on category + TUI</td>
+<td>README disambiguates ("not a proxy, not an orchestrator"); launch narrow</td>
+<td>low</td>
+<td>Zero cost/no re-tagging; descriptive &amp; memorable</td>
+<td>Wei-Shaw dominates search long-term; collapses if PyPI name taken</td>
+<td></td>
+</tr>
+<tr>
+<td>Rename before launch</td>
+<td>Pick a PyPI+GitHub-clear name now while private</td>
+<td>medium</td>
+<td>Cheapest moment (no users/links); fully own-able in search</td>
+<td>Touches pyproject/scripts/skill paths/repo/docs; loses internal recognition</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Position vs AMQ + cc2cc (comparison table)</td>
+<td>Explicit landscape table on TUI / one-command install / lifecycle cmds</td>
+<td>low</td>
+<td>Turns competitors into market validation; pre-empts "how is this different"</td>
+<td>Tables age fast; must stay neutral in tone</td>
+<td>✅ (ship regardless)</td>
+</tr>
+<tr>
+<td>Full launch package + channel sequencing</td>
+<td>LICENSE, 4–5 badges, social image, PyPI→awesome-list→Show HN→Reddit</td>
+<td>high</td>
+<td>Concrete solo checklist; PyPI-before-HN avoids bounce</td>
+<td>Depends on naming resolved first; multi-day effort</td>
+<td>✅ (after naming)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> Sequence these — they are stages, not alternatives. <strong>Step 0 (today):</strong> run <code>pip index versions claude-relay</code>, check npm + GitHub search. Given Wei-Shaw's dominance, lean toward <strong>rename now</strong> (Option 2) — candidates like <code>ccmailbox</code>, <code>relaymux</code>, <code>agentrelay</code> (verify GitHub+PyPI+npm free). <strong>Step 1 (cheap, ship regardless):</strong> the <strong>competitive-positioning section</strong> (Option 3) vs AMQ and cc2cc, leaning on the TUI + one-command <code>init</code>. <strong>Step 2 (after name locked):</strong> the <strong>launch package</strong> (Option 4) — LICENSE, 4–5 shields.io badges (build/PyPI version/downloads/license/Python), social image, PyPI release, awesome-claude-code PR, then a "Show HN: <code>&lt;name&gt;</code> – local filesystem-backed message broker for coordinating parallel Claude Code sessions" cross-posted to r/ClaudeAI and r/commandline. Skip Product Hunt; Lobsters only if an account already exists.</p>
+<p><strong>Sources:</strong>
+- https://github.com/Wei-Shaw/claude-relay-service
+- https://github.com/npow/claude-relay
+- https://github.com/gvorwaller/claude-relay
+- https://github.com/avivsinai/agent-message-queue
+- https://github.com/non4me/cc2cc
+- https://github.com/hesreallyhim/awesome-claude-code
+- https://www.markepear.dev/blog/dev-tool-hacker-news-launch
+- https://shields.io/
+- https://github.com/orgs/goreleaser/discussions/3240</p>
+<hr />
+<h2 id="claude-code-integration-story">Claude Code integration story<a class="headerlink" href="#claude-code-integration-story" title="Permanent link">&para;</a></h2>
+<p><code>downbeat</code> already ships a genuinely first-class Claude Code bundle (skill + two hooks + five slash-commands), but it currently delivers that bundle via a <code>downbeat init</code> script that copies files into <code>~/.claude/</code> and hand-mutates <code>~/.claude/settings.json</code> to register hooks — the exact pattern Anthropic now steers projects <em>away</em> from. As of 2025-2026, Anthropic's canonical answer is to package this as a proper <strong>plugin</strong> (<code>.claude-plugin/plugin.json</code> + <code>hooks/hooks.json</code> + <code>skills/</code>), which auto-merges hooks on enable and cleanly removes them on disable, sidestepping settings.json surgery entirely. The core being agent-neutral maps cleanly onto the emerging "one source of truth, N harnesses" framing (wshobson/agents), where Claude Code is badged "native" and other agents "supported." The current init-script approach isn't wrong, but it's the higher-maintenance path and will require explicit disclosure if listed on <code>awesome-claude-code</code>, whose rules mandate flagging any tool that "modifies shared system files."</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Summary</th>
+<th>Effort</th>
+<th>Pros (top 2)</th>
+<th>Cons (top 2)</th>
+<th>Recommended?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. Ship as a proper Claude Code <strong>plugin</strong> (<code>.claude-plugin/plugin.json</code> + <code>hooks/hooks.json</code> + <code>skills/</code>), install via <code>/plugin marketplace add</code></td>
+<td>Repackage the existing bundle into plugin layout; hooks auto-merge/auto-clean, no settings.json editing</td>
+<td>med</td>
+<td>Clean install/uninstall with zero settings.json surgery; native <code>/plugin</code> discovery + marketplace-eligible</td>
+<td>Requires a hosting repo with <code>marketplace.json</code>; plugin hooks less flexible than raw settings.json for edge cases</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>B. Harden the <code>downbeat init</code> script</td>
+<td>Retain current installer, add exact-command dedup + <code>uninstall</code>/<code>repair</code>, never overwrite</td>
+<td>low</td>
+<td>Preserves single-command UX + standalone-core story; no marketplace dependency</td>
+<td>Must hand-merge settings.json (no official tooling); awesome-claude-code requires disclosing system-file modification</td>
+<td></td>
+</tr>
+<tr>
+<td>C. Dual-track (plugin + init)</td>
+<td>Offer both, wshobson/agents "harness-native artifacts, one source of truth" model</td>
+<td>high</td>
+<td>Widest reach; expresses "agent-neutral core, first-class Claude Code"; future-proofs Cursor/Codex</td>
+<td>Two install paths to document + keep in sync; more maintenance for a solo maintainer</td>
+<td></td>
+</tr>
+<tr>
+<td>D. List-only</td>
+<td>Keep current install; focus on <code>awesome-claude-code</code> listing + "Works with Claude Code" README + badge</td>
+<td>low</td>
+<td>Fast visibility, near-zero code; forces writing the integration README section</td>
+<td>Doesn't fix the settings.json risk; listing not guaranteed + needs modification disclosure</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> <strong>Option A</strong> — repackage skill+hooks+commands as a real Claude Code plugin. Highest-leverage: eliminates fragile <code>settings.json</code> hand-editing (biggest correctness + uninstall liability), gives clean <code>/plugin</code> install/removal, makes downbeat marketplace-eligible. Keep <code>downbeat init</code> only as a thin fallback for genuinely standalone (non-plugin) users, and if retained, adopt the claude-mem idempotency pattern (dedup by exact command string + explicit <code>uninstall</code>). Frame README with "agent-neutral core, first-class Claude Code" tiering (native vs supported). Defer the full dual-track matrix (C) until a second live harness exists.</p>
+<p><strong>Sources:</strong>
+- https://code.claude.com/docs/en/plugins
+- https://code.claude.com/docs/en/plugin-marketplaces
+- https://code.claude.com/docs/en/plugins-reference
+- https://code.claude.com/docs/en/hooks
+- https://github.com/anthropics/claude-plugins-community/blob/main/.claude-plugin/marketplace.json
+- https://github.com/hesreallyhim/awesome-claude-code
+- https://github.com/wshobson/agents
+- https://github.com/obra/superpowers</p>
+<hr />
+<h2 id="phased-adoption-roadmap">Phased adoption roadmap<a class="headerlink" href="#phased-adoption-roadmap" title="Permanent link">&para;</a></h2>
+<h3 id="phase-1-launch-blockers-before-repo-goes-public-first-pypi-release">Phase 1 — Launch-blockers (before repo goes public / first PyPI release)<a class="headerlink" href="#phase-1-launch-blockers-before-repo-goes-public-first-pypi-release" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Resolve the name</strong> (Positioning §, Step 0/Option 2): check PyPI/npm/GitHub; rename now if colliding — cheapest while private.</li>
+<li><strong>LICENSE file + PEP 639 migration</strong> (License §): real MIT text, <code>license = "MIT"</code> + <code>license-files</code>.</li>
+<li><strong>pyproject metadata</strong> (Packaging §): <code>[project.urls]</code>, classifiers, keywords.</li>
+<li><strong>Core community-health files</strong> (Community §): CONTRIBUTING (+DCO), CODE_OF_CONDUCT (Covenant 2.1), SECURITY (enable GitHub Private Vulnerability Reporting).</li>
+<li><strong>CLI basics</strong> (UX §): <code>--version</code> flag, error-message wrapping (no raw tracebacks).</li>
+<li><strong>Verify wheel contents</strong> (Packaging §): confirm <code>skill/</code>/<code>assets/</code>/<code>hooks_manifest.json</code> land at runtime paths.</li>
+<li><strong>First PyPI release</strong> via <code>uv publish</code> + Trusted Publishing (Packaging § / Install §).</li>
+<li><strong>CI upgrade</strong> (CI §): uv in CI + macOS matrix leg (biggest real test gap).</li>
+</ul>
+<h3 id="phase-2-polish-docs-site-demos-ux">Phase 2 — Polish (docs site, demos, UX)<a class="headerlink" href="#phase-2-polish-docs-site-demos-ux" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>VHS demo GIF</strong> + vhs-action in CI (UX §).</li>
+<li><strong>rich-argparse</strong> + epilog examples; verify <code>NO_COLOR</code> (UX §).</li>
+<li><strong>README restructure</strong>: badges → pitch → demo → install → 4 surfaces → config → contributing → license (Community § / Install §).</li>
+<li><strong>examples/ directory</strong> (parent/child transcript) + Troubleshooting + uninstall docs (Install §).</li>
+<li><strong>pyright</strong> type checking + <strong>coverage-comment-action</strong> + <code>.pre-commit-config.yaml</code> (CI §).</li>
+<li><strong>Hybrid issue templates</strong> (Forms for bugs w/ surface dropdown; Discussions for ideas) (Community §).</li>
+</ul>
+<h3 id="phase-3-growth-branding-gtm-community">Phase 3 — Growth (branding, GTM, community)<a class="headerlink" href="#phase-3-growth-branding-gtm-community" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Competitive-positioning section</strong> vs AMQ/cc2cc (Positioning § Option 3).</li>
+<li><strong>Launch package</strong>: 4–5 badges, social-preview image, awesome-claude-code PR, Show HN + Reddit sequencing (Positioning § Option 4).</li>
+<li><strong>release-please</strong> human-gated Release PR + <strong>Dependabot</strong> (CI §) — adopt once cadence/contributors justify it.</li>
+<li><strong>FUNDING.yml</strong> if sponsorship desired; revisit Homebrew tap / hatch-vcs only on real demand signals.</li>
+</ul>
+<hr />
+<h2 id="open-questions-for-the-maintainer">Open questions for the maintainer<a class="headerlink" href="#open-questions-for-the-maintainer" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Name:</strong> Is <code>claude-relay</code> free on PyPI/npm? Willing to rename before launch given the Wei-Shaw collision, or accept the search/disambiguation tax?</li>
+<li><strong>License:</strong> Confirm MIT (vs any future enterprise-adopter pull toward Apache-2.0)?</li>
+<li><strong>Contribution sign-off:</strong> Adopt DCO now, or stay no-sign-off until a second contributor appears?</li>
+<li><strong>Sponsorship:</strong> Add FUNDING.yml / want sponsor visibility, or keep it purely non-commercial?</li>
+<li><strong>Release philosophy:</strong> Comfortable with release-please's human-approved Release PR later, or prefer to stay fully manual for the 0.x line?</li>
+<li><strong>Config path coupling:</strong> Keep <code>~/.claude/relay/</code> as intentional Claude Code coupling (recommended) — confirm this is by design, not a candidate for XDG migration?</li>
+<li><strong>Launch timing:</strong> Ship Phase 1 + a minimal README first and iterate publicly, or hold private until Phase 2 polish is done before any Show HN?</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.top", "navigation.footer", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
