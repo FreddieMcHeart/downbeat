@@ -1160,7 +1160,15 @@ def migrate_store(dry_run: bool = False) -> dict:
 
 
 def broadcast(from_peer: str, to_peers: list[str],
-              subject: str, body: str) -> Broadcast:
+              subject: str, body: str, kind: str = "task") -> Broadcast:
+    """Fan out one message per target, all sharing broadcast_id.
+
+    kind defaults to "task", matching send_message/reply_to -- NOT "status"
+    despite an announcement being the natural use, because the TUI's
+    existing broadcast call passes no kind and flipping the default here
+    would silently change what that path produces (#97). Pass
+    kind="status" explicitly for an announcement that shouldn't create N
+    obligations to reply."""
     bc_id = new_id()
     bc = Broadcast(
         id=bc_id,
@@ -1173,10 +1181,10 @@ def broadcast(from_peer: str, to_peers: list[str],
     for target in to_peers:
         msg = send_message(from_peer=from_peer, to_peer=target,
                            subject=subject, body=body,
-                           broadcast_id=bc_id)
+                           broadcast_id=bc_id, kind=kind)
         bc.message_ids.append(msg.id)
-    _log.info("broadcast id=%s from=%s targets=%d",
-              bc_id, from_peer, len(to_peers))
+    _log.info("broadcast id=%s from=%s targets=%d kind=%s",
+              bc_id, from_peer, len(to_peers), kind)
     return bc
 
 

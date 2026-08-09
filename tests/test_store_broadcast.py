@@ -39,3 +39,24 @@ def test_single_target_broadcast_is_just_one_message(relay_dir):
     bc = store.broadcast(from_peer="parent", to_peers=["only"],
                          subject="s", body="b")
     assert len(bc.message_ids) == 1
+
+
+def test_broadcast_passes_kind_through_to_every_message(relay_dir):
+    """#97 Decision 1: broadcast can express a non-task kind (e.g. status),
+    which is the whole point -- an announcement to N peers should not
+    create N obligations to reply."""
+    _peers("a", "b")
+    bc = store.broadcast(from_peer="parent", to_peers=["a", "b"],
+                         subject="s", body="b", kind="status")
+    kinds = {store.get_message(mid).kind for mid in bc.message_ids}
+    assert kinds == {"status"}
+
+
+def test_broadcast_default_kind_is_still_task(relay_dir):
+    """#97 Decision 1: the default stays "task" -- send/reply both default
+    to task and the TUI's existing broadcast call passes no kind, so
+    flipping the default would silently change what it produces."""
+    _peers("a")
+    bc = store.broadcast(from_peer="parent", to_peers=["a"],
+                         subject="s", body="b")
+    assert store.get_message(bc.message_ids[0]).kind == "task"
