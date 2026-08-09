@@ -1274,7 +1274,6 @@ def rebind_session(name: str, new_session_id: str | None = None) -> Peer:
         entry["last_rebind_at"] = now_iso()
         entry["last_seen"] = now_iso()
         if auto_detected:
-            import os
             claude_pid = session_mod.detect_live_claude_pid()
             entry["claude_pid"] = claude_pid
             entry["claude_pid_start"] = (
