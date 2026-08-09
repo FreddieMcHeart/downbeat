@@ -191,7 +191,20 @@ def cmd_broadcast(args: argparse.Namespace) -> int:
                              subject=args.subject, body=args.body,
                              kind=args.kind)
     except PeerNotFound as e:
-        print(f"error: no peer named {str(e)!r}", file=sys.stderr)
+        # The pre-flight above already guaranteed every target existed --
+        # this is the narrow race it does not close: a target removed
+        # between that check and send_message reaching it. Unlike the
+        # pre-flight's rc=2 ("nothing was sent"), this one means the
+        # OPPOSITE for anything ordered before the vanished name, and the
+        # broadcast_id was never printed to trace it -- say so explicitly,
+        # a message one word away from the pre-flight's must not read as
+        # the same guarantee.
+        print(f"error: {str(e)!r} no longer exists -- it passed the "
+              f"pre-flight check but vanished before its message was "
+              f"sent. Targets ordered before it in this fan-out may "
+              f"already have received the broadcast; its id was never "
+              f"printed and cannot be recovered from this failure.",
+              file=sys.stderr)
         return 2
     print(f"broadcast: {bc.id}")
     return 0
