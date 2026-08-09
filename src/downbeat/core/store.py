@@ -637,19 +637,23 @@ def _is_timestamp_stale(iso_ts: str | None, threshold_minutes: int) -> bool:
     cooldown timestamp) — same reuse pattern as core/state.py importing
     _atomic_write_text from this module."""
     if not iso_ts:
-        return False
+        return True
     from datetime import datetime, timedelta
     try:
         ts = datetime.fromisoformat(iso_ts)
     except ValueError:
-        return False
+        return True
     return ts < datetime.now(UTC) - timedelta(minutes=threshold_minutes)
 
 
 def is_recipient_stale(peer_name: str,
                        threshold_minutes: int = STALE_THRESHOLD_MINUTES) -> bool:
-    """True if peer_name's last_seen is older than threshold_minutes, or the
-    peer doesn't exist. Never raises — used for a best-effort notify nudge,
+    """True if peer_name's last_seen is older than threshold_minutes.
+
+    False if the peer doesn't exist (#106): there is nothing to nudge
+    anyone about, so this is correct on the merits, not merely convenient
+    -- deliberately NOT "unknown" or "stale" the way a missing/malformed
+    last_seen now is. Never raises — used for a best-effort notify nudge,
     not a hard dependency."""
     try:
         peer = get_peer(peer_name)

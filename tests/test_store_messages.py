@@ -270,7 +270,33 @@ def test_is_recipient_stale_old_last_seen_is_stale(relay_dir):
 
 
 def test_is_recipient_stale_missing_peer_is_not_stale(relay_dir):
+    """#106 PIN, not a driver: a peer that doesn't exist has nothing to
+    nudge anyone about, so this stays False deliberately -- not "unknown"
+    or "stale" the way a registered peer's missing/malformed last_seen
+    now is. Passes today; must keep passing. Do not "fix" for symmetry
+    with the two driver tests below."""
     assert store.is_recipient_stale("ghost") is False
+
+
+def test_is_recipient_stale_missing_last_seen_is_stale(relay_dir):
+    """#106 driver: fails against pre-#106 code (was False). A false
+    negative here is silence while somebody waits, indistinguishable from
+    nothing to say -- the cheap error is to speak."""
+    _peers("c")
+    sessions = store._load_sessions()
+    del sessions["c"]["last_seen"]
+    store._save_sessions(sessions)
+    assert store.is_recipient_stale("c") is True
+
+
+def test_is_recipient_stale_malformed_last_seen_is_stale(relay_dir):
+    """#106 driver, same rationale as the missing-last_seen case above.
+    Fails against pre-#106 code (was False)."""
+    _peers("c")
+    sessions = store._load_sessions()
+    sessions["c"]["last_seen"] = "banana"
+    store._save_sessions(sessions)
+    assert store.is_recipient_stale("c") is True
 
 
 def test_is_recipient_stale_custom_threshold(relay_dir):

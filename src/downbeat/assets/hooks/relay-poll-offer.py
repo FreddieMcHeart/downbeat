@@ -63,18 +63,26 @@ def _is_fresh(iso_ts: str | None, threshold_seconds: float) -> bool:
 
 def _is_stale(iso_ts: str | None, threshold_minutes: int) -> bool:
     """Mirrors core/store.py's _is_timestamp_stale contract exactly: missing
-    or malformed timestamp -> False (not stale), never raises."""
+    or malformed timestamp -> True (stale), never raises (#106). A false
+    positive here is one extra notification; a false negative is silence
+    while somebody waits, indistinguishable from nothing to say -- when
+    the honest answer is "cannot tell", the cheap error is to speak."""
     if not iso_ts:
-        return False
+        return True
     try:
         ts = datetime.fromisoformat(iso_ts)
     except ValueError:
-        return False
+        return True
     return ts < datetime.now(UTC) - timedelta(minutes=threshold_minutes)
 
 
 def _is_recipient_stale(peer_name: str,
                         threshold_minutes: int = _STALE_THRESHOLD_MINUTES) -> bool:
+    """Mirrors core/store.py's is_recipient_stale contract exactly: a peer
+    that doesn't exist (missing sessions.json, unparseable JSON, or no
+    entry for peer_name) returns False, not True (#106) -- there is
+    nothing to nudge anyone about, so this is deliberate, not a missed
+    case."""
     sessions_file = _relay_dir() / "sessions.json"
     if not sessions_file.exists():
         return False
