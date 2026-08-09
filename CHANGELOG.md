@@ -2,6 +2,29 @@
 
 <!-- version list -->
 
+## v0.15.2 (2026-08-09)
+
+### Bug Fixes
+
+- Mirror the staleness fix into the poll-offer hook duplicate
+  ([#111](https://github.com/FreddieMcHeart/downbeat/pull/111),
+  [`82ba718`](https://github.com/FreddieMcHeart/downbeat/commit/82ba718ac7c015e7ae49b8ed79aa434d496aacc0))
+
+- Staleness helpers speak up on missing/malformed timestamps
+  ([#111](https://github.com/FreddieMcHeart/downbeat/pull/111),
+  [`82ba718`](https://github.com/FreddieMcHeart/downbeat/commit/82ba718ac7c015e7ae49b8ed79aa434d496aacc0))
+
+- Staleness helpers speak up when they cannot tell
+  ([#111](https://github.com/FreddieMcHeart/downbeat/pull/111),
+  [`82ba718`](https://github.com/FreddieMcHeart/downbeat/commit/82ba718ac7c015e7ae49b8ed79aa434d496aacc0))
+
+### Documentation
+
+- Note the #106 contract change on the notify design spec
+  ([#111](https://github.com/FreddieMcHeart/downbeat/pull/111),
+  [`82ba718`](https://github.com/FreddieMcHeart/downbeat/commit/82ba718ac7c015e7ae49b8ed79aa434d496aacc0))
+
+
 ## v0.15.1 (2026-08-08)
 
 ### Bug Fixes
