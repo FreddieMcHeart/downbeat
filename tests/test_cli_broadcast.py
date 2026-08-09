@@ -68,6 +68,59 @@ def test_broadcast_cli_bad_target_mid_list_sends_nothing(relay_dir, capsys, monk
     assert store.list_inbox("kid-b") == []
 
 
+def test_broadcast_cli_to_self_is_allowed_deliberately(relay_dir, capsys, monkeypatch):
+    """PIN, not a driver: passes before and after, and must keep passing.
+
+    --to <self> sends a peer a message from itself, and that is intended,
+    not an oversight -- it looks asymmetric with --all-children (which
+    excludes the sender) but the two are different kinds of set:
+    --all-children is DERIVED (children_of returns the subtree INCLUDING
+    the sender, an artifact of that helper that filtering here corrects);
+    --to is STATED (the caller typed the name, and Decision 2's whole
+    point is that the caller must say who -- they said). Untested-and-
+    intended reads as untested-and-accidental to the next reader, who
+    will "fix" it for symmetry; this test is what stops that."""
+    from downbeat.core import store
+    _peers("parent")
+    monkeypatch.setattr(sys, "argv",
+        ["downbeat", "broadcast", "--to", "parent", "--from", "parent",
+         "subject", "body"])
+    rc = main()
+    assert rc == 0
+    assert any(m.body == "body" for m in store.list_inbox("parent"))
+
+
+def test_broadcast_cli_to_and_all_children_union_is_ordered_and_deduped(
+        relay_dir, monkeypatch):
+    """PIN, not a driver: passes before and after (the union logic already
+    existed; this only asserts the specific order it produces). --to and
+    --all-children combine rather than conflict when both are given:
+    --to names first, in the order given, then derived children not
+    already named, deduplicated."""
+    from downbeat.core import store
+    store.register_peer(name="parent", session_id="s0", cwd="/tmp", role="parent")
+    store.register_peer(name="child-a", session_id="s1", cwd="/tmp", role="child",
+                        parent="parent")
+    store.register_peer(name="child-b", session_id="s2", cwd="/tmp", role="child",
+                        parent="parent")
+    store.register_peer(name="explicit", session_id="s3", cwd="/tmp", role="parent")
+
+    captured = {}
+    orig_broadcast = store.broadcast
+
+    def _capture(**kwargs):
+        captured["to_peers"] = list(kwargs["to_peers"])
+        return orig_broadcast(**kwargs)
+
+    monkeypatch.setattr(store, "broadcast", _capture)
+    monkeypatch.setattr(sys, "argv",
+        ["downbeat", "broadcast", "--to", "explicit", "--to", "child-a",
+         "--all-children", "--from", "parent", "subject", "body"])
+    rc = main()
+    assert rc == 0
+    assert captured["to_peers"] == ["explicit", "child-a", "child-b"]
+
+
 def test_broadcast_cli_no_targets_is_an_error(relay_dir, capsys, monkeypatch):
     """#97 Decision 2's whole point: no default target set. Neither --to
     nor --all-children given must refuse, not silently send nothing and
