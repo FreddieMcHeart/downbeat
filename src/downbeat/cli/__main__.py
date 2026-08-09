@@ -82,6 +82,23 @@ def build_parser() -> argparse.ArgumentParser:
                                'or any future kind (open string)')
     sp_reply.set_defaults(func=relay_cmds.cmd_reply)
 
+    sp_broadcast = sub.add_parser(
+        "broadcast",
+        help="send one message to multiple targets, sharing a broadcast_id",
+        parents=[debug_parent])
+    sp_broadcast.add_argument("subject")
+    sp_broadcast.add_argument("body")
+    sp_broadcast.add_argument("--to", action="append", default=None,
+                              help="a target peer name; repeatable")
+    sp_broadcast.add_argument("--all-children", action="store_true",
+                              help="every peer whose parent is the sender")
+    sp_broadcast.add_argument("--from", dest="from_peer", default=None,
+                              help="sender peer name; auto-detected if omitted")
+    sp_broadcast.add_argument("--kind", default="task",
+                              help='message kind: "task" (default), "backflow-ready", '
+                                   'or any future kind (open string)')
+    sp_broadcast.set_defaults(func=relay_cmds.cmd_broadcast)
+
     sp_inbox = sub.add_parser("inbox", help="list messages for a peer",
                               parents=[debug_parent])
     sp_inbox.add_argument("--peer", default=None,

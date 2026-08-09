@@ -158,6 +158,66 @@ def cmd_reply(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_broadcast(args: argparse.Namespace) -> int:
+    sender = _detect_peer_or_error(args.from_peer, flag="--from")
+    # No default target set (#97 Decision 2): a broadcast with an implicit
+    # target is precisely the shape where one mistake reaches every peer at
+    # once, so the caller must say who -- --to, --all-children, or both,
+    # union'd and deduplicated, never a silent guess in either direction.
+    targets = list(dict.fromkeys(args.to or []))
+    if args.all_children:
+        for peer in store.children_of(sender):
+            if peer.name != sender and peer.name not in targets:
+                targets.append(peer.name)
+    if not targets:
+        print("error: no targets given; pass --to (repeatable) or "
+              "--all-children", file=sys.stderr)
+        return 2
+    # Pre-flight every target before sending any (--to is free text, unlike
+    # the TUI's list-picker, so a typo is newly reachable here): send_message
+    # resolves each recipient in turn, so without this a bad name mid-list
+    # left earlier targets already delivered while the error discarded the
+    # broadcast_id, leaving no way to name what had landed. Not
+    # transactional -- a peer removed between this check and the send below
+    # still splits the fan-out -- this closes the reachable case (a typo),
+    # not the whole class.
+    unknown = [name for name in targets if not _peer_exists(name)]
+    if unknown:
+        print(f"error: no peer(s) named {', '.join(repr(n) for n in unknown)}",
+              file=sys.stderr)
+        return 2
+    try:
+        bc = store.broadcast(from_peer=sender, to_peers=targets,
+                             subject=args.subject, body=args.body,
+                             kind=args.kind)
+    except PeerNotFound as e:
+        # The pre-flight above already guaranteed every target existed --
+        # this is the narrow race it does not close: a target removed
+        # between that check and send_message reaching it. Unlike the
+        # pre-flight's rc=2 ("nothing was sent"), this one means the
+        # OPPOSITE for anything ordered before the vanished name, and the
+        # broadcast_id was never printed to trace it -- say so explicitly,
+        # a message one word away from the pre-flight's must not read as
+        # the same guarantee.
+        print(f"error: {str(e)!r} no longer exists -- it passed the "
+              f"pre-flight check but vanished before its message was "
+              f"sent. Targets ordered before it in this fan-out may "
+              f"already have received the broadcast; its id was never "
+              f"printed and cannot be recovered from this failure.",
+              file=sys.stderr)
+        return 2
+    print(f"broadcast: {bc.id}")
+    return 0
+
+
+def _peer_exists(name: str) -> bool:
+    try:
+        store.get_peer(name)
+        return True
+    except PeerNotFound:
+        return False
+
+
 def cmd_inbox(args: argparse.Namespace) -> int:
     peer = _detect_peer_or_error(args.peer, flag="--peer")
     msgs = store.list_inbox(peer, include_archived=args.all)
