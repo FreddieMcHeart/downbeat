@@ -2,6 +2,45 @@
 
 <!-- version list -->
 
+## v0.16.0 (2026-08-09)
+
+### Bug Fixes
+
+- Make broadcast's race-window error say what it cannot promise
+  ([#119](https://github.com/FreddieMcHeart/downbeat/pull/119),
+  [`3674a30`](https://github.com/FreddieMcHeart/downbeat/commit/3674a308b3532621e769d63078235bd7eafbe034))
+
+- Pre-flight validate every broadcast target before sending any
+  ([#119](https://github.com/FreddieMcHeart/downbeat/pull/119),
+  [`3674a30`](https://github.com/FreddieMcHeart/downbeat/commit/3674a308b3532621e769d63078235bd7eafbe034))
+
+### Chores
+
+- Remove the redundant function-scope import os in rebind_session
+  ([#115](https://github.com/FreddieMcHeart/downbeat/pull/115),
+  [`47e64f9`](https://github.com/FreddieMcHeart/downbeat/commit/47e64f90eb4629213c945337f955d5c770457249))
+
+### Features
+
+- Add downbeat broadcast CLI verb (#97, cli)
+  ([#119](https://github.com/FreddieMcHeart/downbeat/pull/119),
+  [`3674a30`](https://github.com/FreddieMcHeart/downbeat/commit/3674a308b3532621e769d63078235bd7eafbe034))
+
+- Broadcast can express a kind, and has a CLI verb
+  ([#119](https://github.com/FreddieMcHeart/downbeat/pull/119),
+  [`3674a30`](https://github.com/FreddieMcHeart/downbeat/commit/3674a308b3532621e769d63078235bd7eafbe034))
+
+- Broadcast can express a non-task kind (#97, core)
+  ([#119](https://github.com/FreddieMcHeart/downbeat/pull/119),
+  [`3674a30`](https://github.com/FreddieMcHeart/downbeat/commit/3674a308b3532621e769d63078235bd7eafbe034))
+
+### Testing
+
+- Pin two intentional broadcast target behaviors
+  ([#119](https://github.com/FreddieMcHeart/downbeat/pull/119),
+  [`3674a30`](https://github.com/FreddieMcHeart/downbeat/commit/3674a308b3532621e769d63078235bd7eafbe034))
+
+
 ## v0.15.2 (2026-08-09)
 
 ### Bug Fixes
