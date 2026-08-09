@@ -47,6 +47,27 @@ def test_broadcast_cli_all_children_flag_sends_to_children_only(relay_dir, capsy
     assert not any(m.body == "body" for m in store.list_inbox("stranger"))
 
 
+def test_broadcast_cli_bad_target_mid_list_sends_nothing(relay_dir, capsys, monkeypatch):
+    """Review finding: a typo'd --to used to partially send (earlier
+    targets already delivered before the bad name is hit, since
+    send_message resolves each recipient one at a time) and the error
+    path threw away the broadcast_id, so the messages that DID land
+    couldn't be traced back to anything. --to is free text (unlike the
+    TUI's list-picker), so this is newly reachable. Pre-flight every
+    target before sending any: rc=2 must mean nothing was sent."""
+    from downbeat.core import store
+    _peers("parent", "kid-a", "kid-b")
+    monkeypatch.setattr(sys, "argv",
+        ["downbeat", "broadcast", "--to", "kid-a", "--to", "ghost",
+         "--to", "kid-b", "--from", "parent", "announce", "body"])
+    rc = main()
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "ghost" in err
+    assert store.list_inbox("kid-a") == []
+    assert store.list_inbox("kid-b") == []
+
+
 def test_broadcast_cli_no_targets_is_an_error(relay_dir, capsys, monkeypatch):
     """#97 Decision 2's whole point: no default target set. Neither --to
     nor --all-children given must refuse, not silently send nothing and

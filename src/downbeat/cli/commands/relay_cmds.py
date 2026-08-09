@@ -173,6 +173,19 @@ def cmd_broadcast(args: argparse.Namespace) -> int:
         print("error: no targets given; pass --to (repeatable) or "
               "--all-children", file=sys.stderr)
         return 2
+    # Pre-flight every target before sending any (--to is free text, unlike
+    # the TUI's list-picker, so a typo is newly reachable here): send_message
+    # resolves each recipient in turn, so without this a bad name mid-list
+    # left earlier targets already delivered while the error discarded the
+    # broadcast_id, leaving no way to name what had landed. Not
+    # transactional -- a peer removed between this check and the send below
+    # still splits the fan-out -- this closes the reachable case (a typo),
+    # not the whole class.
+    unknown = [name for name in targets if not _peer_exists(name)]
+    if unknown:
+        print(f"error: no peer(s) named {', '.join(repr(n) for n in unknown)}",
+              file=sys.stderr)
+        return 2
     try:
         bc = store.broadcast(from_peer=sender, to_peers=targets,
                              subject=args.subject, body=args.body,
@@ -182,6 +195,14 @@ def cmd_broadcast(args: argparse.Namespace) -> int:
         return 2
     print(f"broadcast: {bc.id}")
     return 0
+
+
+def _peer_exists(name: str) -> bool:
+    try:
+        store.get_peer(name)
+        return True
+    except PeerNotFound:
+        return False
 
 
 def cmd_inbox(args: argparse.Namespace) -> int:
