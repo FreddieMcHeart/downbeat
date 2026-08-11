@@ -143,7 +143,14 @@ class RelayApp(App):
             self._watcher.stop()
 
     def _on_change(self) -> None:
-        self.post_message(StoreChanged())
+        # Post to the active screen, not to self: App.post_message queues
+        # onto the App's own message pump, and Textual only bubbles messages
+        # UP toward a parent -- never down to a child screen. A message
+        # posted at the App has no parent to bubble to and is dispatched
+        # only against handlers the App class itself defines, so it silently
+        # never reached ChatScreen.on_store_changed (or any pushed modal) in
+        # any shipped version (#118).
+        self.screen.post_message(StoreChanged())
         try:
             self._check_stale_notify()
         except Exception:
