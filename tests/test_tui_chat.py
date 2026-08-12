@@ -894,8 +894,15 @@ async def test_two_refreshes_in_one_tick_do_not_empty_the_thread(relay_dir):
         for _ in range(4):
             await pilot.pause()
 
-        # Two peer changes in ONE tick, no pump between them.
+        # Two peer changes in ONE tick, no pump between them. chat.py:121 is
+        # the only production call site and it always passes
+        # `self.active_peer` -- so a real double-navigation-in-one-tick
+        # updates active_peer alongside each refresh_thread call, and the
+        # test must too, or it drives the widget into a state production
+        # can never reach.
+        screen.active_peer = "A"
         stream.refresh_thread("CCO", "A")
+        screen.active_peer = "B"
         stream.refresh_thread("CCO", "B")
         for _ in range(4):
             await pilot.pause()
@@ -903,7 +910,62 @@ async def test_two_refreshes_in_one_tick_do_not_empty_the_thread(relay_dir):
         rendered = {c._msg.id for c in stream.children
                     if getattr(c, "_msg", None) is not None}
         expected = {m.id for m in store.list_thread("CCO", "B")}
+        missing = expected - rendered
+        extra = rendered - expected
         assert rendered == expected, (
-            f"thread emptied: rendered {len(rendered)} bubbles, "
-            f"data has {len(expected)}"
+            f"thread mismatch after two same-tick refreshes: "
+            f"rendered={sorted(rendered)} expected={sorted(expected)} "
+            f"(missing={sorted(missing)}, extra={sorted(extra)})"
+        )
+
+
+@pytest.mark.asyncio
+async def test_watcher_refresh_interleaves_with_user_refresh_of_same_thread(relay_dir):
+    """#118 made ChatScreen.on_store_changed fire for the first time in any
+    shipped version -- previously dead code. That opens a path nobody has
+    tested: a watcher-driven refresh landing close to a user-driven refresh
+    of the SAME thread, both routed through chat.py's own real entry points
+    (app._on_change() for the watcher side, ChatScreen.on_chat_composer_send
+    for the user side -- never a direct stream.refresh_thread() call, which
+    is exactly what made the sibling test above misfire on an interleaving
+    production can never reach)."""
+    from downbeat.core import store
+    from downbeat.tui.widgets.chat_composer import ChatComposer
+
+    store.register_peer(name="CCO", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="A", session_id="s2", cwd="/tmp", role="child",
+                        parent="CCO")
+    store.send_message(from_peer="A", to_peer="CCO", subject="x", body="1")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        screen.acting_as = "CCO"
+        screen.active_peer = "A"
+        screen._refresh_thread()
+        for _ in range(4):
+            await pilot.pause()
+
+        # A real user action (sending a message -- writes + refreshes the
+        # SAME thread) and a real watcher-driven refresh of that same thread
+        # fire back to back, with no pump between them -- so any deferred
+        # mount()/remove() from the first is still pending when the second
+        # (dispatched via the StoreChanged message queue on the next pump)
+        # runs.
+        screen.on_chat_composer_send(ChatComposer.Send("hello"))
+        app._on_change()
+        for _ in range(6):
+            await pilot.pause()
+
+        stream = screen.query_one("#chat-stream")
+        rendered = {c._msg.id for c in stream.children
+                    if getattr(c, "_msg", None) is not None}
+        expected = {m.id for m in store.list_thread("CCO", "A")}
+        missing = expected - rendered
+        extra = rendered - expected
+        assert rendered == expected, (
+            f"same-thread interleaving mismatch: rendered={sorted(rendered)} "
+            f"expected={sorted(expected)} "
+            f"(missing={sorted(missing)}, extra={sorted(extra)})"
         )
