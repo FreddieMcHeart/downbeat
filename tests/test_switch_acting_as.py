@@ -151,6 +151,43 @@ async def test_preselection_recomputed_by_name_after_resort(relay_dir):
         assert modal._listview.index == 1
 
 
+@pytest.mark.asyncio
+async def test_cycle_sort_follows_navigated_peer_not_current(relay_dir):
+    """The sibling test above never navigates away from `current` before
+    pressing "s", so highlighted == current throughout and it cannot
+    distinguish action_cycle_sort capturing the highlighted row BEFORE
+    vs. AFTER recomputing self._sorted -- both give the same answer when
+    the two happen to be the same peer. Move the cursor off `current`
+    first, so a resort snapping back to `current` (the pre-fix bug) is
+    told apart from a resort following the actually-highlighted peer."""
+    store.register_peer(name="zeta", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="alpha", session_id="s2", cwd="/tmp", role="parent")
+    store.register_peer(name="mid", session_id="s3", cwd="/tmp", role="parent")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        app.push_screen(SwitchActingAsModal(current="zeta"))
+        await pilot.pause()
+        modal = app.screen
+        assert isinstance(modal, SwitchActingAsModal)
+        # Recent sort, no messages -> registration order: zeta, alpha, mid.
+        # "zeta" is both current and index 0.
+        assert modal._sorted[modal._listview.index].name == "zeta"
+
+        await pilot.press("down")  # off `current`, onto "alpha"
+        await pilot.pause()
+        navigated_to = modal._sorted[modal._listview.index].name
+        assert navigated_to == "alpha", "test setup: must have moved off current"
+
+        await pilot.press("s")  # -> name: alpha, mid, zeta
+        await pilot.pause()
+
+        assert modal._sorted[modal._listview.index].name == navigated_to, (
+            "cycle_sort must follow the peer the cursor was actually on, "
+            "not snap back to `current`"
+        )
+
+
 # ---------------------------------------------------------------------------
 # #118 -- live refresh on StoreChanged
 # ---------------------------------------------------------------------------

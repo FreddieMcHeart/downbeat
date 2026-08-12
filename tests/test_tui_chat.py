@@ -928,7 +928,15 @@ async def test_watcher_refresh_interleaves_with_user_refresh_of_same_thread(rela
     (app._on_change() for the watcher side, ChatScreen.on_chat_composer_send
     for the user side -- never a direct stream.refresh_thread() call, which
     is exactly what made the sibling test above misfire on an interleaving
-    production can never reach)."""
+    production can never reach).
+
+    The third message ("z") is written AFTER the composer-send's own
+    synchronous refresh has already run and BEFORE any pump -- so it is
+    deliberately invisible to every refresh except the one app._on_change()
+    triggers. If the watcher-driven refresh is a no-op (or never reaches the
+    stream), "z" never renders and this fails; the composer-send's own
+    refresh cannot make it pass on its own, unlike the first version of this
+    test."""
     from downbeat.core import store
     from downbeat.tui.widgets.chat_composer import ChatComposer
 
@@ -948,12 +956,14 @@ async def test_watcher_refresh_interleaves_with_user_refresh_of_same_thread(rela
             await pilot.pause()
 
         # A real user action (sending a message -- writes + refreshes the
-        # SAME thread) and a real watcher-driven refresh of that same thread
-        # fire back to back, with no pump between them -- so any deferred
-        # mount()/remove() from the first is still pending when the second
-        # (dispatched via the StoreChanged message queue on the next pump)
-        # runs.
+        # SAME thread synchronously), then a THIRD message this action's own
+        # refresh cannot have seen, then a real watcher-driven refresh --
+        # all with no pump between them, so any deferred mount()/remove()
+        # from the composer-send is still pending when the watcher-driven
+        # refresh (dispatched via the StoreChanged message queue on the
+        # next pump) runs.
         screen.on_chat_composer_send(ChatComposer.Send("hello"))
+        store.send_message(from_peer="A", to_peer="CCO", subject="z", body="3")
         app._on_change()
         for _ in range(6):
             await pilot.pause()
