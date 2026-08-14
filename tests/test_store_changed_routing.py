@@ -10,6 +10,9 @@ working hop from a broken probe.
 """
 from __future__ import annotations
 
+import threading
+import time
+
 import pytest
 
 from downbeat.core import store
@@ -101,3 +104,63 @@ async def test_app_level_post_reaches_a_pushed_modals_handler(relay_dir):
                 SwitchActingAsModal.on_store_changed = original
             else:
                 del SwitchActingAsModal.on_store_changed
+
+
+@pytest.mark.asyncio
+async def test_watcher_callback_never_blocks_the_calling_thread(relay_dir):
+    """The real watchdog observer thread calls whatever is registered as
+    RelayApp's on_change callback (app.py's watcher setup) DIRECTLY -- this
+    invokes the actual registered callable (app._watcher._on_change), not a
+    reimplementation, so a regression in app.py's wiring is caught here even
+    though watchdog/inotify itself is not exercised.
+
+    The mechanism under test is OS-independent by construction: a loop whose
+    thread is occupied by a slow synchronous callback (exactly what a real
+    action_refresh() reading many message files synchronously does) stands
+    in for what real inotify delivery (fast, frequent) can trigger and real
+    FSEvents delivery (coalesced, delayed) usually doesn't -- so this is
+    deterministic on any OS, unlike depending on the real watcher's platform
+    timing. If the callback goes back to blocking (e.g. call_from_thread),
+    the calling thread parks for close to the full busy window; the fixed,
+    non-blocking version returns almost immediately regardless of it."""
+    store.register_peer(name="alpha", session_id="s1", cwd="/tmp", role="parent")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+
+        busy_seconds = 0.5
+        busy_started = threading.Event()
+
+        def occupy_the_loop() -> None:
+            # Runs ON the loop's own thread (scheduled via call_soon), so
+            # while this sleeps the loop cannot service anything else --
+            # including a run_coroutine_threadsafe future, which is exactly
+            # what a blocking watcher callback would be waiting on.
+            busy_started.set()
+            time.sleep(busy_seconds)
+
+        elapsed: dict[str, float] = {}
+
+        def invoke_from_watcher_thread() -> None:
+            busy_started.wait(timeout=2)
+            start = time.monotonic()
+            app._watcher._on_change()
+            elapsed["seconds"] = time.monotonic() - start
+
+        t = threading.Thread(target=invoke_from_watcher_thread)
+        t.start()
+
+        app._loop.call_soon(occupy_the_loop)
+        await pilot.pause()  # lets occupy_the_loop run; blocks ~busy_seconds
+        t.join(timeout=5)
+
+        assert not t.is_alive(), "watcher-thread call never returned"
+        assert elapsed["seconds"] < busy_seconds / 2, (
+            f"watcher callback took {elapsed['seconds']:.3f}s while the "
+            f"loop's thread was occupied for {busy_seconds}s -- it must "
+            f"return almost immediately, not wait for the loop to be free"
+        )
+
+        for _ in range(4):
+            await pilot.pause()
