@@ -13,10 +13,14 @@ from ..messages import StoreChanged
 
 _SORT_MODES = ("recent", "name", "added")
 
-# Coalesces a burst of filesystem events (one broadcast writes N message
-# files; the watcher fires once per file) into a single re-read. Each new
-# event during the window EXTENDS it rather than being dropped -- see
-# on_store_changed.
+# DECISION (#118): kept deliberately, not dead weight. watcher.py's
+# on_any_event fires once per matched filesystem event with no coalescing
+# of its own, so a real broadcast that writes N message files still posts N
+# separate StoreChanged messages here. This debounce coalesces that burst
+# into a single re-read. Each new event during the window EXTENDS it rather
+# than being dropped -- see on_store_changed. If source-level coalescing is
+# ever added (deferred to #120; not built in this PR), re-check whether
+# this becomes a second, redundant delay stacked on top of it.
 _REFRESH_DEBOUNCE_SECONDS = 0.15
 
 

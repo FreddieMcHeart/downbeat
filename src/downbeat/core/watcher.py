@@ -70,6 +70,9 @@ class PollWatcher:
         _log.debug("PollWatcher stopped")
 
 
+_CHANGE_EVENT_TYPES = frozenset({"created", "modified", "moved", "deleted"})
+
+
 class FsWatcher:
     def __init__(self, on_change: Callable[[], None]):
         from watchdog.events import FileSystemEventHandler
@@ -81,13 +84,31 @@ class FsWatcher:
 
         class _Handler(FileSystemEventHandler):
             def on_any_event(self, event):
-                # src_path is `bytes | str` per watchdog's own typing (some
-                # backends/platforms can hand back bytes for non-UTF8 paths);
-                # decode before comparing so this doesn't TypeError on those.
-                src_path = event.src_path
-                if isinstance(src_path, bytes):
-                    src_path = os.fsdecode(src_path)
-                if src_path.endswith(".json"):
+                # inotify (Linux) reports plain file READS as `opened` /
+                # `closed_no_write`; FSEvents (macOS) never emits either, at
+                # all. Reacting to them turns every on_change-triggered file
+                # read (store.list_inbox -> _read_message_at ->
+                # path.read_text()) into two more matching events, which run
+                # on_change again, which reads again -- a self-sustaining
+                # loop, measured at 136,000 raw watchdog events / 29,700
+                # on_change calls in one CI run (#118). Only react to event
+                # types that represent an actual filesystem CHANGE.
+                if event.event_type not in _CHANGE_EVENT_TYPES:
+                    return
+                # store._atomic_write_text writes via mkstemp(dir=...,
+                # prefix=".tmp-") + os.replace(tmp, target): every real
+                # write therefore surfaces as a MOVED event whose src_path
+                # is the *temp* name (no .json suffix -- can never match
+                # here) and whose dest_path is the real target name.
+                # Checking src_path alone, as this used to, silently
+                # matched no real write at all.
+                path = event.dest_path if event.event_type == "moved" else event.src_path
+                # bytes | str per watchdog's own typing (some backends/
+                # platforms can hand back bytes for non-UTF8 paths); decode
+                # before comparing so this doesn't TypeError on those.
+                if isinstance(path, bytes):
+                    path = os.fsdecode(path)
+                if path.endswith(".json"):
                     try:
                         on_change()
                     except Exception:
