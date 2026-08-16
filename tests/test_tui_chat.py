@@ -1045,3 +1045,124 @@ async def test_concurrent_populate_tabs_does_not_raise(relay_dir, monkeypatch):
         monkeypatch.setattr(PeerTabs, "clear", clear_and_trigger_concurrent_populate)
 
         await screen._populate_tabs()
+
+
+@pytest.mark.asyncio
+async def test_populate_with_unchanged_members_skips_clear(relay_dir, monkeypatch):
+    """#118 round 3, the actual fix: PeerTabs.populate() used to
+    clear()+add_tab() the WHOLE tab bar on every call, even when
+    membership hadn't changed -- a watcher-driven refresh from a new
+    message never adds or removes a peer, so this was the overwhelmingly
+    common case, rebuilding the DOM just to change an unread badge.
+    That rebuild's own mount timing (clear(), then add_tab() -- which
+    internally awaits the mount and then Textual's own refresh_active
+    sets .active) is what produced a ValueError under real, uncontrolled
+    cross-thread scheduling. Not reproducible deterministically: tried
+    same-thread asyncio.gather(), a tight 200-call sequential loop, and a
+    controlled cross-thread call_soon_threadsafe trigger at several
+    timing gaps (mirroring the real watcher's own trigger mechanism) --
+    none hit it locally; only the real watcher inside the full pytest
+    suite did, at a noisy, machine-load-dependent rate. So this is
+    validated structurally, not by re-running the race: assert clear()
+    is never called on a same-membership refresh, which proves the
+    vulnerable code path is simply never entered for this case -- the
+    window is removed, not narrowed."""
+    from downbeat.core import store
+    from downbeat.tui.widgets.peer_tabs import PeerTabs
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child",
+                        parent="parent")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+
+        clear_calls = []
+        original_clear = PeerTabs.clear
+
+        async def counting_clear(self):
+            clear_calls.append(1)
+            await original_clear(self)
+
+        monkeypatch.setattr(PeerTabs, "clear", counting_clear)
+
+        # Same acting_as, same members as the mount-time populate -- a
+        # pure re-refresh, exactly what a watcher-driven StoreChanged from
+        # a new message triggers.
+        await screen._populate_tabs()
+
+        assert clear_calls == [], (
+            "clear() must not run when membership hasn't changed -- if it "
+            "did, the fix isn't in effect and the race window is back"
+        )
+
+
+@pytest.mark.asyncio
+async def test_populate_with_unchanged_members_still_updates_labels(relay_dir):
+    """The skip-rebuild path above must still reflect fresh unread counts
+    -- proving it relabels in place rather than silently doing nothing,
+    which would be a worse regression than the crash it fixes."""
+    from textual.widgets import Tab
+
+    from downbeat.core import store
+    from downbeat.tui.widgets.peer_tabs import PeerTabs
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child",
+                        parent="parent")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        tabs = screen.query_one("#peer-tabs", PeerTabs)
+        before = tabs.query_one("#tabs-list > #tab-child", Tab).label_text
+
+        store.send_message(from_peer="parent", to_peer="child", subject="s", body="b")
+        await screen._populate_tabs()
+
+        after = tabs.query_one("#tabs-list > #tab-child", Tab).label_text
+        assert before != after, (
+            f"label must reflect the new unread count via relabel-in-place "
+            f"(before={before!r}, after={after!r})"
+        )
+        assert "1" in after, f"expected an unread badge of 1 in the new label, got {after!r}"
+
+
+@pytest.mark.asyncio
+async def test_populate_with_changed_members_still_rebuilds(relay_dir, monkeypatch):
+    """Positive control for the fix above: when membership GENUINELY
+    changes, the full clear()+add_tab() rebuild must still run -- the
+    skip-rebuild optimization must not silently swallow a real member
+    joining or leaving."""
+    from downbeat.core import store
+    from downbeat.tui.widgets.peer_tabs import PeerTabs
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child",
+                        parent="parent")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+
+        clear_calls = []
+        original_clear = PeerTabs.clear
+
+        async def counting_clear(self):
+            clear_calls.append(1)
+            await original_clear(self)
+
+        monkeypatch.setattr(PeerTabs, "clear", counting_clear)
+
+        store.register_peer(name="grandchild", session_id="s3", cwd="/tmp",
+                            role="child", parent="parent")
+        await screen._populate_tabs()
+
+        assert clear_calls == [1], (
+            "a genuine membership change must still take the full "
+            "clear()+rebuild path, not the skip-rebuild shortcut"
+        )
+        tabs = screen.query_one("#peer-tabs", PeerTabs)
+        names = {r for r in tabs._members}
+        assert "grandchild" in names, "the new member must actually be present"
