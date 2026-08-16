@@ -93,28 +93,47 @@ class ChatScreen(Screen):
             chip.update("[dim]No parents registered — press Ctrl+P to add one[/dim]")
 
     async def _populate_tabs(self) -> None:
-        tabs = self.query_one("#peer-tabs", PeerTabs)
-        members = self._group_members()
-        await tabs.populate(members, acting_as=self.acting_as)
-        # Build the full tab order: own-inbox first, then members
-        all_tabs = [OWN_INBOX_ID] + members
-        # Prefer persisted last_active_peer if it's still a valid tab; else own-inbox
-        if self.active_peer not in all_tabs:
-            last = state.get_last_active_peer()
-            if last in all_tabs:
-                self.active_peer = last
-            else:
-                self.active_peer = OWN_INBOX_ID
-        # active_peer (what we render) and tabs.active (what the user sees
-        # highlighted) are two views of one choice, so they have to be
-        # reconciled explicitly. populate() cannot do it: it restores whatever
-        # tab it had before, and on first mount it has none, so it falls back
-        # to own-inbox -- while the branch above restores the peer the user
-        # was last reading. Left unreconciled that reads as a tab bar saying
-        # "inbox" over someone else's thread.
-        want = f"tab-{tabs._safe_id(self.active_peer)}" if self.active_peer else None
-        if want is not None and tabs.active != want:
-            tabs.active = want
+        # PeerTabs.populate() guards ITSELF against a re-entrant call (a
+        # second call while one is in flight just returns) -- but the
+        # active-tab reconciliation below is this method's OWN, and used to
+        # run unguarded. A second, concurrent _populate_tabs() (on_mount's
+        # own call racing a watcher-driven action_refresh(), now reachable
+        # since watcher.py's dest_path fix made real writes actually reach
+        # on_store_changed for the first time) could reach `tabs.active =
+        # want` while the first call's populate() had cleared the tab bar
+        # but not yet re-added it -- Textual's Tabs.validate_active raises
+        # ValueError: No Tab with id '...' for exactly that case (#118).
+        # This flag was declared for exactly this purpose (see __init__)
+        # but was never actually checked; wiring it up here closes the gap
+        # PeerTabs's own guard doesn't reach.
+        if self._updating:
+            return
+        self._updating = True
+        try:
+            tabs = self.query_one("#peer-tabs", PeerTabs)
+            members = self._group_members()
+            await tabs.populate(members, acting_as=self.acting_as)
+            # Build the full tab order: own-inbox first, then members
+            all_tabs = [OWN_INBOX_ID] + members
+            # Prefer persisted last_active_peer if it's still a valid tab; else own-inbox
+            if self.active_peer not in all_tabs:
+                last = state.get_last_active_peer()
+                if last in all_tabs:
+                    self.active_peer = last
+                else:
+                    self.active_peer = OWN_INBOX_ID
+            # active_peer (what we render) and tabs.active (what the user sees
+            # highlighted) are two views of one choice, so they have to be
+            # reconciled explicitly. populate() cannot do it: it restores whatever
+            # tab it had before, and on first mount it has none, so it falls back
+            # to own-inbox -- while the branch above restores the peer the user
+            # was last reading. Left unreconciled that reads as a tab bar saying
+            # "inbox" over someone else's thread.
+            want = f"tab-{tabs._safe_id(self.active_peer)}" if self.active_peer else None
+            if want is not None and tabs.active != want:
+                tabs.active = want
+        finally:
+            self._updating = False
 
     def _refresh_thread(self) -> None:
         stream = self.query_one("#chat-stream", ChatStream)

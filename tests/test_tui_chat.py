@@ -979,3 +979,69 @@ async def test_watcher_refresh_interleaves_with_user_refresh_of_same_thread(rela
             f"expected={sorted(expected)} "
             f"(missing={sorted(missing)}, extra={sorted(extra)})"
         )
+
+
+@pytest.mark.asyncio
+async def test_concurrent_populate_tabs_does_not_raise(relay_dir, monkeypatch):
+    """#118 round 3: ChatScreen._populate_tabs() calls PeerTabs.populate(),
+    which IS internally guarded (a re-entrant call while one is in flight
+    just returns -- peer_tabs.py's `self._populating`) -- but _populate_tabs()
+    then does its OWN `tabs.active = want` reconciliation OUTSIDE that guard.
+    A second, concurrent _populate_tabs() call can reach that unguarded
+    assignment while the first call's populate() is still mid-flight
+    (specifically the window between `await self.clear()` wiping the tab
+    bar and the tabs being re-added), targeting a tab id that does not
+    exist yet. Textual's Tabs.validate_active raises `ValueError: No Tab
+    with id '...'` for exactly that case (textual/widgets/_tabs.py:577-580).
+
+    This became reachable in practice once watcher.py's dest_path fix made
+    a real filesystem write actually reach on_store_changed for the first
+    time on any platform: previously the predicate never matched a real
+    write at all (checked src_path, which is always the temp name), so a
+    watcher-driven action_refresh() while on_mount's own populate was still
+    running was structurally impossible -- there was no second caller.
+    CI caught it as a flaky ValueError in test_tui_notify.py, Linux and
+    macOS both, timing-dependent -- and plain asyncio.gather() of two
+    _populate_tabs() calls here does NOT reproduce it: traced it directly
+    (a throwaway script, not this test) and found the second task's whole
+    synchronous run -- guard check, early return, the unguarded .active=
+    line -- completes in one burst DURING the first call's suspension
+    *inside* clear()'s widget-removal wait, i.e. strictly BEFORE clear()
+    has actually finished emptying the tab bar. So a same-thread gather
+    only ever lands the second call in the SAFE half of the window
+    (tabs still present), matching Claude-Relay's own "5/5 pass, does not
+    reproduce" on their machine -- the real race needs the second caller
+    to start specifically AFTER clear() has finished, which is exactly
+    what a real, independently-timed cross-thread watcher event can do
+    and organic same-thread scheduling doesn't.
+
+    Made deterministic here by triggering the second _populate_tabs() call
+    from inside a patched PeerTabs.clear(), right after the real clear()
+    resolves (tabs confirmed empty) -- this doesn't fabricate a defect, it
+    places the second caller exactly in the window the source trace
+    (clear() drops to zero tabs, then re-adds them one add_tab() at a time)
+    already proves exists, the same platform-independence technique as the
+    watcher.py handler-level tests."""
+    from downbeat.core import store
+    from downbeat.tui.widgets.peer_tabs import PeerTabs
+    store.register_peer(name="alpha", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="beta", session_id="s2", cwd="/tmp", role="parent")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+
+        original_clear = PeerTabs.clear
+
+        async def clear_and_trigger_concurrent_populate(self):
+            await original_clear(self)
+            # Tabs are now confirmed empty (clear() has fully resolved) but
+            # not yet re-added -- fire the second, concurrent
+            # _populate_tabs() call exactly here, the same window a real
+            # watcher-driven on_store_changed() could land in.
+            await screen._populate_tabs()
+
+        monkeypatch.setattr(PeerTabs, "clear", clear_and_trigger_concurrent_populate)
+
+        await screen._populate_tabs()
