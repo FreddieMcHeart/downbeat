@@ -2,6 +2,51 @@
 
 <!-- version list -->
 
+## v0.17.0 (2026-08-18)
+
+### Bug Fixes
+
+- Guard ChatScreen._populate_tabs() against re-entrant calls
+  ([#122](https://github.com/FreddieMcHeart/downbeat/pull/122),
+  [`89435df`](https://github.com/FreddieMcHeart/downbeat/commit/89435df29df868fa2c9ff14765617a1a7b243a6d))
+
+- Ignore watchdog read events and match moved dest_path in FsWatcher
+  ([#122](https://github.com/FreddieMcHeart/downbeat/pull/122),
+  [`89435df`](https://github.com/FreddieMcHeart/downbeat/commit/89435df29df868fa2c9ff14765617a1a7b243a6d))
+
+- Post StoreChanged to the active screen, not the App itself
+  ([#122](https://github.com/FreddieMcHeart/downbeat/pull/122),
+  [`89435df`](https://github.com/FreddieMcHeart/downbeat/commit/89435df29df868fa2c9ff14765617a1a7b243a6d))
+
+- Schedule the watcher callback non-blocking, not via call_from_thread
+  ([#122](https://github.com/FreddieMcHeart/downbeat/pull/122),
+  [`89435df`](https://github.com/FreddieMcHeart/downbeat/commit/89435df29df868fa2c9ff14765617a1a7b243a6d))
+
+- Skip PeerTabs rebuild when membership is unchanged
+  ([#122](https://github.com/FreddieMcHeart/downbeat/pull/122),
+  [`89435df`](https://github.com/FreddieMcHeart/downbeat/commit/89435df29df868fa2c9ff14765617a1a7b243a6d))
+
+### Features
+
+- Live acting-as badges, and route StoreChanged to the active screen (#118)
+  ([#122](https://github.com/FreddieMcHeart/downbeat/pull/122),
+  [`89435df`](https://github.com/FreddieMcHeart/downbeat/commit/89435df29df868fa2c9ff14765617a1a7b243a6d))
+
+- Refresh the acting-as modal's badges live on StoreChanged
+  ([#122](https://github.com/FreddieMcHeart/downbeat/pull/122),
+  [`89435df`](https://github.com/FreddieMcHeart/downbeat/commit/89435df29df868fa2c9ff14765617a1a7b243a6d))
+
+### Testing
+
+- Make item A's watcher path load-bearing, cover item B's gap
+  ([#122](https://github.com/FreddieMcHeart/downbeat/pull/122),
+  [`89435df`](https://github.com/FreddieMcHeart/downbeat/commit/89435df29df868fa2c9ff14765617a1a7b243a6d))
+
+- Make the #21 regression internally consistent, add real-path coverage
+  ([#122](https://github.com/FreddieMcHeart/downbeat/pull/122),
+  [`89435df`](https://github.com/FreddieMcHeart/downbeat/commit/89435df29df868fa2c9ff14765617a1a7b243a6d))
+
+
 ## v0.16.0 (2026-08-09)
 
 ### Bug Fixes
