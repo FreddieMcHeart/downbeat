@@ -102,8 +102,38 @@ class RelayApp(App):
         state.set_watcher_heartbeat_at(state.now_iso())
         self.set_interval(_HEARTBEAT_INTERVAL_SECONDS, self._heartbeat_tick)
 
+        # call_from_thread (see textual/app.py:1788) schedules the callable
+        # via asyncio.run_coroutine_threadsafe and then BLOCKS the calling
+        # thread on future.result() until the loop actually runs it. The
+        # watchdog observer thread that invokes this lambda holds that block
+        # for as long as the loop is busy -- and #118 made the loop busy: a
+        # StoreChanged dispatch now runs a real action_refresh(), which reads
+        # message files synchronously. On Linux/inotify (delivers immediately,
+        # often) that chains into observer threads piling up parked in
+        # future.result() while the loop works through the backlog;
+        # sub-100ms FSEvents coalescing on macOS made this invisible locally.
+        # call_soon_threadsafe -- the same primitive post_message itself
+        # already uses for a cross-thread post (message_pump.py:882-885),
+        # and the alternative call_from_thread's own docstring names
+        # ("Consider using post_message which is also thread-safe") --
+        # schedules _on_change on the loop and returns immediately, with no
+        # blocking regardless of how busy the loop is.
+        #
+        # Removing that block did not remove all of #118's Linux-only CI
+        # failures: it unmasked a second, independent bug in watcher.py's
+        # event predicate, where a plain file READ (inotify's `opened` /
+        # `closed_no_write`) re-triggered _on_change, which read again -- a
+        # self-sustaining loop. Fixed in watcher.py, not here; see
+        # FsWatcher._Handler.on_any_event for the mechanism and the measured
+        # event counts. (An earlier version of this comment attributed the
+        # loop-busy problem partly to mark_read writing back into the
+        # watched directory during a refresh -- that does not happen on the
+        # steady-state path: ChatStream.refresh_thread only calls
+        # _mark_focused_read when peer_changed is True
+        # (widgets/chat_stream.py:181-182), and a watcher-driven refresh
+        # never changes the peer.)
         self._watcher = watcher.make_watcher(
-            on_change=lambda: self.call_from_thread(self._on_change)
+            on_change=lambda: self._loop.call_soon_threadsafe(self._on_change)
         )
         self._watcher.start()
 
@@ -143,7 +173,14 @@ class RelayApp(App):
             self._watcher.stop()
 
     def _on_change(self) -> None:
-        self.post_message(StoreChanged())
+        # Post to the active screen, not to self: App.post_message queues
+        # onto the App's own message pump, and Textual only bubbles messages
+        # UP toward a parent -- never down to a child screen. A message
+        # posted at the App has no parent to bubble to and is dispatched
+        # only against handlers the App class itself defines, so it silently
+        # never reached ChatScreen.on_store_changed (or any pushed modal) in
+        # any shipped version (#118).
+        self.screen.post_message(StoreChanged())
         try:
             self._check_stale_notify()
         except Exception:

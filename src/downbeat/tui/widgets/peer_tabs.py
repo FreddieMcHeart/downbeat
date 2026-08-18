@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 
+from textual.css.query import NoMatches
 from textual.message import Message as TextualMessage
 from textual.widgets import Tab, Tabs
 
@@ -41,26 +42,43 @@ class PeerTabs(Tabs):
             return
         self._populating = True
         try:
+            new_members = [OWN_INBOX_ID] + list(members)
+            # Membership unchanged: update labels on the EXISTING Tab
+            # widgets in place, no clear()/add_tab(). A watcher-driven
+            # refresh from a new message never adds or removes a peer, so
+            # this is the overwhelmingly common call -- and clear()+add_tab
+            # (mount, then Textual's own add_tab->refresh_active setting
+            # .active once the mount completes) is exactly the sequence
+            # whose timing produced a ValueError: No Tab with id '...'
+            # under real, uncontrolled cross-thread scheduling (#118,
+            # established: not reproducible via same-thread scheduling of
+            # any shape tried, only via the real watcher; root Textual-
+            # internal mechanism not established, only the trigger shape).
+            # This does not narrow that window, it removes the only path
+            # into it for this case -- clear()/add_tab() are simply never
+            # called, so the race cannot occur here regardless of timing.
+            # The window still exists when membership genuinely changes;
+            # that residual case is Textual's own clear()/add_tab()
+            # sequencing, not addressed here.
+            if new_members == self._members and self.tab_count == len(new_members):
+                self._relabel(OWN_INBOX_ID,
+                              self._inbox_label(acting_as))
+                for name in members:
+                    self._relabel(name, self._member_label(name))
+                return
             active_name = self._current_peer_name()
             await self.clear()
             # _members tracks own-inbox sentinel + real members for _current_peer_name
-            self._members = [OWN_INBOX_ID] + list(members)
+            self._members = new_members
 
             # --- Own-inbox tab (always first) ---
-            inbox_unread = 0
-            if acting_as:
-                inbox_unread, _ = store.inbox_summary(acting_as)
-            inbox_label = (
-                OWN_INBOX_LABEL if inbox_unread == 0
-                else f"{OWN_INBOX_LABEL}  ●{inbox_unread}"
-            )
-            await self.add_tab(Tab(inbox_label, id=f"tab-{self._safe_id(OWN_INBOX_ID)}"))
+            await self.add_tab(Tab(self._inbox_label(acting_as),
+                                    id=f"tab-{self._safe_id(OWN_INBOX_ID)}"))
 
             # --- Member tabs ---
             for name in members:
-                unread, _ = store.inbox_summary(name)
-                label = name if unread == 0 else f"{name}  ●{unread}"
-                await self.add_tab(Tab(label, id=f"tab-{self._safe_id(name)}"))
+                await self.add_tab(Tab(self._member_label(name),
+                                        id=f"tab-{self._safe_id(name)}"))
 
             # Restore previously active tab if still present; else own-inbox.
             if active_name and active_name in self._members:
@@ -69,6 +87,25 @@ class PeerTabs(Tabs):
                 self.active = f"tab-{self._safe_id(OWN_INBOX_ID)}"
         finally:
             self._populating = False
+
+    def _inbox_label(self, acting_as: str | None) -> str:
+        inbox_unread = 0
+        if acting_as:
+            inbox_unread, _ = store.inbox_summary(acting_as)
+        return (OWN_INBOX_LABEL if inbox_unread == 0
+                else f"{OWN_INBOX_LABEL}  ●{inbox_unread}")
+
+    def _member_label(self, name: str) -> str:
+        unread, _ = store.inbox_summary(name)
+        return name if unread == 0 else f"{name}  ●{unread}"
+
+    def _relabel(self, name: str, label: str) -> None:
+        tab_id = f"tab-{self._safe_id(name)}"
+        try:
+            tab = self.query_one(f"#tabs-list > #{tab_id}", Tab)
+        except NoMatches:
+            return
+        tab.label = label
 
     def _safe_id(self, name: str) -> str:
         # Textual widget ids allow only letters, numbers, underscores, hyphens.

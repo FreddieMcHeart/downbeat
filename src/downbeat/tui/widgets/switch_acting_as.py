@@ -5,11 +5,23 @@ from dataclasses import dataclass
 
 from textual.containers import Vertical
 from textual.screen import ModalScreen
+from textual.timer import Timer
 from textual.widgets import Label, ListItem, ListView, Static
 
 from ...core import store
+from ..messages import StoreChanged
 
 _SORT_MODES = ("recent", "name", "added")
+
+# DECISION (#118): kept deliberately, not dead weight. watcher.py's
+# on_any_event fires once per matched filesystem event with no coalescing
+# of its own, so a real broadcast that writes N message files still posts N
+# separate StoreChanged messages here. This debounce coalesces that burst
+# into a single re-read. Each new event during the window EXTENDS it rather
+# than being dropped -- see on_store_changed. If source-level coalescing is
+# ever added (deferred to #120; not built in this PR), re-check whether
+# this becomes a second, redundant delay stacked on top of it.
+_REFRESH_DEBOUNCE_SECONDS = 0.15
 
 
 @dataclass
@@ -34,6 +46,7 @@ class SwitchActingAsModal(ModalScreen):
         self._rows: list[_Row] = []
         self._sorted: list[_Row] = []
         self._sort_index = 0
+        self._refresh_timer: Timer | None = None
 
     def compose(self):
         with Vertical(classes="pane"):
@@ -48,7 +61,13 @@ class SwitchActingAsModal(ModalScreen):
         for peer in store.acting_as_candidates():
             unread, newest = store.inbox_summary(peer.name)
             self._rows.append(_Row(peer.name, unread, newest, peer.registered_at))
-        self._render_rows()
+        self._sorted = self._sorted_rows()
+        self._render_rows(target=None)
+
+    def on_unmount(self) -> None:
+        if self._refresh_timer is not None:
+            self._refresh_timer.stop()
+            self._refresh_timer = None
 
     def _hint_text(self) -> str:
         mode = _SORT_MODES[self._sort_index]
@@ -70,23 +89,76 @@ class SwitchActingAsModal(ModalScreen):
         without_messages = [r for r in self._rows if r.newest is None]
         return with_messages + without_messages
 
-    def _render_rows(self) -> None:
-        self._sorted = self._sorted_rows()
+    def _current_highlighted_name(self) -> str | None:
+        """The peer under the cursor right now, read from the OUTGOING
+        `self._sorted` before a render replaces it. A re-render (resort or
+        live refresh) keeps the cursor on this same PEER rather than
+        snapping back to `self.current` or drifting to a new index."""
+        if self._listview is None or self._listview.index is None:
+            return None
+        if not (0 <= self._listview.index < len(self._sorted)):
+            return None
+        return self._sorted[self._listview.index].name
+
+    def _render_rows(self, *, target: str | None) -> None:
+        """Rebuild the ListView from the CURRENT `self._sorted` (callers own
+        whether/how it was resorted before this runs) and reselect `target`
+        if it's still present, falling back to `self.current`. `target` must
+        be captured by the caller via `_current_highlighted_name()` BEFORE
+        `self._sorted` is reassigned -- capturing it in here would read the
+        old index against the already-replaced list and pick the wrong row."""
         self._listview.clear()
         for row in self._sorted:
             marker = "[b yellow]▶[/b yellow]" if row.name == self.current else " "
             badge = f"  ●{row.unread}" if row.unread > 0 else ""
             self._listview.append(ListItem(Static(f"{marker} {row.name}{badge}")))
-        # Preselect the current acting-as row, recomputed against the NEW
-        # order every time -- never carried over as a stale index.
         names = [r.name for r in self._sorted]
-        if self.current in names:
-            self._listview.index = names.index(self.current)
+        pick = target if target in names else (
+            self.current if self.current in names else None
+        )
+        if pick is not None:
+            self._listview.index = names.index(pick)
         self._hint.update(self._hint_text())
 
     def action_cycle_sort(self) -> None:
+        target = self._current_highlighted_name()
         self._sort_index = (self._sort_index + 1) % len(_SORT_MODES)
-        self._render_rows()
+        self._sorted = self._sorted_rows()
+        self._render_rows(target=target)
+
+    def on_store_changed(self, event: StoreChanged) -> None:
+        # Debounce: coalesce a burst into one re-read. Each new event
+        # cancels and reschedules -- it EXTENDS the window rather than being
+        # dropped, so the refresh always eventually runs once the burst
+        # settles, never silently skipping the event that triggered it.
+        if self._refresh_timer is not None:
+            self._refresh_timer.stop()
+        self._refresh_timer = self.set_timer(_REFRESH_DEBOUNCE_SECONDS, self._refresh_counts)
+
+    def _refresh_counts(self) -> None:
+        self._refresh_timer = None
+        target = self._current_highlighted_name()
+        # Re-read counts in place; deliberately do NOT re-sort while the
+        # modal is open -- a row moving under the cursor between an arrow
+        # key and Enter would select the wrong peer. `s` (action_cycle_sort)
+        # remains the only thing that re-sorts, against these fresh counts.
+        live_names: set[str] = set()
+        existing_names = {row.name for row in self._rows}
+        for peer in store.acting_as_candidates():
+            live_names.add(peer.name)
+            if peer.name not in existing_names:
+                # Appeared while the modal was open -- appended at the end
+                # of both lists, never spliced into the frozen sort order.
+                unread, newest = store.inbox_summary(peer.name)
+                new_row = _Row(peer.name, unread, newest, peer.registered_at)
+                self._rows.append(new_row)
+                self._sorted.append(new_row)
+        for row in self._rows:
+            if row.name in live_names:
+                row.unread, row.newest = store.inbox_summary(row.name)
+            # else: peer vanished mid-open -- leave its last known count in
+            # place rather than removing the row from under the cursor.
+        self._render_rows(target=target)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         idx = self._listview.index

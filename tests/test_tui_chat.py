@@ -894,8 +894,15 @@ async def test_two_refreshes_in_one_tick_do_not_empty_the_thread(relay_dir):
         for _ in range(4):
             await pilot.pause()
 
-        # Two peer changes in ONE tick, no pump between them.
+        # Two peer changes in ONE tick, no pump between them. chat.py:121 is
+        # the only production call site and it always passes
+        # `self.active_peer` -- so a real double-navigation-in-one-tick
+        # updates active_peer alongside each refresh_thread call, and the
+        # test must too, or it drives the widget into a state production
+        # can never reach.
+        screen.active_peer = "A"
         stream.refresh_thread("CCO", "A")
+        screen.active_peer = "B"
         stream.refresh_thread("CCO", "B")
         for _ in range(4):
             await pilot.pause()
@@ -903,7 +910,259 @@ async def test_two_refreshes_in_one_tick_do_not_empty_the_thread(relay_dir):
         rendered = {c._msg.id for c in stream.children
                     if getattr(c, "_msg", None) is not None}
         expected = {m.id for m in store.list_thread("CCO", "B")}
+        missing = expected - rendered
+        extra = rendered - expected
         assert rendered == expected, (
-            f"thread emptied: rendered {len(rendered)} bubbles, "
-            f"data has {len(expected)}"
+            f"thread mismatch after two same-tick refreshes: "
+            f"rendered={sorted(rendered)} expected={sorted(expected)} "
+            f"(missing={sorted(missing)}, extra={sorted(extra)})"
         )
+
+
+@pytest.mark.asyncio
+async def test_watcher_refresh_interleaves_with_user_refresh_of_same_thread(relay_dir):
+    """#118 made ChatScreen.on_store_changed fire for the first time in any
+    shipped version -- previously dead code. That opens a path nobody has
+    tested: a watcher-driven refresh landing close to a user-driven refresh
+    of the SAME thread, both routed through chat.py's own real entry points
+    (app._on_change() for the watcher side, ChatScreen.on_chat_composer_send
+    for the user side -- never a direct stream.refresh_thread() call, which
+    is exactly what made the sibling test above misfire on an interleaving
+    production can never reach).
+
+    The third message ("z") is written AFTER the composer-send's own
+    synchronous refresh has already run and BEFORE any pump -- so it is
+    deliberately invisible to every refresh except the one app._on_change()
+    triggers. If the watcher-driven refresh is a no-op (or never reaches the
+    stream), "z" never renders and this fails; the composer-send's own
+    refresh cannot make it pass on its own, unlike the first version of this
+    test."""
+    from downbeat.core import store
+    from downbeat.tui.widgets.chat_composer import ChatComposer
+
+    store.register_peer(name="CCO", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="A", session_id="s2", cwd="/tmp", role="child",
+                        parent="CCO")
+    store.send_message(from_peer="A", to_peer="CCO", subject="x", body="1")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        screen.acting_as = "CCO"
+        screen.active_peer = "A"
+        screen._refresh_thread()
+        for _ in range(4):
+            await pilot.pause()
+
+        # A real user action (sending a message -- writes + refreshes the
+        # SAME thread synchronously), then a THIRD message this action's own
+        # refresh cannot have seen, then a real watcher-driven refresh --
+        # all with no pump between them, so any deferred mount()/remove()
+        # from the composer-send is still pending when the watcher-driven
+        # refresh (dispatched via the StoreChanged message queue on the
+        # next pump) runs.
+        screen.on_chat_composer_send(ChatComposer.Send("hello"))
+        store.send_message(from_peer="A", to_peer="CCO", subject="z", body="3")
+        app._on_change()
+        for _ in range(6):
+            await pilot.pause()
+
+        stream = screen.query_one("#chat-stream")
+        rendered = {c._msg.id for c in stream.children
+                    if getattr(c, "_msg", None) is not None}
+        expected = {m.id for m in store.list_thread("CCO", "A")}
+        missing = expected - rendered
+        extra = rendered - expected
+        assert rendered == expected, (
+            f"same-thread interleaving mismatch: rendered={sorted(rendered)} "
+            f"expected={sorted(expected)} "
+            f"(missing={sorted(missing)}, extra={sorted(extra)})"
+        )
+
+
+@pytest.mark.asyncio
+async def test_concurrent_populate_tabs_does_not_raise(relay_dir, monkeypatch):
+    """#118 round 3: ChatScreen._populate_tabs() calls PeerTabs.populate(),
+    which IS internally guarded (a re-entrant call while one is in flight
+    just returns -- peer_tabs.py's `self._populating`) -- but _populate_tabs()
+    then does its OWN `tabs.active = want` reconciliation OUTSIDE that guard.
+    A second, concurrent _populate_tabs() call can reach that unguarded
+    assignment while the first call's populate() is still mid-flight
+    (specifically the window between `await self.clear()` wiping the tab
+    bar and the tabs being re-added), targeting a tab id that does not
+    exist yet. Textual's Tabs.validate_active raises `ValueError: No Tab
+    with id '...'` for exactly that case (textual/widgets/_tabs.py:577-580).
+
+    This became reachable in practice once watcher.py's dest_path fix made
+    a real filesystem write actually reach on_store_changed for the first
+    time on any platform: previously the predicate never matched a real
+    write at all (checked src_path, which is always the temp name), so a
+    watcher-driven action_refresh() while on_mount's own populate was still
+    running was structurally impossible -- there was no second caller.
+    CI caught it as a flaky ValueError in test_tui_notify.py, Linux and
+    macOS both, timing-dependent -- and plain asyncio.gather() of two
+    _populate_tabs() calls here does NOT reproduce it: traced it directly
+    (a throwaway script, not this test) and found the second task's whole
+    synchronous run -- guard check, early return, the unguarded .active=
+    line -- completes in one burst DURING the first call's suspension
+    *inside* clear()'s widget-removal wait, i.e. strictly BEFORE clear()
+    has actually finished emptying the tab bar. So a same-thread gather
+    only ever lands the second call in the SAFE half of the window
+    (tabs still present), matching Claude-Relay's own "5/5 pass, does not
+    reproduce" on their machine -- the real race needs the second caller
+    to start specifically AFTER clear() has finished, which is exactly
+    what a real, independently-timed cross-thread watcher event can do
+    and organic same-thread scheduling doesn't.
+
+    Made deterministic here by triggering the second _populate_tabs() call
+    from inside a patched PeerTabs.clear(), right after the real clear()
+    resolves (tabs confirmed empty) -- this doesn't fabricate a defect, it
+    places the second caller exactly in the window the source trace
+    (clear() drops to zero tabs, then re-adds them one add_tab() at a time)
+    already proves exists, the same platform-independence technique as the
+    watcher.py handler-level tests."""
+    from downbeat.core import store
+    from downbeat.tui.widgets.peer_tabs import PeerTabs
+    store.register_peer(name="alpha", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="beta", session_id="s2", cwd="/tmp", role="parent")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+
+        original_clear = PeerTabs.clear
+
+        async def clear_and_trigger_concurrent_populate(self):
+            await original_clear(self)
+            # Tabs are now confirmed empty (clear() has fully resolved) but
+            # not yet re-added -- fire the second, concurrent
+            # _populate_tabs() call exactly here, the same window a real
+            # watcher-driven on_store_changed() could land in.
+            await screen._populate_tabs()
+
+        monkeypatch.setattr(PeerTabs, "clear", clear_and_trigger_concurrent_populate)
+
+        await screen._populate_tabs()
+
+
+@pytest.mark.asyncio
+async def test_populate_with_unchanged_members_skips_clear(relay_dir, monkeypatch):
+    """#118 round 3, the actual fix: PeerTabs.populate() used to
+    clear()+add_tab() the WHOLE tab bar on every call, even when
+    membership hadn't changed -- a watcher-driven refresh from a new
+    message never adds or removes a peer, so this was the overwhelmingly
+    common case, rebuilding the DOM just to change an unread badge.
+    That rebuild's own mount timing (clear(), then add_tab() -- which
+    internally awaits the mount and then Textual's own refresh_active
+    sets .active) is what produced a ValueError under real, uncontrolled
+    cross-thread scheduling. Not reproducible deterministically: tried
+    same-thread asyncio.gather(), a tight 200-call sequential loop, and a
+    controlled cross-thread call_soon_threadsafe trigger at several
+    timing gaps (mirroring the real watcher's own trigger mechanism) --
+    none hit it locally; only the real watcher inside the full pytest
+    suite did, at a noisy, machine-load-dependent rate. So this is
+    validated structurally, not by re-running the race: assert clear()
+    is never called on a same-membership refresh, which proves the
+    vulnerable code path is simply never entered for this case -- the
+    window is removed, not narrowed."""
+    from downbeat.core import store
+    from downbeat.tui.widgets.peer_tabs import PeerTabs
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child",
+                        parent="parent")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+
+        clear_calls = []
+        original_clear = PeerTabs.clear
+
+        async def counting_clear(self):
+            clear_calls.append(1)
+            await original_clear(self)
+
+        monkeypatch.setattr(PeerTabs, "clear", counting_clear)
+
+        # Same acting_as, same members as the mount-time populate -- a
+        # pure re-refresh, exactly what a watcher-driven StoreChanged from
+        # a new message triggers.
+        await screen._populate_tabs()
+
+        assert clear_calls == [], (
+            "clear() must not run when membership hasn't changed -- if it "
+            "did, the fix isn't in effect and the race window is back"
+        )
+
+
+@pytest.mark.asyncio
+async def test_populate_with_unchanged_members_still_updates_labels(relay_dir):
+    """The skip-rebuild path above must still reflect fresh unread counts
+    -- proving it relabels in place rather than silently doing nothing,
+    which would be a worse regression than the crash it fixes."""
+    from textual.widgets import Tab
+
+    from downbeat.core import store
+    from downbeat.tui.widgets.peer_tabs import PeerTabs
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child",
+                        parent="parent")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+        tabs = screen.query_one("#peer-tabs", PeerTabs)
+        before = tabs.query_one("#tabs-list > #tab-child", Tab).label_text
+
+        store.send_message(from_peer="parent", to_peer="child", subject="s", body="b")
+        await screen._populate_tabs()
+
+        after = tabs.query_one("#tabs-list > #tab-child", Tab).label_text
+        assert before != after, (
+            f"label must reflect the new unread count via relabel-in-place "
+            f"(before={before!r}, after={after!r})"
+        )
+        assert "1" in after, f"expected an unread badge of 1 in the new label, got {after!r}"
+
+
+@pytest.mark.asyncio
+async def test_populate_with_changed_members_still_rebuilds(relay_dir, monkeypatch):
+    """Positive control for the fix above: when membership GENUINELY
+    changes, the full clear()+add_tab() rebuild must still run -- the
+    skip-rebuild optimization must not silently swallow a real member
+    joining or leaving."""
+    from downbeat.core import store
+    from downbeat.tui.widgets.peer_tabs import PeerTabs
+    store.register_peer(name="parent", session_id="s1", cwd="/tmp", role="parent")
+    store.register_peer(name="child", session_id="s2", cwd="/tmp", role="child",
+                        parent="parent")
+
+    app = RelayApp()
+    async with app.run_test(headless=True) as pilot:
+        await pilot.pause()
+        screen = app.screen
+
+        clear_calls = []
+        original_clear = PeerTabs.clear
+
+        async def counting_clear(self):
+            clear_calls.append(1)
+            await original_clear(self)
+
+        monkeypatch.setattr(PeerTabs, "clear", counting_clear)
+
+        store.register_peer(name="grandchild", session_id="s3", cwd="/tmp",
+                            role="child", parent="parent")
+        await screen._populate_tabs()
+
+        assert clear_calls == [1], (
+            "a genuine membership change must still take the full "
+            "clear()+rebuild path, not the skip-rebuild shortcut"
+        )
+        tabs = screen.query_one("#peer-tabs", PeerTabs)
+        names = {r for r in tabs._members}
+        assert "grandchild" in names, "the new member must actually be present"
