@@ -232,6 +232,24 @@ class Peer:
     # field that answers "which enduring peer is this". Empty only for a legacy
     # entry that _load_sessions has not backfilled yet.
     peer_id: str = ""
+    # --- join key to the harness's own cross-session namespace ---
+    # The name this session answers to in `ListAgents` / `SendMessage`, which
+    # is a DIFFERENT namespace from this registry: they share no key, and
+    # matching by name does not bridge them. Measured 2026-08-25 against the
+    # live fleet -- of 9 registered peers, name-matching resolves 5, is
+    # ambiguous on 2 (one name had 3 live native sessions), misses 1 outright
+    # (`Claude-Cost-Optimazing` is `Claude Code cost optimizing` natively) and
+    # 1 had no native session at all. So this is SELF-REPORTED by the session
+    # at registration rather than inferred: it removes the heuristic instead
+    # of tuning one that cannot be tuned into correctness.
+    #
+    # Store the NAME, never a `[ref]`. The harness documents that a ref not
+    # just read from a listing will not resolve, so refs are resolved fresh at
+    # send time and are not durable addresses.
+    #
+    # Empty means "not reported", never "no native session" -- absence here is
+    # silence from the session, not evidence about the fleet.
+    native_name: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -251,6 +269,7 @@ class Peer:
             peer_id=d.get("peer_id", ""),
             last_rebind_at=d.get("last_rebind_at"),
             parent=d.get("parent"),
+            native_name=d.get("native_name", ""),
         )
 
 

@@ -120,6 +120,7 @@ def cmd_register(args: argparse.Namespace) -> int:
             name=args.name, session_id=sid, cwd=cwd, role=args.role,
             claude_pid=claude_pid, claude_pid_start=claude_pid_start,
             parent=getattr(args, "parent", None),
+            native_name=getattr(args, "native_name", "") or "",
         )
     except (AmbiguousParent, InvalidParent, PeerReparentConflict,
             PeerSessionTakeover) as e:
@@ -255,9 +256,15 @@ def cmd_peers(args: argparse.Namespace) -> int:
         return 0
     for p in peers:
         parent_suffix = f"  parent={p.parent}" if p.parent else ""
+        # Omitted entirely when unset rather than printed empty: this listing
+        # is read at a glance, and `native=` with nothing after it reads as a
+        # value rather than as an absence. Quoted because native names carry
+        # spaces ("Claude Code cost optimizing"), which would otherwise run
+        # into the next field.
+        native_suffix = f"  native={p.native_name!r}" if p.native_name else ""
         print(f"{p.name:<24}  id={p.peer_id}  role={p.role:<6}  "
               f"session={p.session_id}  "
-              f"last_seen={p.last_seen}{parent_suffix}")
+              f"last_seen={p.last_seen}{parent_suffix}{native_suffix}")
     return 0
 
 

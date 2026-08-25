@@ -58,6 +58,13 @@ def build_parser() -> argparse.ArgumentParser:
                         help="name of the peer this session is joining as a child "
                              "(required for --role child unless exactly one "
                              "role=parent peer is currently registered)")
+    sp_reg.add_argument("--native-name", default="",
+                        help="the name this session answers to in the harness's "
+                             "own cross-session namespace (the first line of "
+                             "ListAgents names it). Self-reported: downbeat is a "
+                             "CLI and cannot read that namespace itself. Omit it "
+                             "to keep whatever is already stored -- omitting "
+                             "never clears it.")
     sp_reg.set_defaults(func=relay_cmds.cmd_register)
 
     sp_send = sub.add_parser("send", help="send a message",
