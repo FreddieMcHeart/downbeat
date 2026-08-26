@@ -296,7 +296,8 @@ def _incumbent_liveness(existing: dict) -> bool | None:
 def register_peer(name: str, session_id: str, cwd: str, role: str,
                   claude_pid: int | None = None,
                   claude_pid_start: str | None = None,
-                  parent: str | None = None) -> Peer:
+                  parent: str | None = None,
+                  native_name: str = "") -> Peer:
     name = _validate_peer_name(name)
     with _sessions_lock():
         sessions = _load_sessions()
@@ -360,6 +361,15 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
         # Identity is assigned once. Re-registering an existing name is the same
         # peer reattaching, not a new one, so its id must carry over untouched.
         peer_id = (existing or {}).get("peer_id") or new_id()
+        # Silence PRESERVES, an explicit value REPLACES -- same shape as
+        # peer_id above, for a different reason. This function is the only
+        # one of the six read-modify-write sites on sessions.json that
+        # rebuilds the whole entry from the dataclass rather than mutating
+        # the raw dict, so anything not threaded through here is dropped on
+        # write. Re-registration happens at every session start, so without
+        # this line native_name would be wiped within one restart -- and a
+        # wiped field is indistinguishable from one that was never set.
+        native_name = native_name or (existing or {}).get("native_name", "")
         peer = Peer(
             name=name, session_id=session_id, cwd=cwd, role=role,
             registered_at=registered_at, last_seen=now_iso(),
@@ -368,6 +378,7 @@ def register_peer(name: str, session_id: str, cwd: str, role: str,
             session_id_history=history,
             parent=resolved_parent,
             peer_id=peer_id,
+            native_name=native_name,
         )
         sessions[name] = peer.to_dict()
         _save_sessions(sessions)
