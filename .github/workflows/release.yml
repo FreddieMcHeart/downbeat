@@ -33,16 +33,47 @@ jobs:
           # identity behind GITHUB_TOKEN isn't covered by the bypass and gets
           # GH013-rejected. See docs/release-setup.md Step 4.
           token: ${{ secrets.RELEASE_TOKEN }}
-      # NOTE: no setup-uv step here — this action runs build_command inside
-      # its OWN Docker container, isolated from the runner's PATH, so
-      # installing uv on the host has no effect. See build_command in
-      # pyproject.toml's [tool.semantic_release] for how uv gets installed
-      # where it's actually needed (inside the container).
+      # This ran as python-semantic-release/python-semantic-release@v10 until
+      # 2026-08-26, and the reason it no longer does is worth keeping: the
+      # action's image pinned psr EXACTLY (src/gh_action/requirements.txt is
+      # one line, `python-semantic-release == 10.6.1`) and left GitPython
+      # unpinned — resolved by pip at IMAGE BUILD time, with `--pre`, on a
+      # floating `python:3.14-slim-trixie` base.
+      #
+      # So no action ref could have constrained it. Pinning by tag or by SHA
+      # freezes the Dockerfile, and the Dockerfile is precisely what says
+      # "resolve fresh". A rebuilt image picked up a GitPython without
+      # `Actor.name_email_regex`, which psr's own config resolution calls
+      # unconditionally (semantic_release/cli/config.py:732), so the run died
+      # at "Loading configuration from pyproject.toml" before parsing a single
+      # commit. Neither project had released anything in the window — the
+      # image only had to be rebuilt.
+      #
+      # Running psr from THIS repo's environment puts that dependency in
+      # uv.lock where it is visible, reviewable and bisectable. Both versions
+      # were already locked here before this change: psr 10.5.3, GitPython
+      # 3.1.50 — and 3.1.50 HAS the attribute, verified by import.
+      #
+      # The action ran exactly one command (`semantic-release version`, no
+      # flags, since this workflow passed only github_token), so this is the
+      # same invocation without the container.
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked --extra dev
       - name: Python Semantic Release
         id: release
-        uses: python-semantic-release/python-semantic-release@v10
-        with:
-          github_token: ${{ secrets.RELEASE_TOKEN }}
+        env:
+          # psr consumes GH_TOKEN for the GitHub Release API. The `git push`
+          # of the version-bump commit still travels on the credentials
+          # actions/checkout persisted above — the same split the comment on
+          # that step describes, unchanged by this swap.
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        # `released` and `tag` reach $GITHUB_OUTPUT from psr ITSELF, not from
+        # the action wrapper (semantic_release/cli/github_actions_output.py) —
+        # the wrapper never wrote them. So `publish` (gated on released) and
+        # `changelog-check` (which checks out outputs.tag) keep working.
+        run: uv run semantic-release -v version
 
   publish:
     needs: release

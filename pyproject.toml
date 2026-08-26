@@ -125,11 +125,18 @@ timeout_method = "thread"
 # at build time; semantic-release just owns the edits.
 version_toml = ["pyproject.toml:project.version"]
 version_variables = ["src/downbeat/__init__.py:__version__"]
-# The python-semantic-release GitHub Action runs build_command INSIDE its own
-# Docker container (see action.yml: `runs: using: docker`), which is isolated
-# from the runner's PATH — `astral-sh/setup-uv` on the host has no effect
-# here. PSR's own docs prescribe installing uv inside build_command itself
-# for exactly this reason: https://python-semantic-release.readthedocs.io/en/latest/configuration/configuration-guides/uv_integration.html
+# build_command no longer runs inside the psr Docker action's container —
+# release.yml stopped using that action on 2026-08-26 (its image left
+# GitPython unpinned and a rebuild broke every release; the full reason is on
+# the step that replaced it). It now runs on the runner, under the uv
+# environment `uv sync --locked --extra dev` already installed, so the
+# `pip install uv` line that used to open this block is gone: it existed
+# ONLY because the container had no uv, and PSR's uv-integration guide
+# prescribes it for exactly that container case.
+#
+# `set -e` is new and is not cosmetic. This block is passed to a shell that
+# does not exit on error by default, so a failed line here used to keep
+# going and the release still reported success — a silent partial build.
 #
 # `uv lock --upgrade-package` + `git add uv.lock` is PSR's own documented fix
 # (same page) for a real failure hit on the first release (0.1.1, db95371):
@@ -157,7 +164,7 @@ version_variables = ["src/downbeat/__init__.py:__version__"]
 # locally on both an already-in-sync and a deliberately-mismatched value,
 # in case the PSR docker container's Python is older than 3.11.
 build_command = """
-pip install uv
+set -e
 uv lock --upgrade-package "downbeat"
 git add uv.lock
 python3 -c '
