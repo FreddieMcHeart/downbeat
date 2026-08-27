@@ -138,6 +138,12 @@ version_variables = ["src/downbeat/__init__.py:__version__"]
 # does not exit on error by default, so a failed line here used to keep
 # going and the release still reported success — a silent partial build.
 #
+# CONSEQUENCE, so nobody reverts it in a hurry: the first release after this
+# may fail LOUDLY on something that was already broken and was being
+# swallowed. That is the guard working, not a regression it introduced. If a
+# release fails here, read WHICH line failed before blaming `set -e` — it
+# reports a pre-existing fault, it does not create one.
+#
 # `uv lock --upgrade-package` + `git add uv.lock` is PSR's own documented fix
 # (same page) for a real failure hit on the first release (0.1.1, db95371):
 # PSR rewrites pyproject.toml's version but never touches uv.lock, so CI's
@@ -153,16 +159,21 @@ version_variables = ["src/downbeat/__init__.py:__version__"]
 # the failed line and the job still reported success. Confirmed via the actual
 # job log, not assumed from docs alone.
 #
-# release.yml now pins @v10, which may well export $PACKAGE_NAME. The literal
-# is kept anyway: it cannot break, and the failure it replaced was invisible
-# (a hard error that still reported success), so there is nothing to gain by
-# reintroducing a variable whose absence is silent. If you do switch, verify
-# from a real job log rather than the docs — that is how this was found.
+# release.yml no longer uses the action at all, so $PACKAGE_NAME is not
+# exported by anything. The literal stays: it cannot break, and the failure it
+# replaced was invisible (a hard error that still reported success), so there
+# is nothing to gain by reintroducing a variable whose absence is silent. If
+# you do switch, verify from a real job log rather than the docs — that is how
+# this was found.
 #
 # .claude-plugin/plugin.json's own `version` field is kept in sync with this
-# one via the same commit — stdlib re+json (not tomllib), verified working
-# locally on both an already-in-sync and a deliberately-mismatched value,
-# in case the PSR docker container's Python is older than 3.11.
+# one via the same commit — stdlib re+json, not tomllib. That choice used to
+# be justified by the PSR container's Python possibly predating 3.11. There is
+# no container now, and `python3` here resolves to the RUNNER's interpreter, so
+# the original reason is gone — but the choice is still the right one, for a
+# better reason: re+json works on any python3 at all, which means this line
+# does not care what setup-uv did or did not put on PATH. Verified locally
+# against both an already-in-sync and a deliberately-mismatched value.
 build_command = """
 set -e
 uv lock --upgrade-package "downbeat"

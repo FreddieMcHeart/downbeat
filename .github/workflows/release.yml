@@ -64,10 +64,22 @@ jobs:
       - name: Python Semantic Release
         id: release
         env:
-          # psr consumes GH_TOKEN for the GitHub Release API. The `git push`
-          # of the version-bump commit still travels on the credentials
-          # actions/checkout persisted above — the same split the comment on
-          # that step describes, unchanged by this swap.
+          # GH_TOKEN is psr's OWN default env var name for the GitHub hvcs —
+          # `semantic_release/hvcs/github.py:81`, `DEFAULT_ENV_TOKEN_NAME =
+          # "GH_TOKEN"`. Read out of the resolved 10.5.3 package, not assumed
+          # from the action's `github_token:` input it replaces; `GITHUB_TOKEN`
+          # appears nowhere in psr and is NOT an accepted alternative here.
+          # Nothing in pyproject overrides it (no [tool.semantic_release.remote]
+          # block, no `token =`), so the default applies.
+          #
+          # Read rather than asserted on purpose: this token is used to create
+          # the GitHub Release, which is in the half of the pipeline `--noop`
+          # cannot exercise. A wrong name there fails on somebody else's merge,
+          # and no check in this repo would catch it first.
+          #
+          # The `git push` of the version-bump commit still travels on the
+          # credentials actions/checkout persisted above — the same split the
+          # comment on that step describes, unchanged by this swap.
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         # `released` and `tag` reach $GITHUB_OUTPUT from psr ITSELF, not from
         # the action wrapper (semantic_release/cli/github_actions_output.py) —
