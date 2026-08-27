@@ -2,6 +2,33 @@
 
 <!-- version list -->
 
+## v0.18.0 (2026-08-27)
+
+### Continuous Integration
+
+- Run semantic-release from this repo's environment, not the Docker action
+  ([#124](https://github.com/FreddieMcHeart/downbeat/pull/124),
+  [`2cc09ec`](https://github.com/FreddieMcHeart/downbeat/commit/2cc09ecaad8944ec206c8cac48190bf01ee139fc))
+
+### Documentation
+
+- Read the token env var instead of asserting it, and retire two stale container comments
+  ([#124](https://github.com/FreddieMcHeart/downbeat/pull/124),
+  [`2cc09ec`](https://github.com/FreddieMcHeart/downbeat/commit/2cc09ecaad8944ec206c8cac48190bf01ee139fc))
+
+### Features
+
+- Record each peer's native cross-session name in the registry
+  ([#123](https://github.com/FreddieMcHeart/downbeat/pull/123),
+  [`519f28b`](https://github.com/FreddieMcHeart/downbeat/commit/519f28b0b98a22476772ec1e66aeb00a40e71a40))
+
+### Testing
+
+- Pin the whole-entry invariant across the four unrebuilt write sites
+  ([#123](https://github.com/FreddieMcHeart/downbeat/pull/123),
+  [`519f28b`](https://github.com/FreddieMcHeart/downbeat/commit/519f28b0b98a22476772ec1e66aeb00a40e71a40))
+
+
 ## v0.17.0 (2026-08-18)
 
 ### Bug Fixes
